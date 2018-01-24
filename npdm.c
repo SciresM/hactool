@@ -136,7 +136,7 @@ const char *svc_names[0x80] = {
 };
 
 #define MAX_FS_PERM_RW 0x27
-#define MAX_FS_PERM_int 0x1B
+#define MAX_FS_PERM_BOOL 0x1B
 #define FS_PERM_MASK_NODEBUG 0xBFFFFFFFFFFFFFFFULL
 
 const fs_perm_t fs_permissions_rw[MAX_FS_PERM_RW] = {
@@ -181,7 +181,7 @@ const fs_perm_t fs_permissions_rw[MAX_FS_PERM_RW] = {
     {"HostAccess", 0xC000000000400000}
 };
 
-const fs_perm_t fs_permissions_int[MAX_FS_PERM_int] = {
+const fs_perm_t fs_permissions_bool[MAX_FS_PERM_BOOL] = {
     {"BisCache", 0x8000000000000080},
     {"EraseMmc", 0x8000000000000080},
     {"GameCardCertificate", 0x8000000000000010},
@@ -585,13 +585,13 @@ void fac_print(fac_t *fac, fah_t *fah) {
         }
     }
     printf("\n");
-    printf("        intean Permissions:        ");
-    for (unsigned int i = 0; i < MAX_FS_PERM_int; i++) {
-        if (fs_permissions_int[i].mask & perms) {
-            if (fs_permissions_int[i].mask & (perms & FS_PERM_MASK_NODEBUG)) {
-                printf("%s\n                                    ", fs_permissions_int[i].name);
+    printf("        Boolean Permissions:        ");
+    for (unsigned int i = 0; i < MAX_FS_PERM_BOOL; i++) {
+        if (fs_permissions_bool[i].mask & perms) {
+            if (fs_permissions_bool[i].mask & (perms & FS_PERM_MASK_NODEBUG)) {
+                printf("%s\n                                    ", fs_permissions_bool[i].name);
             } else {
-                printf("%-32s [DEBUG ONLY]\n                                    ", fs_permissions_int[i].name);
+                printf("%-32s [DEBUG ONLY]\n                                    ", fs_permissions_bool[i].name);
             }        
         }
     }
