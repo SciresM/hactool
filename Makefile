@@ -2,12 +2,6 @@ include config.mk
 
 ifeq ($(OS),Windows_NT)
 LDFLAGS += -liconv
-else
-UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Darwin)
-    CFLAGS += -I/usr/local/opt/libgcrypt/include
-    LDFLAGS += -L/usr/local/opt/libgcrypt/lib
-    endif
 endif
 
 .PHONY: clean
