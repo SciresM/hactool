@@ -370,17 +370,17 @@ void kac_print(uint32_t *descriptors, uint32_t num_descriptors) {
     }
 
     if (kac.has_kern_flags) {
-        printf("        Lowest Allowed Priority:    %"PRId8"\n", kac.lowest_thread_prio);
-        printf("        Highest Allowed Priority:   %"PRId8"\n", kac.highest_thread_prio);
-        printf("        Lowest Allowed CPU ID:      %"PRId8"\n", kac.lowest_cpu_id);
-        printf("        Highest Allowed CPU ID:     %"PRId8"\n", kac.highest_cpu_id);
+        printf("        Lowest Allowed Priority:    %"PRId32"\n", kac.lowest_thread_prio);
+        printf("        Highest Allowed Priority:   %"PRId32"\n", kac.highest_thread_prio);
+        printf("        Lowest Allowed CPU ID:      %"PRId32"\n", kac.lowest_cpu_id);
+        printf("        Highest Allowed CPU ID:     %"PRId32"\n", kac.highest_cpu_id);
 
     }
 
     int first_svc = 1;
     for (unsigned int i = 0; i < 0x80; i++) {
         if (kac.svcs_allowed[i]) {
-            printf(first_svc ? "        Allowed SVCs:               %-35s (0x%02"PRIx8")\n" : "                                    %-35s (0x%02"PRIx8")\n", svc_names[i], i);
+            printf(first_svc ? "        Allowed SVCs:               %-35s (0x%02"PRIx32")\n" : "                                    %-35s (0x%02"PRIx32")\n", svc_names[i], i);
             first_svc = 0;
         }
     }
@@ -567,10 +567,10 @@ void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0
 
 void fac_print(fac_t *fac, fah_t *fah) {
     if (fac->version == fah->version) {
-        printf("        Version:                    %"PRId8"\n", fac->version);
+        printf("        Version:                    %"PRId32"\n", fac->version);
     } else {
-        printf("        Control Version:            %"PRId8"\n", fac->version);
-        printf("        Header Version:             %"PRId8"\n", fah->version);
+        printf("        Control Version:            %"PRId32"\n", fac->version);
+        printf("        Header Version:             %"PRId32"\n", fah->version);
     }
     uint64_t perms = fac->perms & fah->perms;
     printf("        Raw Permissions:            0x%016"PRIx64"\n", perms);

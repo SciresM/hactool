@@ -2,11 +2,17 @@ include config.mk
 
 ifeq ($(OS),Windows_NT)
 LDFLAGS += -liconv
+else
+UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+    CFLAGS += -I/usr/local/opt/libgcrypt/include
+    LDFLAGS += -L/usr/local/opt/libgcrypt/lib
+    endif
 endif
 
 .PHONY: clean
 
-CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=2 -D_DEFAULT_SOURCE -D__USE_MINGW_ANSI_STDIO=1 -D_FILE_OFFSET_BITS=64
+CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -D__USE_MINGW_ANSI_STDIO=1 -D_FILE_OFFSET_BITS=64
 
 all: ncatool
 
