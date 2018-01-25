@@ -21,7 +21,7 @@ void os_strcpy(oschar_t *dst, const char *src) {
     in = (char *)src;
     out = (char *)dst;
     in_bytes = src_len;
-    out_bytes = dst_len;
+    out_bytes = dst_len * sizeof(oschar_t);
 
     iconv_t cd = iconv_open("UTF-16LE", "UTF-8");
     iconv(cd, &in, &in_bytes, &out, &out_bytes);
