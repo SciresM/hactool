@@ -177,7 +177,7 @@ typedef struct {
     uint32_t sector_ofs;
 } nca_section_ctx_t;
 
-typedef struct {
+typedef struct nca_ctx {
     FILE *file; /* File for this NCA. */
     size_t file_size;   
     unsigned char crypto_type;

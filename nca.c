@@ -46,7 +46,7 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
     } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) { 
         /* No better way to do this than to make all BKTR seeking virtual. */
         ctx->bktr_ctx.virtual_seek = offset;
-        if (ctx->tool_ctx->base_romfs_file == NULL) { /* Without base romfs, reads will be physical. */
+        if (ctx->tool_ctx->base_file == NULL) { /* Without base romfs, reads will be physical. */
             ctx->bktr_ctx.bktr_seek = offset;
         } else { /* Let's do the complicated thing. */
             bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, offset);
@@ -200,7 +200,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
             nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
         } else if (ctx->header->crypt_type == CRYPT_BKTR) { /* Spooky BKTR AES-CTR. */
             /* Are we doing virtual reads, or physical reads? */
-            if (ctx->tool_ctx->base_romfs_file != NULL) {
+            if (ctx->tool_ctx->base_file != NULL) {
                 bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, ctx->bktr_ctx.virtual_seek);
                 bktr_relocation_entry_t *next_reloc = reloc + 1;
                 uint64_t virt_seek = ctx->bktr_ctx.virtual_seek;
@@ -210,9 +210,24 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                         read = nca_bktr_section_physical_fread(ctx, buffer, count);
                     } else {
                         /* Nice and easy read from the base rom. */
-                        fseeko64(ctx->tool_ctx->base_romfs_file, ctx->bktr_ctx.base_seek, SEEK_SET);
-                        if ((read = fread(buffer, 1, count, ctx->tool_ctx->base_romfs_file)) != count) {
-                            return 0;
+                        if (ctx->tool_ctx->base_file_type == BASEFILE_ROMFS) {
+                            fseeko64(ctx->tool_ctx->base_file, ctx->bktr_ctx.base_seek, SEEK_SET);
+                            if ((read = fread(buffer, 1, count, ctx->tool_ctx->base_file)) != count) {
+                                return 0;
+                            }
+                        } else {
+                            nca_ctx_t *base_ctx = ctx->tool_ctx->base_nca_ctx;
+                            unsigned int romfs_section_num;
+                            for (romfs_section_num = 0; romfs_section_num < 4; romfs_section_num++) {
+                                if (base_ctx->section_contexts[romfs_section_num].type == ROMFS) {
+                                    break;
+                                }
+                            }
+                            nca_section_fseek(&base_ctx->section_contexts[romfs_section_num], ctx->bktr_ctx.base_seek);
+                            if ((read = nca_section_fread(&base_ctx->section_contexts[romfs_section_num], buffer, count)) != count) {
+                                fprintf(stderr, "Failed to read from Base NCA RomFS!\n");
+                                exit(EXIT_FAILURE);
+                            }
                         }
                     }        
                 } else {
@@ -249,6 +264,19 @@ void nca_free_section_contexts(nca_ctx_t *ctx) {
                 }
                 if (ctx->section_contexts[i].romfs_ctx.files) {
                     free(ctx->section_contexts[i].romfs_ctx.files);
+                }
+            } else if (ctx->section_contexts[i].type == BKTR) {
+                if (ctx->section_contexts[i].bktr_ctx.subsection_block) {
+                    free(ctx->section_contexts[i].bktr_ctx.subsection_block);
+                }
+                if (ctx->section_contexts[i].bktr_ctx.relocation_block) {
+                    free(ctx->section_contexts[i].bktr_ctx.relocation_block);
+                }
+                if (ctx->section_contexts[i].bktr_ctx.directories) {
+                    free(ctx->section_contexts[i].bktr_ctx.directories);
+                }
+                if (ctx->section_contexts[i].bktr_ctx.files) {
+                    free(ctx->section_contexts[i].bktr_ctx.files);
                 }
             }
         }
@@ -382,10 +410,12 @@ void nca_process(nca_ctx_t *ctx) {
         }
     }
 
-    nca_print(ctx);
+    if (ctx->tool_ctx->action & ACTION_INFO) {
+        nca_print(ctx);
+    }
 
     for (unsigned int i = 0; i < 4; i++) {
-        if (ctx->section_contexts[i].is_present) {
+        if (ctx->section_contexts[i].is_present && ctx->tool_ctx->action & ACTION_EXTRACT) {
             /* printf("Saving section %"PRId32"...\n", i); */
             nca_save_section(&ctx->section_contexts[i]);
             printf("\n");
@@ -850,7 +880,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             if (i != 0) {
                 /* Hash table is previous level's data. */
                 cur_level->hash_offset = ctx->bktr_ctx.ivfc_levels[i-1].data_offset;
-            } else if (ctx->tool_ctx->base_romfs_file != NULL) {
+            } else if (ctx->tool_ctx->base_file != NULL) {
                 /* Hash table is the superblock hash. Always check the superblock hash. */
                 ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->ivfc_header.master_hash, cur_level->data_offset, cur_level->data_size, cur_level->hash_block_size, 1);
                 cur_level->hash_validity = ctx->superblock_hash_validity;
@@ -863,7 +893,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         }
 
         ctx->bktr_ctx.romfs_offset = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_offset;
-        if (ctx->tool_ctx->base_romfs_file != NULL) {
+        if (ctx->tool_ctx->base_file != NULL) {
             nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset);
             if (nca_section_fread(ctx, &ctx->bktr_ctx.header, sizeof(romfs_hdr_t)) != sizeof(romfs_hdr_t)) {
                 fprintf(stderr, "Failed to read BKTR Virtual RomFS header!\n");
@@ -947,7 +977,7 @@ void nca_print_bktr_section(nca_section_ctx_t *ctx) {
         printf("        BKTR section seems to be corrupted.\n");
         return;
     }
-    int did_verify = (ctx->tool_ctx->action & ACTION_VERIFY) && (ctx->tool_ctx->base_romfs_file != NULL);
+    int did_verify = (ctx->tool_ctx->action & ACTION_VERIFY) && (ctx->tool_ctx->base_file != NULL);
     if (did_verify ) {
         if (ctx->superblock_hash_validity == VALIDITY_VALID) {
             memdump(stdout, "        Superblock Hash (GOOD):     ",  &ctx->bktr_ctx.superblock->ivfc_header.master_hash, 0x20);
@@ -1025,7 +1055,7 @@ void nca_save_section(nca_section_ctx_t *ctx) {
             case INVALID:
                 break;
         }
-    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL && ctx->tool_ctx->base_romfs_file != NULL) {
+    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL && ctx->tool_ctx->base_file != NULL) {
         size = ctx->bktr_ctx.relocation_block->patch_romfs_size;
     }
     
@@ -1051,7 +1081,7 @@ void nca_save_section(nca_section_ctx_t *ctx) {
             nca_save_ivfc_section(ctx);
             break;
         case BKTR:
-            if (ctx->tool_ctx->base_romfs_file == NULL) {
+            if (ctx->tool_ctx->base_file == NULL) {
                 fprintf(stderr, "Note: cannot save BKTR section without base romfs.\n");
                 break;
             }

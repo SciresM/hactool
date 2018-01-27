@@ -9,6 +9,11 @@ typedef enum {
     KEYSET_RETAIL
 } keyset_variant_t;
 
+typedef enum {
+    BASEFILE_ROMFS,
+    BASEFILE_NCA
+} ncatool_basefile_t;
+
 typedef struct {
     unsigned char header_key[0x20];
     unsigned char titlekeks[0x20][0x10];
@@ -48,10 +53,14 @@ enum ncatool_file_type
 #define ACTION_RAW (1<<3)
 #define ACTION_LISTROMFS (1<<4)
 
+struct nca_ctx; /* This will get re-defined by nca.h. */
+
 typedef struct {
     enum ncatool_file_type file_type;
     FILE *file;
-    FILE *base_romfs_file;
+    FILE *base_file;
+    ncatool_basefile_t base_file_type;
+    struct nca_ctx *base_nca_ctx;
     ncatool_settings_t settings;
     uint32_t action;
 } ncatool_ctx_t;
