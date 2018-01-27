@@ -9,6 +9,7 @@
 #include "npdm.h"
 #include "pfs0.h"
 #include "ivfc.h"
+#include "bktr.h"
 
 #define MAGIC_NCA3 0x3341434E /* "NCA3" */
 
@@ -36,7 +37,9 @@ typedef struct {
 
 typedef struct {
     ivfc_hdr_t ivfc_header;
-    uint8_t _0xE0[0x58];
+    uint8_t _0xE0[0x18];
+    bktr_header_t relocation_header;
+    bktr_header_t subsection_header;
 } bktr_superblock_t;
 
 typedef struct {
@@ -61,7 +64,16 @@ typedef struct {
 typedef struct {
     bktr_superblock_t *superblock;
     validity_t superblock_hash_validity;
+    bktr_relocation_block_t *relocation_block;
+    bktr_subsection_block_t *subsection_block;
     ivfc_level_ctx_t ivfc_levels[IVFC_MAX_LEVEL];
+    uint64_t romfs_offset;
+    romfs_hdr_t header;
+    romfs_direntry_t *directories;
+    romfs_fentry_t *files;
+    uint64_t virtual_seek;
+    uint64_t bktr_seek;
+    uint64_t base_seek;
 } bktr_section_ctx_t;
 
 typedef enum {
@@ -94,7 +106,13 @@ typedef struct {
         romfs_superblock_t romfs_superblock;
         bktr_superblock_t bktr_superblock;
     };
-    uint8_t section_ctr[0x8];
+    union {
+        uint8_t section_ctr[0x8];
+        struct {
+            uint32_t section_ctr_low;
+            uint32_t section_ctr_high;
+        };
+    };
     uint8_t _0x148[0xB8]; /* Padding. */
 } nca_fs_header_t;
 

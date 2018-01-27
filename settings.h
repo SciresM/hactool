@@ -51,6 +51,7 @@ enum ncatool_file_type
 typedef struct {
     enum ncatool_file_type file_type;
     FILE *file;
+    FILE *base_romfs_file;
     ncatool_settings_t settings;
     uint32_t action;
 } ncatool_ctx_t;

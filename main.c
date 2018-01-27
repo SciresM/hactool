@@ -42,7 +42,7 @@ static void usage(void) {
         "  --romfs=file       Specify RomFS file path. Overrides appropriate section file path.\n"
         "  --romfsdir=dir     Specify RomFS directory path. Overrides appropriate section directory path.\n"
         "  --listromfs        List files in RomFS.\n"
-        /* TODO: "  --basenca          Set Base NCA to use with update partitions.\n" */
+        "  --baseromfs        Set Base RomFS to use with update partitions.\n" 
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
             {"titlekey", 1, NULL, 12},
             {"contentkey", 1, NULL, 13},
             {"listromfs", 0, NULL, 14},
-            /* TODO: {"basenca", 1, NULL, 15}, */
+            {"baseromfs", 1, NULL, 15},
             {NULL, 0, NULL, 0},
         };
 
@@ -186,6 +186,12 @@ int main(int argc, char **argv) {
             case 14:
                 ctx.tool_ctx->action |= ACTION_LISTROMFS;
                 break;
+            case 15:
+                if ((ctx.tool_ctx->base_romfs_file = fopen(optarg, "rb")) == NULL) {
+                    fprintf(stderr, "unable to open %s: %s\n", optarg, strerror(errno));
+                    return EXIT_FAILURE;
+                }
+                break;
             default:
                 usage();
                 return EXIT_FAILURE;
@@ -201,11 +207,19 @@ int main(int argc, char **argv) {
 
     if ((tool_ctx.file = fopen(input_name, "rb")) == NULL) {
         fprintf(stderr, "unable to open %s: %s\n", input_name, strerror(errno));
+        return EXIT_FAILURE;
     }
 
     ctx.file = tool_ctx.file;
     nca_process(&ctx);
     nca_free_section_contexts(&ctx);
+    
+    if (ctx.tool_ctx->base_romfs_file != NULL) {
+        fclose(ctx.tool_ctx->base_romfs_file);
+    }
+    if (ctx.file != NULL) {
+        fclose(ctx.file);
+    }
     printf("Done!\n");
 
     return EXIT_SUCCESS;

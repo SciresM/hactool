@@ -20,6 +20,19 @@ void nca_update_ctr(unsigned char *ctr, uint64_t ofs) {
     }
 }
 
+/* Updates the CTR for a bktr offset. */
+void nca_update_bktr_ctr(unsigned char *ctr, uint32_t ctr_val, uint64_t ofs) {
+    ofs >>= 4;
+    for (unsigned int j = 0; j < 0x8; j++) {
+        ctr[0x10-j-1] = (unsigned char)(ofs & 0xFF);
+        ofs >>= 8;
+    }
+    for (unsigned int j = 0; j < 4; j++) {
+        ctr[0x8-j-1] = (unsigned char)(ctr_val & 0xFF);
+        ctr_val >>= 8;
+    }
+}
+
 /* Seek to an offset within a section. */
 void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
     if (ctx->is_decrypted) {
@@ -30,7 +43,23 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
         ctx->cur_seek = (ctx->offset + offset) & ~0x1FF;
         ctx->sector_num = offset / 0x200;
         ctx->sector_ofs = offset & 0x1FF;
-    } else if (ctx->header->crypt_type != CRYPT_NONE) {
+    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) { 
+        /* No better way to do this than to make all BKTR seeking virtual. */
+        ctx->bktr_ctx.virtual_seek = offset;
+        if (ctx->tool_ctx->base_romfs_file == NULL) { /* Without base romfs, reads will be physical. */
+            ctx->bktr_ctx.bktr_seek = offset;
+        } else { /* Let's do the complicated thing. */
+            bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, offset);
+            uint64_t section_ofs = offset - reloc->virt_offset + reloc->phys_offset;
+            if (reloc->is_patch) {
+                /* Seeked within the patch romfs. */
+                ctx->bktr_ctx.bktr_seek = section_ofs;
+            } else {
+                /* Seeked within the base romfs. */
+                ctx->bktr_ctx.base_seek = section_ofs;
+            }
+        }
+    } else if (ctx->header->crypt_type != CRYPT_NONE) { /* CTR, and BKTR until subsections are read. */
         fseeko64(ctx->file, (ctx->offset + offset) & ~0xF, SEEK_SET);
         ctx->cur_seek = (ctx->offset + offset) & ~0xF;
         nca_update_ctr(ctx->ctr, ctx->offset + offset);
@@ -38,12 +67,68 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
     }
 }
 
+size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
+    size_t read = 0; /* XXX */
+    size_t size = 1;
+    char block_buf[0x10];
+    
+    if (ctx->is_decrypted) {
+        fseeko64(ctx->file, (ctx->offset + ctx->bktr_ctx.bktr_seek), SEEK_SET);
+        read = fread(buffer, size, count, ctx->file);
+        nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + read);
+        return read;
+    }
+    
+    bktr_subsection_entry_t *subsec = bktr_get_subsection(ctx->bktr_ctx.subsection_block, ctx->bktr_ctx.bktr_seek);
+    nca_update_bktr_ctr(ctx->ctr, subsec->ctr_val, ctx->bktr_ctx.bktr_seek + ctx->offset);
+    fseeko64(ctx->file, (ctx->offset + ctx->bktr_ctx.bktr_seek) & ~0xF, SEEK_SET);
+    uint32_t block_ofs;
+    bktr_subsection_entry_t *next_subsec = bktr_get_subsection(ctx->bktr_ctx.subsection_block, ctx->bktr_ctx.bktr_seek + count);
+    if (next_subsec == subsec || (ctx->bktr_ctx.bktr_seek + count == next_subsec->offset && next_subsec == subsec + 1)) {
+        /* Easy path, reading *only* within the subsection. */
+        if ((block_ofs = ctx->bktr_ctx.bktr_seek & 0xF) != 0) {
+            if ((read = fread(block_buf, 1, 0x10, ctx->file)) != 0x10) {
+                return 0;
+            }
+            aes_setiv(ctx->aes, ctx->ctr, 0x10);
+            aes_decrypt(ctx->aes, block_buf, NULL, 0x10);
+            if (count + block_ofs < 0x10) {
+                memcpy(buffer, block_buf + ctx->sector_ofs, count);
+                nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + count);
+                return count;
+            }
+            memcpy(buffer, block_buf + block_ofs, 0x10 - block_ofs);
+            uint32_t read_in_block = 0x10 - block_ofs;
+            nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek - block_ofs + 0x10);
+            return read_in_block + nca_section_fread(ctx, (char *)buffer + read_in_block, count - read_in_block);
+        }
+        if ((read = fread(buffer, 1, count, ctx->file)) != count) {
+                return 0;
+        }                  
+        aes_setiv(ctx->aes, ctx->ctr, 16);
+        aes_decrypt(ctx->aes, buffer, NULL, count);
+        nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + count);
+    } else {
+        /* Sad path. */
+        uint64_t within_subsection = next_subsec->offset - ctx->bktr_ctx.bktr_seek;
+        if ((read = nca_section_fread(ctx, buffer, within_subsection)) != within_subsection) {
+            return 0;
+        }
+        read += nca_section_fread(ctx, (char *)buffer + within_subsection, count - within_subsection);
+        if (read != count) {
+            return 0;
+        }
+    }
+    
+    return read;
+}
+
 size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
     size_t read = 0; /* XXX */
     size_t size = 1;
     char block_buf[0x10];
 
-    if (ctx->is_decrypted) {
+    if (ctx->is_decrypted && ctx->type != BKTR) {
         read = fread(buffer, size, count, ctx->file);
         return read;
     }
@@ -87,39 +172,64 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
         }
     } else {
         /* Perform decryption, if necessary. */
-        switch (ctx->header->crypt_type) {
-                case CRYPT_CTR:     { /* AES-CTR. */
-                    if (ctx->sector_ofs) {
-                        if ((read = fread(block_buf, 1, 0x10, ctx->file)) != 0x10) {
+        /* AES-CTR. */
+        if (ctx->header->crypt_type == CRYPT_CTR || (ctx->header->crypt_type == CRYPT_BKTR && ctx->bktr_ctx.subsection_block == NULL))
+        {                
+            if (ctx->sector_ofs) {
+                if ((read = fread(block_buf, 1, 0x10, ctx->file)) != 0x10) {
+                    return 0;
+                }
+                aes_setiv(ctx->aes, ctx->ctr, 0x10);
+                aes_decrypt(ctx->aes, block_buf, NULL, 0x10);
+                if (count + ctx->sector_ofs < 0x10) {
+                    memcpy(buffer, block_buf + ctx->sector_ofs, count);
+                    ctx->sector_ofs += count;
+                    nca_section_fseek(ctx, ctx->cur_seek - ctx->offset);
+                    return count;
+                }
+                memcpy(buffer, block_buf + ctx->sector_ofs, 0x10 - ctx->sector_ofs);
+                uint32_t read_in_block = 0x10 - ctx->sector_ofs;
+                nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + 0x10);
+                return read_in_block + nca_section_fread(ctx, (char *)buffer + read_in_block, count - read_in_block);
+            }
+            if ((read = fread(buffer, 1, count, ctx->file)) != count) {
+                    return 0;
+            }                  
+            aes_setiv(ctx->aes, ctx->ctr, 16);
+            aes_decrypt(ctx->aes, buffer, NULL, count);
+            nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
+        } else if (ctx->header->crypt_type == CRYPT_BKTR) { /* Spooky BKTR AES-CTR. */
+            /* Are we doing virtual reads, or physical reads? */
+            if (ctx->tool_ctx->base_romfs_file != NULL) {
+                bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, ctx->bktr_ctx.virtual_seek);
+                bktr_relocation_entry_t *next_reloc = reloc + 1;
+                uint64_t virt_seek = ctx->bktr_ctx.virtual_seek;
+                if (ctx->bktr_ctx.virtual_seek + count <= next_reloc->virt_offset) {
+                    /* Easy path: We're reading *only* within the current relocation. */
+                    if (reloc->is_patch) {
+                        read = nca_bktr_section_physical_fread(ctx, buffer, count);
+                    } else {
+                        /* Nice and easy read from the base rom. */
+                        fseeko64(ctx->tool_ctx->base_romfs_file, ctx->bktr_ctx.base_seek, SEEK_SET);
+                        if ((read = fread(buffer, 1, count, ctx->tool_ctx->base_romfs_file)) != count) {
                             return 0;
                         }
-                        aes_setiv(ctx->aes, ctx->ctr, 0x10);
-                        aes_decrypt(ctx->aes, block_buf, NULL, 0x10);
-                        if (count + ctx->sector_ofs < 0x10) {
-                            memcpy(buffer, block_buf + ctx->sector_ofs, count);
-                            ctx->sector_ofs += count;
-                            nca_section_fseek(ctx, ctx->cur_seek - ctx->offset);
-                            return count;
-                        }
-                        memcpy(buffer, block_buf + ctx->sector_ofs, 0x10 - ctx->sector_ofs);
-                        uint32_t read_in_block = 0x10 - ctx->sector_ofs;
-                        nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + 0x10);
-                        return read_in_block + nca_section_fread(ctx, (char *)buffer + read_in_block, count - read_in_block);
+                    }        
+                } else {
+                    uint64_t within_relocation = next_reloc->virt_offset - ctx->bktr_ctx.virtual_seek;
+                    if ((read = nca_section_fread(ctx, buffer, within_relocation)) != within_relocation) {
+                        return 0;
                     }
-                    if ((read = fread(buffer, 1, count, ctx->file)) != count) {
-                            return 0;
-                    }                  
-                    aes_setiv(ctx->aes, ctx->ctr, 16);
-                    aes_decrypt(ctx->aes, buffer, NULL, count);
-                    nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
-                    break;
+                    nca_section_fseek(ctx, virt_seek + within_relocation);
+                    read += nca_section_fread(ctx, (char *)buffer + within_relocation, count - within_relocation);
+                    if (read != count) {
+                        return 0;
+                    }
                 }
-                case CRYPT_BKTR:     { /* Spooky BKTR AES-CTR. */
-                    // TODO: Implement
-                    break;
-                }
-                default:
-                    break;
+                nca_section_fseek(ctx, virt_seek + count);
+            } else {
+                read = nca_bktr_section_physical_fread(ctx, buffer, count);
+            }
         }
     }
     return read;
@@ -671,6 +781,7 @@ void nca_process_ivfc_section(nca_section_ctx_t *ctx) {
         nca_section_fseek(ctx, ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.dir_meta_table_offset + 4);
         if (nca_section_fread(ctx, ctx->romfs_ctx.directories, ctx->romfs_ctx.header.dir_meta_table_size) != ctx->romfs_ctx.header.dir_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS directory cache!\n");
+            exit(EXIT_FAILURE);
         }
 
         ctx->romfs_ctx.files = calloc(1, ctx->romfs_ctx.header.file_meta_table_size);
@@ -681,12 +792,110 @@ void nca_process_ivfc_section(nca_section_ctx_t *ctx) {
         nca_section_fseek(ctx, ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.file_meta_table_offset);
         if (nca_section_fread(ctx, ctx->romfs_ctx.files, ctx->romfs_ctx.header.file_meta_table_size) != ctx->romfs_ctx.header.file_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS file cache!\n");
+            exit(EXIT_FAILURE);
         }
     }
 }
 
 void nca_process_bktr_section(nca_section_ctx_t *ctx) {
+    bktr_superblock_t *sb = ctx->bktr_ctx.superblock;
+    /* Validate magics. */
+    if (sb->relocation_header.magic == MAGIC_BKTR && sb->subsection_header.magic == MAGIC_BKTR) {
+        if (sb->relocation_header.offset + sb->relocation_header.size != sb->subsection_header.offset ||
+            sb->subsection_header.offset + sb->subsection_header.size != ctx->size) {
+            fprintf(stderr, "Invalid BKTR layout!\n");
+            exit(EXIT_FAILURE);
+        }
+        /* Allocate space for an extra (fake) relocation entry, to simplify our logic. */
+        void *relocs = calloc(1, sb->relocation_header.size + sizeof(bktr_relocation_entry_t));
+        if (relocs == NULL) {
+            fprintf(stderr, "Failed to allocate relocation header!\n");
+            exit(EXIT_FAILURE);
+        }
+        /* Allocate space for an extra (fake) subsection entry, to simplify our logic. */
+        void *subs = calloc(1, sb->subsection_header.size + sizeof(bktr_subsection_entry_t));
+        if (subs == NULL) {
+            fprintf(stderr, "Failed to allocate subsection header!\n");
+            exit(EXIT_FAILURE);
+        }
+        nca_section_fseek(ctx, sb->relocation_header.offset);
+        if (nca_section_fread(ctx, relocs, sb->relocation_header.size) != sb->relocation_header.size) {
+            fprintf(stderr, "Failed to read relocation header!\n");
+            exit(EXIT_FAILURE);
+        }
+        nca_section_fseek(ctx, sb->subsection_header.offset);
+        if (nca_section_fread(ctx, subs, sb->subsection_header.size) != sb->subsection_header.size) {
+            fprintf(stderr, "Failed to read subsection header!\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        /* NOTE: Setting these variables changes the way fseek/fread work! */
+        ctx->bktr_ctx.relocation_block = relocs;
+        ctx->bktr_ctx.subsection_block = subs;
+        
+        /* This simplifies logic greatly... */
+        ctx->bktr_ctx.relocation_block->entries[ctx->bktr_ctx.relocation_block->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->patch_romfs_size;
+        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].offset = sb->relocation_header.offset;
+        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].ctr_val = ctx->header->section_ctr_low;
+        
+        
+        /* Now parse out the romfs stuff. */
+        for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
+            /* Load in the current level's header data. */
+            ivfc_level_ctx_t *cur_level = &ctx->bktr_ctx.ivfc_levels[i];
+            cur_level->data_offset = sb->ivfc_header.level_headers[i].logical_offset;
+            cur_level->data_size = sb->ivfc_header.level_headers[i].hash_data_size;
+            cur_level->hash_block_size = 1 << sb->ivfc_header.level_headers[i].block_size;
 
+            if (i != 0) {
+                /* Hash table is previous level's data. */
+                cur_level->hash_offset = ctx->bktr_ctx.ivfc_levels[i-1].data_offset;
+            } else if (ctx->tool_ctx->base_romfs_file != NULL) {
+                /* Hash table is the superblock hash. Always check the superblock hash. */
+                ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->ivfc_header.master_hash, cur_level->data_offset, cur_level->data_size, cur_level->hash_block_size, 1);
+                cur_level->hash_validity = ctx->superblock_hash_validity;
+            }
+            if (ctx->tool_ctx->action & ACTION_VERIFY && i != 0) {
+                /* Actually check the table. */
+                printf("    Verifying IVFC Level %"PRId32"...\n", i);
+                cur_level->hash_validity = nca_section_check_hash_table(ctx, cur_level->hash_offset, cur_level->data_offset, cur_level->data_size, cur_level->hash_block_size, 1);
+            }
+        }
+
+        ctx->bktr_ctx.romfs_offset = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_offset;
+        if (ctx->tool_ctx->base_romfs_file != NULL) {
+            nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset);
+            if (nca_section_fread(ctx, &ctx->bktr_ctx.header, sizeof(romfs_hdr_t)) != sizeof(romfs_hdr_t)) {
+                fprintf(stderr, "Failed to read BKTR Virtual RomFS header!\n");
+            }
+
+            if ((ctx->tool_ctx->action & (ACTION_EXTRACT | ACTION_LISTROMFS)) && ctx->bktr_ctx.header.header_size == ROMFS_HEADER_SIZE) {
+                /* Pre-load the file/data entry caches. */
+                ctx->bktr_ctx.directories = calloc(1, ctx->bktr_ctx.header.dir_meta_table_size);
+                if (ctx->bktr_ctx.directories == NULL) {
+                    fprintf(stderr, "Failed to allocate RomFS directory cache!\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                /* Switch RomFS has actual entries at table offset + 4 for no good reason. */
+                nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.dir_meta_table_offset + 4);
+                if (nca_section_fread(ctx, ctx->bktr_ctx.directories, ctx->bktr_ctx.header.dir_meta_table_size) != ctx->bktr_ctx.header.dir_meta_table_size) {
+                    fprintf(stderr, "Failed to read RomFS directory cache!\n");
+                    exit(EXIT_FAILURE);
+                }
+                ctx->bktr_ctx.files = calloc(1, ctx->bktr_ctx.header.file_meta_table_size);
+                if (ctx->bktr_ctx.files == NULL) {
+                    fprintf(stderr, "Failed to allocate RomFS file cache!\n");
+                    exit(EXIT_FAILURE);
+                }
+                nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.file_meta_table_offset);
+                if (nca_section_fread(ctx, ctx->bktr_ctx.files, ctx->bktr_ctx.header.file_meta_table_size) != ctx->bktr_ctx.header.file_meta_table_size) {
+                    fprintf(stderr, "Failed to read RomFS file cache!\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
 }
 
 void nca_print_pfs0_section(nca_section_ctx_t *ctx) {
@@ -734,7 +943,33 @@ void nca_print_ivfc_section(nca_section_ctx_t *ctx) {
 }
 
 void nca_print_bktr_section(nca_section_ctx_t *ctx) {
-    printf("        BKTR superblock support not yet added.\n");
+    if (ctx->bktr_ctx.subsection_block == NULL) {
+        printf("        BKTR section seems to be corrupted.\n");
+        return;
+    }
+    int did_verify = (ctx->tool_ctx->action & ACTION_VERIFY) && (ctx->tool_ctx->base_romfs_file != NULL);
+    if (did_verify ) {
+        if (ctx->superblock_hash_validity == VALIDITY_VALID) {
+            memdump(stdout, "        Superblock Hash (GOOD):     ",  &ctx->bktr_ctx.superblock->ivfc_header.master_hash, 0x20);
+        } else {
+            memdump(stdout, "        Superblock Hash (FAIL):     ",  &ctx->bktr_ctx.superblock->ivfc_header.master_hash, 0x20);
+        }
+    } else {
+            memdump(stdout, "        Superblock Hash:            ", &ctx->bktr_ctx.superblock->ivfc_header.master_hash, 0x20);
+    } 
+    print_magic("        Magic:                      ", ctx->bktr_ctx.superblock->ivfc_header.magic);
+    printf("        ID:                         %08"PRIx32"\n", ctx->bktr_ctx.superblock->ivfc_header.id);
+    for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
+        if (did_verify) {
+            printf("        Level %"PRId32" (%s):\n", i, GET_VALIDITY_STR(ctx->bktr_ctx.ivfc_levels[i].hash_validity));
+        } else {
+            printf("        Level %"PRId32":\n", i);
+        }
+        printf("            Data Offset:            0x%012"PRIx64"\n", ctx->bktr_ctx.ivfc_levels[i].data_offset);
+        printf("            Data Size:              0x%012"PRIx64"\n", ctx->bktr_ctx.ivfc_levels[i].data_size);
+        if (i != 0) printf("            Hash Offset:            0x%012"PRIx64"\n", ctx->bktr_ctx.ivfc_levels[i].hash_offset);
+        printf("            Hash Block Size:        0x%08"PRIx32"\n", ctx->bktr_ctx.ivfc_levels[i].hash_block_size);
+    }
 }
 
 void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_size, filepath_t *filepath) {    
@@ -784,11 +1019,16 @@ void nca_save_section(nca_section_ctx_t *ctx) {
                 size = ctx->romfs_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_size;
                 break;
             case BKTR:
+                offset = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_offset;
+                size = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_size;
                 break;
             case INVALID:
                 break;
         }
+    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL && ctx->tool_ctx->base_romfs_file != NULL) {
+        size = ctx->bktr_ctx.relocation_block->patch_romfs_size;
     }
+    
     /* Extract to file. */
     filepath_t *secpath = &ctx->tool_ctx->settings.section_paths[ctx->section_num];
 
@@ -811,6 +1051,10 @@ void nca_save_section(nca_section_ctx_t *ctx) {
             nca_save_ivfc_section(ctx);
             break;
         case BKTR:
+            if (ctx->tool_ctx->base_romfs_file == NULL) {
+                fprintf(stderr, "Note: cannot save BKTR section without base romfs.\n");
+                break;
+            }
             nca_save_bktr_section(ctx);
             break;
         case INVALID:
@@ -842,7 +1086,12 @@ void nca_save_pfs0_section(nca_section_ctx_t *ctx) {
 
 /* RomFS functions... */
 void nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
-    romfs_fentry_t *entry = romfs_get_fentry(ctx->romfs_ctx.files, file_offset);
+    romfs_fentry_t *entry;
+    if (ctx->type == ROMFS) {
+        entry = romfs_get_fentry(ctx->romfs_ctx.files, file_offset);
+    } else {
+        entry = romfs_get_fentry(ctx->bktr_ctx.files, file_offset);
+    }
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
         fprintf(stderr, "Failed to allocate filepath!\n");
@@ -857,7 +1106,13 @@ void nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath
     /* If we're extracting... */
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         printf("Saving %s...\n", cur_path->char_path);
-        nca_save_section_file(ctx, ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset, entry->size, cur_path);
+        uint64_t phys_offset;
+        if (ctx->type == ROMFS) {
+            phys_offset = ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset;
+        } else {
+            phys_offset = ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.data_offset + entry->offset;
+        }
+        nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
     } else {
         printf("rom:%s\n", cur_path->char_path);
     }
@@ -870,7 +1125,12 @@ void nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath
 }
 
 void nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
-    romfs_direntry_t *entry = romfs_get_direntry(ctx->romfs_ctx.directories, dir_offset);
+    romfs_direntry_t *entry;
+    if (ctx->type == ROMFS) {
+        entry = romfs_get_direntry(ctx->romfs_ctx.directories, dir_offset);
+    } else {
+        entry = romfs_get_direntry(ctx->bktr_ctx.directories, dir_offset);
+    } 
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
         fprintf(stderr, "Failed to allocate filepath!\n");
@@ -932,6 +1192,32 @@ void nca_save_ivfc_section(nca_section_ctx_t *ctx) {
 }
 
 void nca_save_bktr_section(nca_section_ctx_t *ctx) {
+    if (ctx->superblock_hash_validity == VALIDITY_VALID) {
+        if (ctx->bktr_ctx.header.header_size == ROMFS_HEADER_SIZE) {
+            if (ctx->tool_ctx->action & ACTION_LISTROMFS) {
+                filepath_t fakepath;
+                filepath_init(&fakepath);
+                filepath_set(&fakepath, "");
 
+                nca_visit_romfs_dir(ctx, 0, &fakepath);
+            } else {
+                filepath_t *dirpath = NULL;
+                if (ctx->tool_ctx->settings.romfs_dir_path.enabled) {
+                    dirpath = &ctx->tool_ctx->settings.romfs_dir_path.path;
+                }
+                if (dirpath == NULL || dirpath->valid != VALIDITY_VALID) {
+                    dirpath = &ctx->tool_ctx->settings.section_dir_paths[ctx->section_num];
+                }
+                if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+                    os_makedir(dirpath->os_path);
+                    nca_visit_romfs_dir(ctx, 0, dirpath);
+                }
+            }
+
+            return;
+        }
+    }
+
+    fprintf(stderr, "Error: section %"PRId32" is corrupted!\n", ctx->section_num);
 }
 

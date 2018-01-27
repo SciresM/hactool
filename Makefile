@@ -13,16 +13,18 @@ all: ncatool
 .c.o:
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-ncatool: sha.o aes.o rsa.o npdm.o utils.o nca.o main.o filepath.o
+ncatool: sha.o aes.o rsa.o npdm.o bktr.o utils.o nca.o main.o filepath.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 aes.o: aes.h types.h
+
+bktr.o: bktr.h types.h
 
 filepath.o: filepath.c types.h
 
 main.o: main.c pki.h types.h
 
-nca.o: nca.h aes.h sha.h rsa.h filepath.h types.h
+nca.o: nca.h aes.h sha.h rsa.h bktr.h filepath.h types.h
 
 npdm.o: npdm.c types.h
 
