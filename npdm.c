@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "npdm.h"
 #include "utils.h"
 #include "settings.h"
