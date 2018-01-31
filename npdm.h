@@ -93,7 +93,7 @@ typedef struct {
     uint8_t modulus[0x100];
     uint32_t magic;
     uint32_t size;
-    uint32_t _0x204;
+    uint32_t _0x208;
     uint32_t is_retail;
     uint64_t title_id_range_min;
     uint64_t title_id_range_max;
