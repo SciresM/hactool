@@ -91,7 +91,7 @@ size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buffer, siz
                 return 0;
             }
             aes_setiv(ctx->aes, ctx->ctr, 0x10);
-            aes_decrypt(ctx->aes, block_buf, NULL, 0x10);
+            aes_decrypt(ctx->aes, block_buf, block_buf, 0x10);
             if (count + block_ofs < 0x10) {
                 memcpy(buffer, block_buf + ctx->sector_ofs, count);
                 nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + count);
@@ -106,7 +106,7 @@ size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buffer, siz
                 return 0;
         }                  
         aes_setiv(ctx->aes, ctx->ctr, 16);
-        aes_decrypt(ctx->aes, buffer, NULL, count);
+        aes_decrypt(ctx->aes, buffer, buffer, count);
         nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + count);
     } else {
         /* Sad path. */
@@ -138,7 +138,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
         if ((read = fread(&sector_buf, size, 0x200, ctx->file)) != 0x200) {
             return 0;
         }
-        aes_xts_decrypt(ctx->aes, &sector_buf, NULL, 0x200, ctx->sector_num, 0x200);
+        aes_xts_decrypt(ctx->aes, &sector_buf, &sector_buf, 0x200, ctx->sector_num, 0x200);
         if (count > 0x200 - ctx->sector_ofs) { /* We're leaving the sector... */
             memcpy(buffer, &sector_buf + ctx->sector_ofs, 0x200 - ctx->sector_ofs);
             ctx->sector_num++;
@@ -150,7 +150,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                     return ofs;
                 }
 
-                aes_xts_decrypt(ctx->aes, (char *)buffer + ofs, NULL, remaining & ~0x1FF, ctx->sector_num, 0x200);
+                aes_xts_decrypt(ctx->aes, (char *)buffer + ofs, (char *)buffer + ofs, remaining & ~0x1FF, ctx->sector_num, 0x200);
                 ctx->sector_num += remaining / 0x200;
                 ofs += remaining & ~0x1FF;
                 remaining &= 0x1FF;
@@ -159,7 +159,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                 if ((read = fread(&sector_buf, size, 0x200, ctx->file)) != 0x200) {
                     return ofs;
                 }
-                aes_xts_decrypt(ctx->aes, &sector_buf, NULL, 0x200, ctx->sector_num, 0x200);
+                aes_xts_decrypt(ctx->aes, &sector_buf, &sector_buf, 0x200, ctx->sector_num, 0x200);
                 memcpy((char *)buffer + ofs, &sector_buf, remaining);
                 ctx->sector_ofs = remaining;
                 read = count;
@@ -180,7 +180,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                     return 0;
                 }
                 aes_setiv(ctx->aes, ctx->ctr, 0x10);
-                aes_decrypt(ctx->aes, block_buf, NULL, 0x10);
+                aes_decrypt(ctx->aes, block_buf, block_buf, 0x10);
                 if (count + ctx->sector_ofs < 0x10) {
                     memcpy(buffer, block_buf + ctx->sector_ofs, count);
                     ctx->sector_ofs += count;
@@ -196,7 +196,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                     return 0;
             }                  
             aes_setiv(ctx->aes, ctx->ctr, 16);
-            aes_decrypt(ctx->aes, buffer, NULL, count);
+            aes_decrypt(ctx->aes, buffer, buffer, count);
             nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
         } else if (ctx->header->crypt_type == CRYPT_BKTR) { /* Spooky BKTR AES-CTR. */
             /* Are we doing virtual reads, or physical reads? */
@@ -283,14 +283,12 @@ void nca_free_section_contexts(nca_ctx_t *ctx) {
     }
 }
 
-
 void nca_process(nca_ctx_t *ctx) {
     /* First things first, decrypt header. */
     if (!nca_decrypt_header(ctx)) {
         fprintf(stderr, "Invalid NCA header!\n");
         return;
     }
-
 
     if (rsa2048_pss_verify(&ctx->header.magic, 0x200, ctx->header.fixed_key_sig, ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_modulus)) {
         ctx->fixed_sig_validity = VALIDITY_VALID;
@@ -320,13 +318,11 @@ void nca_process(nca_ctx_t *ctx) {
     } else {
         /* Decrypt title key. */
         if (ctx->tool_ctx->settings.has_titlekey) {
-            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, GCRY_CIPHER_MODE_ECB);
-            aes_decrypt(aes_ctx, ctx->tool_ctx->settings.dec_titlekey,  ctx->tool_ctx->settings.titlekey, 0x10);
+            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, AES_MODE_CTR);
+            aes_decrypt(aes_ctx, ctx->tool_ctx->settings.dec_titlekey, ctx->tool_ctx->settings.titlekey, 0x10);
             free_aes_ctx(aes_ctx);
         }
     }
-
-
 
     /* Parse sections. */
     for (unsigned int i = 0; i < 4; i++) {
@@ -367,15 +363,15 @@ void nca_process(nca_ctx_t *ctx) {
             }
 
             if (ctx->tool_ctx->settings.has_contentkey) {
-                ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.contentkey, 16, GCRY_CIPHER_MODE_CTR);
+                ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.contentkey, 16, AES_MODE_CTR);
             } else {
                 if (ctx->has_rights_id) {
-                    ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.dec_titlekey, 16, GCRY_CIPHER_MODE_CTR);
+                    ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.dec_titlekey, 16, AES_MODE_CTR);
                 } else {
                     if (ctx->section_contexts[i].header->crypt_type == CRYPT_CTR || ctx->section_contexts[i].header->crypt_type == CRYPT_BKTR) {
-                        ctx->section_contexts[i].aes = new_aes_ctx(ctx->decrypted_keys[2], 16, GCRY_CIPHER_MODE_CTR);
+                        ctx->section_contexts[i].aes = new_aes_ctx(ctx->decrypted_keys[2], 16, AES_MODE_CTR);
                     } else if (ctx->section_contexts[i].header->crypt_type == CRYPT_XTS) {
-                        ctx->section_contexts[i].aes = new_aes_ctx(ctx->decrypted_keys[0], 32, GCRY_CIPHER_MODE_XTS);
+                        ctx->section_contexts[i].aes = new_aes_ctx(ctx->decrypted_keys[0], 32, AES_MODE_XTS);
                     }
                 }
             }
@@ -441,15 +437,15 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
 
     ctx->is_decrypted = 0;
 
-    aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.header_key, 32, GCRY_CIPHER_MODE_XTS);
-    aes_xts_decrypt(aes_ctx, &ctx->header, NULL, 0xC00, 0, 0x200);
+    aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.header_key, 32, AES_MODE_XTS);
+    aes_xts_decrypt(aes_ctx, &ctx->header, &ctx->header, 0xC00, 0, 0x200);
     free_aes_ctx(aes_ctx);
     return ctx->header.magic == MAGIC_NCA3;
 }
 
 /* Decrypt key area. */
 void nca_decrypt_key_area(nca_ctx_t *ctx) {
-    aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.key_area_keys[ctx->crypto_type][ctx->header.kaek_ind], 16, GCRY_CIPHER_MODE_ECB);
+    aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.key_area_keys[ctx->crypto_type][ctx->header.kaek_ind], 16, AES_MODE_ECB);
     aes_decrypt(aes_ctx, ctx->decrypted_keys, ctx->header.encrypted_keys, 0x40);
     free_aes_ctx(aes_ctx);
 }
@@ -645,7 +641,7 @@ validity_t nca_section_check_external_hash_table(nca_section_ctx_t *ctx, unsigne
             fprintf(stderr, "Failed to read section!\n");
             exit(EXIT_FAILURE);
         }        
-        sha_hash_buffer(cur_hash, block, full_block ? block_size : read_size);
+        sha256_hash_buffer(cur_hash, block, full_block ? block_size : read_size);
         if (memcmp(cur_hash, cur_hash_table_entry, 0x20) != 0) {
             result = VALIDITY_INVALID;
             break;
@@ -1250,4 +1246,3 @@ void nca_save_bktr_section(nca_section_ctx_t *ctx) {
 
     fprintf(stderr, "Error: section %"PRId32" is corrupted!\n", ctx->section_num);
 }
-

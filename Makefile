@@ -6,15 +6,19 @@ endif
 
 .PHONY: clean
 
+INCLUDE = -I ./mbedtls/include
+LIBDIR = ./mbedtls/library
 CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -D__USE_MINGW_ANSI_STDIO=1 -D_FILE_OFFSET_BITS=64
 
-all: ncatool
+all:
+	cd mbedtls && $(MAKE)
+	$(MAKE) ncatool
 
 .c.o:
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
 ncatool: sha.o aes.o rsa.o npdm.o bktr.o utils.o nca.o main.o filepath.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
 
@@ -36,6 +40,7 @@ utils.o: utils.h types.h
 
 clean:
 	rm -f *.o ncatool ncatool.exe
+	cd mbedtls && $(MAKE) clean
 
 dist:
 	$(eval NCATOOLVER = $(shell grep '\bNCATOOL_VERSION\b' version.h \

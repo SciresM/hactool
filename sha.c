@@ -5,36 +5,51 @@
 #include "utils.h"
 
 /* Allocate new context. */
-sha_ctx_t *new_sha_ctx(void) {
+sha_ctx_t *new_sha_ctx(hash_type_t type, int hmac) {
     sha_ctx_t *ctx;
+    
     if ((ctx = malloc(sizeof(*ctx))) == NULL) {
         FATAL_ERROR("Failed to allocate sha_ctx_t!");
     }
-
-    if (gcry_md_open(&ctx->digest, GCRY_MD_SHA256, 0) != 0) {
-        FATAL_ERROR("Failed to open sha_ctx_t!");
+    
+    mbedtls_md_init(&ctx->digest);
+    
+    if (mbedtls_md_setup(&ctx->digest, mbedtls_md_info_from_type(type), hmac)) {
+        FATAL_ERROR("Failed to set up hash context!");
     }
-
+    
+    if (mbedtls_md_starts(&ctx->digest)) {
+        FATAL_ERROR("Failed to start hash context!");
+    }
+    
     return ctx;
+}
 
+/* Free an allocated context. */
+void free_sha_ctx(sha_ctx_t *ctx) {
+    /* Explicitly allow NULL. */
+    if (ctx == NULL) {
+        return;
+    }
+    
+    mbedtls_md_free(&ctx->digest);
+    free(ctx);
 }
 
 /* Update digest with new data. */
 void sha_update(sha_ctx_t *ctx, const void *data, size_t l) {
-    gcry_md_write(ctx->digest, data, l);
+    mbedtls_md_update(&ctx->digest, data, l);
 }
 
 /* Read hash from context. */
 void sha_get_hash(sha_ctx_t *ctx, unsigned char *hash) {
-    memcpy(hash, gcry_md_read(ctx->digest, 0), 0x20);
+    mbedtls_md_finish(&ctx->digest, hash);
 }
 
-/* Free context object. */
-void sha_free(sha_ctx_t *ctx) {
-    gcry_md_close(ctx->digest);
-    free(ctx);
-}
-
-void sha_hash_buffer(unsigned char *digest, const void *data, size_t l) {
-    gcry_md_hash_buffer(GCRY_MD_SHA256, digest, data, l);
+/* SHA256 digest. */
+void sha256_hash_buffer(unsigned char *digest, const void *data, size_t l) {
+    sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
+    sha_update(sha_ctx, data, l);
+    sha_get_hash(sha_ctx, digest);
+    free_sha_ctx(sha_ctx);
 }

@@ -1,18 +1,30 @@
 #ifndef NCATOOL_AES_H
 #define NCATOOL_AES_H
 
-#define GCRYPT_NO_DEPRECATED
-#include <gcrypt.h>
+#include "mbedtls/cipher.h"
 
+/* Enumerations. */
+typedef enum {
+    AES_MODE_ECB = MBEDTLS_CIPHER_AES_128_ECB,
+    AES_MODE_CTR = MBEDTLS_CIPHER_AES_128_CTR,
+    AES_MODE_XTS = MBEDTLS_CIPHER_AES_128_XTS
+} aes_mode_t;
+
+typedef enum {
+    AES_DECRYPT = MBEDTLS_DECRYPT,
+    AES_ENCRYPT = MBEDTLS_ENCRYPT,
+} aes_operation_t;
+
+/* Define structs. */
 typedef struct {
-    gcry_cipher_hd_t cipher; /* gcrypt context for this cryptor. */
-    int mode;
+    mbedtls_cipher_context_t cipher_enc;
+    mbedtls_cipher_context_t cipher_dec;
 } aes_ctx_t;
 
-
-void aes_init(void);
-aes_ctx_t *new_aes_ctx(const void *key, unsigned int key_size, int mode);
+/* Function prototypes. */
+aes_ctx_t *new_aes_ctx(const void *key, unsigned int key_size, aes_mode_t mode);
 void free_aes_ctx(aes_ctx_t *ctx);
+
 void aes_setiv(aes_ctx_t *ctx, const void *iv, size_t l);
 
 void aes_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l);

@@ -1,21 +1,25 @@
 #ifndef NCATOOL_SHA_H
 #define NCATOOL_SHA_H
 
-#define GCRYPT_NO_DEPRECATED
-#include <gcrypt.h>
+#include "mbedtls/md.h"
+
+/* Enumerations. */
+typedef enum {
+    HASH_TYPE_SHA1 = MBEDTLS_MD_SHA1,
+    HASH_TYPE_SHA256 = MBEDTLS_MD_SHA256,
+} hash_type_t;
 
 /* Define structs. */
 typedef struct {
-    gcry_md_hd_t digest; /* gcrypt context for this hasher. */
+    mbedtls_md_context_t digest;
 } sha_ctx_t;
 
-
 /* Function prototypes. */
-sha_ctx_t *new_sha_ctx(void);
+sha_ctx_t *new_sha_ctx(hash_type_t type, int hmac);
 void sha_update(sha_ctx_t *ctx, const void *data, size_t l);
 void sha_get_hash(sha_ctx_t *ctx, unsigned char *hash);
-void sha_free(sha_ctx_t *ctx);
+void free_sha_ctx(sha_ctx_t *ctx);
 
-void sha_hash_buffer(unsigned char *hash, const void *data, size_t l);
+void sha256_hash_buffer(unsigned char *digest, const void *data, size_t l);
 
 #endif
