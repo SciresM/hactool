@@ -1,3 +1,4 @@
+include ../config.mk
 
 DESTDIR=/usr/local
 PREFIX=mbedtls_
