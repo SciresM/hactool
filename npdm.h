@@ -1,5 +1,5 @@
-#ifndef NCATOOL_NPDM_H
-#define NCATOOL_NPDM_H
+#ifndef HACTOOL_NPDM_H
+#define HACTOOL_NPDM_H
 
 #include "types.h"
 #include "utils.h"
@@ -132,6 +132,6 @@ static inline npdm_aci0_t *npdm_get_aci0(npdm_t *npdm) {
     return (npdm_aci0_t *)((char *)npdm + npdm->aci0_offset);
 }
 
-void npdm_print(npdm_t *npdm, ncatool_ctx_t *tool_ctx);
+void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
 #endif

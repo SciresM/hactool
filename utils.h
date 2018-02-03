@@ -1,5 +1,5 @@
-#ifndef NCATOOL_UTILS_H
-#define NCATOOL_UTILS_H
+#ifndef HACTOOL_UTILS_H
+#define HACTOOL_UTILS_H
 
 #include <stdio.h>
 #include <stdlib.h>

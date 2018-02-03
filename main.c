@@ -9,12 +9,12 @@
 #include "pki.h"
 #include "nca.h"
 
-static char *prog_name = "ncatool";
+static char *prog_name = "hactool";
 
 /* Print usage. Taken largely from ctrtool. */
 static void usage(void) {
     fprintf(stderr, 
-        "ncatool (c) SciresM.\n"
+        "hactool (c) SciresM.\n"
         "Built: %s %s\n"
         "\n"
         "Usage: %s [options...] <file>\n"
@@ -90,12 +90,12 @@ void parse_hex_key(unsigned char *key, const char *hex) {
 }
 
 int main(int argc, char **argv) {
-    ncatool_ctx_t tool_ctx;
-    ncatool_ctx_t base_ctx; /* Context for base NCA, if used. */
+    hactool_ctx_t tool_ctx;
+    hactool_ctx_t base_ctx; /* Context for base NCA, if used. */
     nca_ctx_t nca_ctx;
     char input_name[0x200];
 
-    prog_name = (argc < 1) ? "ncatool" : argv[0];
+    prog_name = (argc < 1) ? "hactool" : argv[0];
 
     nca_init(&nca_ctx);
     memset(&tool_ctx, 0, sizeof(tool_ctx));

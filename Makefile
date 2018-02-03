@@ -12,12 +12,12 @@ CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOU
 
 all:
 	cd mbedtls && $(MAKE) lib
-	$(MAKE) ncatool
+	$(MAKE) hactool
 
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
-ncatool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o utils.o nca.o main.o filepath.o
+hactool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o utils.o nca.o main.o filepath.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
@@ -43,14 +43,14 @@ sha.o: sha.h types.h
 utils.o: utils.h types.h
 
 clean:
-	rm -f *.o ncatool ncatool.exe
+	rm -f *.o hactool hactool.exe
 	cd mbedtls && $(MAKE) clean
 
 dist:
-	$(eval NCATOOLVER = $(shell grep '\bNCATOOL_VERSION\b' version.h \
+	$(eval HACTOOLVER = $(shell grep '\bHACTOOL_VERSION\b' version.h \
 		| cut -d'	' -f2 \
 		| sed -e 's/"//g'))
-	mkdir ncatool-$(NCATOOLVER)
-	cp *.c *.h config.mk.template Makefile README.md LICENSE ncatool-$(NCATOOLVER)
-	tar czf ncatool-$(NCATOOLVER).tar.gz ncatool-$(NCATOOLVER)
-	rm -r ncatool-$(NCATOOLVER)
+	mkdir hactool-$(HACTOOLVER)
+	cp *.c *.h config.mk.template Makefile README.md LICENSE hactool-$(HACTOOLVER)
+	tar czf hactool-$(HACTOOLVER).tar.gz hactool-$(HACTOOLVER)
+	rm -r hactool-$(HACTOOLVER)

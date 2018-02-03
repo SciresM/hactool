@@ -1,5 +1,5 @@
-#ifndef NCATOOL_SETTINGS_H
-#define NCATOOL_SETTINGS_H
+#ifndef HACTOOL_SETTINGS_H
+#define HACTOOL_SETTINGS_H
 #include <stdio.h>
 #include "types.h"
 #include "filepath.h"
@@ -12,7 +12,7 @@ typedef enum {
 typedef enum {
     BASEFILE_ROMFS,
     BASEFILE_NCA
-} ncatool_basefile_t;
+} hactool_basefile_t;
 
 typedef struct {
     unsigned char master_keys[0x20][0x10];               /* Firmware master keys. */
@@ -50,9 +50,9 @@ typedef struct {
     override_filepath_t romfs_path;
     override_filepath_t romfs_dir_path;
     filepath_t out_dir_path;
-} ncatool_settings_t;
+} hactool_settings_t;
 
-enum ncatool_file_type
+enum hactool_file_type
 {
     FILETYPE_NCA,
     FILETYPE_PFS0
@@ -67,14 +67,14 @@ enum ncatool_file_type
 struct nca_ctx; /* This will get re-defined by nca.h. */
 
 typedef struct {
-    enum ncatool_file_type file_type;
+    enum hactool_file_type file_type;
     FILE *file;
     FILE *base_file;
-    ncatool_basefile_t base_file_type;
+    hactool_basefile_t base_file_type;
     struct nca_ctx *base_nca_ctx;
-    ncatool_settings_t settings;
+    hactool_settings_t settings;
     uint32_t action;
-} ncatool_ctx_t;
+} hactool_ctx_t;
 
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef NCATOOL_NCA_H
-#define NCATOOL_NCA_H
+#ifndef HACTOOL_NCA_H
+#define HACTOOL_NCA_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -146,7 +146,7 @@ typedef struct {
     nca_fs_header_t *header;
     int is_decrypted;
     aes_ctx_t *aes; /* AES context for the section. */
-    ncatool_ctx_t *tool_ctx;
+    hactool_ctx_t *tool_ctx;
     union {
         pfs0_ctx_t pfs0_ctx;
         romfs_ctx_t romfs_ctx;
@@ -167,7 +167,7 @@ typedef struct nca_ctx {
     int is_decrypted;
     validity_t fixed_sig_validity;
     validity_t npdm_sig_validity;
-    ncatool_ctx_t *tool_ctx;
+    hactool_ctx_t *tool_ctx;
     unsigned char decrypted_keys[4][0x10];
     unsigned char title_key[0x10];
     nca_section_ctx_t section_contexts[4];

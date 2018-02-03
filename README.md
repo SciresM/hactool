@@ -1,15 +1,15 @@
-# ncatool
+# hactool
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 
-ncatool is a tool to view information about, decrypt, and extract Nintendo Content Archives.
+hactool is a tool to view information about, decrypt, and extract common file formats for the Nintendo Switch, especially Nintendo Content Archives.
 
 It is heavily inspired by [ctrtool](https://github.com/profi200/Project_CTR/tree/master/ctrtool).
 
 ## Usage
 
 ```
-Usage: ncatool [options...] <file>
+Usage: hactool [options...] <file>
 Options:
 -i, --info        Show file info.
                       This is the default action.

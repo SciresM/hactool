@@ -1,5 +1,5 @@
-#ifndef NCATOOL_PKI_H
-#define NCATOOL_PKI_H
+#ifndef HACTOOL_PKI_H
+#define HACTOOL_PKI_H
 #include <string.h>
 #include "types.h"
 #include "settings.h"

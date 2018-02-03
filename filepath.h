@@ -1,5 +1,5 @@
-#ifndef NCATOOL_FILEPATH_H
-#define NCATOOL_FILEPATH_H
+#ifndef HACTOOL_FILEPATH_H
+#define HACTOOL_FILEPATH_H
 
 #include "types.h"
 #include "utils.h"

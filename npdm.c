@@ -600,7 +600,7 @@ void fac_print(fac_t *fac, fah_t *fah) {
 }
 
 
-void npdm_print(npdm_t *npdm, ncatool_ctx_t *tool_ctx) {
+void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     printf("NPDM:\n");
     print_magic("    Magic:                          ", npdm->magic);
     printf("    MMU Flags:                      %"PRIx8"\n", npdm->mmu_flags);
