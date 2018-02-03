@@ -49,7 +49,7 @@ void aes_setiv(aes_ctx_t *ctx, const void *iv, size_t l) {
 }
 
 /* Encrypt with context. */
-void aes_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l) {
+void aes_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     size_t out_len = 0;
     
     /* Prepare context */
@@ -75,7 +75,7 @@ void aes_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l) {
 }
 
 /* Decrypt with context. */
-void aes_decrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l) {
+void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     size_t out_len = 0;
     
     /* Prepare context */
@@ -108,7 +108,7 @@ void get_tweak(unsigned char *tweak, size_t sector) {
 }
 
 /* Encrypt with context for XTS. */
-void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l, size_t sector, size_t sector_size) {
+void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_t sector, size_t sector_size) {
     unsigned char tweak[0x10];
 
     if (l % sector_size != 0) {
@@ -124,7 +124,7 @@ void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l, size_t sect
 }
 
 /* Decrypt with context for XTS. */
-void aes_xts_decrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l, size_t sector, size_t sector_size) {
+void aes_xts_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_t sector, size_t sector_size) {
     unsigned char tweak[0x10];
 
     if (l % sector_size != 0) {

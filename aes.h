@@ -27,10 +27,10 @@ void free_aes_ctx(aes_ctx_t *ctx);
 
 void aes_setiv(aes_ctx_t *ctx, const void *iv, size_t l);
 
-void aes_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l);
-void aes_decrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l);
+void aes_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l);
+void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l);
 
-void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l, size_t sector, size_t sector_size);
-void aes_xts_decrypt(aes_ctx_t *ctx, void *dst, void *src, size_t l, size_t sector, size_t sector_size);
+void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_t sector, size_t sector_size);
+void aes_xts_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_t sector, size_t sector_size);
 
 #endif

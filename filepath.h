@@ -24,7 +24,7 @@ typedef char oschar_t; /* utf-8 */
 #define OS_PATH_SEPARATOR "/"
 #endif
 
-typedef struct {
+typedef struct filepath {
     char char_path[MAX_PATH];
     oschar_t os_path[MAX_PATH];
     validity_t valid;

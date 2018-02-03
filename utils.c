@@ -5,6 +5,7 @@
 #include <direct.h>
 #endif
 #include "utils.h"
+#include "filepath.h"
 
 uint32_t align(uint32_t offset, uint32_t alignment) {
     uint32_t mask = ~(alignment-1);
