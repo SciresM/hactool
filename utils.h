@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "types.h"
+#include "filepath.h"
 
 #ifdef _WIN32
 #define PATH_SEPERATOR '\\'
@@ -32,6 +33,8 @@ void print_magic(const char *prefix, uint32_t magic);
 void memdump(FILE *f, const char *prefix, const void *data, size_t size);
 
 uint64_t _fsize(const char *filename);
+
+void save_file_section(FILE *f_in, uint64_t ofs, uint64_t total_size, filepath_t *filepath);
 
 #ifdef _MSC_VER
 inline int fseeko64(FILE *__stream, long long __off, int __whence)

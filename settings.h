@@ -40,11 +40,13 @@ typedef struct {
     override_filepath_t exefs_dir_path;
     override_filepath_t romfs_path;
     override_filepath_t romfs_dir_path;
+    filepath_t out_dir_path;
 } ncatool_settings_t;
 
 enum ncatool_file_type
 {
-    NCA
+    FILETYPE_NCA,
+    FILETYPE_PFS0
 };
 
 #define ACTION_INFO (1<<0)

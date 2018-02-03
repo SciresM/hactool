@@ -20,17 +20,6 @@ typedef struct {
 } nca_section_entry_t;
 
 typedef struct {
-    uint8_t master_hash[0x20]; /* SHA-256 hash of the hash table. */
-    uint32_t block_size; /* In bytes. */
-    uint32_t always_2;
-    uint64_t hash_table_offset; /* Normally zero. */
-    uint64_t hash_table_size; 
-    uint64_t pfs0_offset;
-    uint64_t pfs0_size;
-    uint8_t _0x48[0xF0];
-} pfs0_superblock_t;
-
-typedef struct {
     ivfc_hdr_t ivfc_header;
     uint8_t _0xE0[0x58];
 } romfs_superblock_t;
@@ -43,26 +32,19 @@ typedef struct {
 } bktr_superblock_t;
 
 typedef struct {
-    pfs0_superblock_t *superblock;
-    validity_t superblock_hash_validity;
-    validity_t hash_table_validity;
-    int is_exefs;
-    npdm_t *npdm;
-    pfs0_header_t *header;
-} pfs0_section_ctx_t;
-
-typedef struct {
     romfs_superblock_t *superblock;
+    FILE *file;
     validity_t superblock_hash_validity;
     ivfc_level_ctx_t ivfc_levels[IVFC_MAX_LEVEL];
     uint64_t romfs_offset;
     romfs_hdr_t header;
     romfs_direntry_t *directories;
     romfs_fentry_t *files;
-} romfs_section_ctx_t;
+} romfs_ctx_t;
 
 typedef struct {
     bktr_superblock_t *superblock;
+    FILE *file;
     validity_t superblock_hash_validity;
     bktr_relocation_block_t *relocation_block;
     bktr_subsection_block_t *subsection_block;
@@ -166,8 +148,8 @@ typedef struct {
     aes_ctx_t *aes; /* AES context for the section. */
     ncatool_ctx_t *tool_ctx;
     union {
-        pfs0_section_ctx_t pfs0_ctx;
-        romfs_section_ctx_t romfs_ctx;
+        pfs0_ctx_t pfs0_ctx;
+        romfs_ctx_t romfs_ctx;
         bktr_section_ctx_t bktr_ctx;
     };
     validity_t superblock_hash_validity;
