@@ -18,6 +18,7 @@ Options:
   -r, --raw          Keep raw data, don't unpack.
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
+  -t, --intype=type  Specify input file type [nca, pfs0]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:
@@ -34,16 +35,18 @@ NCA options:
   --romfs=file       Specify RomFS file path. Overrides appropriate section file path.
   --romfsdir=dir     Specify RomFS directory path. Overrides appropriate section directory path.
   --listromfs        List files in RomFS.
-```
+  --baseromfs        Set Base RomFS to use with update partitions.
+  --basenca        Set Base NCA to use with update partitions.
+PFS0 options:
+  --outdir=dir       Specify PFS0 directory path.```
 
 ## Building
 
 Copy `config.mk.template` to `config.mk`, make changes as required, and then run `make`.
 If your `make` is not GNU make (e.g. on BSD variants), you need to call `gmake` instead.
 
-To build under windows, you will need to build [libgpgerror](https://www.gnupg.org/(fr)/related_software/libgpg-error/index.html), and [libgcrypt](https://www.gnu.org/software/libgcrypt/).
 You may need [libiconv](https://www.gnu.org/software/libiconv/) when not building on Linux.
-Fairly recent versions (~1.8.0) are required of the libraries in order to support AES-XTS operations. I recommend using MinGW.
+If on Windows, I recommend using MinGW.
 
 ## Licensing
 
