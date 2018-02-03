@@ -50,6 +50,8 @@ typedef struct {
     override_filepath_t romfs_path;
     override_filepath_t romfs_dir_path;
     filepath_t out_dir_path;
+    filepath_t dec_nca_path;
+    filepath_t header_path;
 } hactool_settings_t;
 
 enum hactool_file_type

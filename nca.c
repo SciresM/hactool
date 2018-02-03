@@ -46,7 +46,7 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
     } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) { 
         /* No better way to do this than to make all BKTR seeking virtual. */
         ctx->bktr_ctx.virtual_seek = offset;
-        if (ctx->tool_ctx->base_file == NULL) { /* Without base romfs, reads will be physical. */
+        if (ctx->tool_ctx->base_file == NULL && ctx->physical_reads == 0) { /* Without base romfs, reads will be physical. */
             ctx->bktr_ctx.bktr_seek = offset;
         } else { /* Let's do the complicated thing. */
             bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, offset);
@@ -200,7 +200,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
             nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
         } else if (ctx->header->crypt_type == CRYPT_BKTR) { /* Spooky BKTR AES-CTR. */
             /* Are we doing virtual reads, or physical reads? */
-            if (ctx->tool_ctx->base_file != NULL) {
+            if (ctx->tool_ctx->base_file != NULL && ctx->physical_reads == 0) {
                 bktr_relocation_entry_t *reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, ctx->bktr_ctx.virtual_seek);
                 bktr_relocation_entry_t *next_reloc = reloc + 1;
                 uint64_t virt_seek = ctx->bktr_ctx.virtual_seek;
@@ -279,6 +279,85 @@ void nca_free_section_contexts(nca_ctx_t *ctx) {
                     free(ctx->section_contexts[i].bktr_ctx.files);
                 }
             }
+        }
+    }
+}
+
+void nca_save(nca_ctx_t *ctx) {
+    /* Save header. */
+    filepath_t *header_path = &ctx->tool_ctx->settings.header_path;
+
+    if (header_path->valid == VALIDITY_VALID) {
+        printf("Saving Header to %s...\n", header_path->char_path);
+        FILE *f_hdr = os_fopen(header_path->os_path, OS_MODE_WRITE);
+
+        if (f_hdr != NULL) {
+            fwrite(&ctx->header, 1, 0xC00, f_hdr);
+            fclose(f_hdr);
+        } else {
+            fprintf(stderr, "Failed to open %s!\n", header_path->char_path);
+        }
+    }
+
+    
+    for (unsigned int i = 0; i < 4; i++) {
+        if (ctx->section_contexts[i].is_present) {
+            /* printf("Saving section %"PRId32"...\n", i); */
+            nca_save_section(&ctx->section_contexts[i]);
+            printf("\n");
+        }
+    }
+    
+    /* Save Decrypted NCA. */
+    filepath_t *dec_path = &ctx->tool_ctx->settings.dec_nca_path;
+
+    if (dec_path->valid == VALIDITY_VALID) {
+        printf("Saving Decrypted NCA to %s...\n", dec_path->char_path);
+        FILE *f_dec = os_fopen(dec_path->os_path, OS_MODE_WRITE);
+
+        if (f_dec != NULL) {
+            if (fwrite(&ctx->header, 1, 0xC00, f_dec) != 0xC00) {
+                fprintf(stderr, "Failed to write header!\n");
+                exit(EXIT_FAILURE);
+            }
+            
+            unsigned char *buf = malloc(0x400000);
+            if (buf == NULL) {
+                fprintf(stderr, "Failed to allocate file-save buffer!\n");
+                exit(EXIT_FAILURE);
+            }
+            for (unsigned int i = 0; i < 4; i++) {
+                if (ctx->section_contexts[i].is_present) {
+                    fseeko64(f_dec, ctx->section_contexts[i].offset, SEEK_SET);
+                    ctx->section_contexts[i].physical_reads = 1;
+                    
+                    uint64_t read_size = 0x400000; /* 4 MB buffer. */
+                    memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
+                    uint64_t ofs = 0;
+                    uint64_t end_ofs = ofs + ctx->section_contexts[i].size;
+                    nca_section_fseek(&ctx->section_contexts[i], ofs);
+                    while (ofs < end_ofs) {       
+                        if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
+                        if (nca_section_fread(&ctx->section_contexts[i], buf, read_size) != read_size) {
+                            fprintf(stderr, "Failed to read file!\n");
+                            exit(EXIT_FAILURE);
+                        }
+                        if (fwrite(buf, 1, read_size, f_dec) != read_size) {
+                            fprintf(stderr, "Failed to write file!\n");
+                            exit(EXIT_FAILURE);
+                        }
+                        ofs += read_size;
+                    }
+
+                    ctx->section_contexts[i].physical_reads = 0;
+                }
+            }
+            
+            fclose(f_dec);
+
+            free(buf);
+        } else {
+            fprintf(stderr, "Failed to open %s!\n", dec_path->char_path);
         }
     }
 }
@@ -410,12 +489,8 @@ void nca_process(nca_ctx_t *ctx) {
         nca_print(ctx);
     }
 
-    for (unsigned int i = 0; i < 4; i++) {
-        if (ctx->section_contexts[i].is_present && ctx->tool_ctx->action & ACTION_EXTRACT) {
-            /* printf("Saving section %"PRId32"...\n", i); */
-            nca_save_section(&ctx->section_contexts[i]);
-            printf("\n");
-        }
+    if (ctx->tool_ctx->action & ACTION_EXTRACT) {
+        nca_save(ctx);
     }
 }
 
@@ -638,6 +713,8 @@ validity_t nca_section_check_external_hash_table(nca_section_ctx_t *ctx, unsigne
 
         uint64_t r = nca_section_fread(ctx, block, read_size);
         if (r != read_size) {
+            fprintf(stderr, "%012"PRIx64" %012"PRIx64" %08"PRIx64"\n", ofs, data_len, r);
+            fprintf(stderr, "%d %d\n", ctx->is_decrypted, ctx->section_num);
             fprintf(stderr, "Failed to read section!\n");
             exit(EXIT_FAILURE);
         }        
@@ -1021,7 +1098,10 @@ void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
-        fwrite(buf, 1, read_size, f_out);
+        if (fwrite(buf, 1, read_size, f_out) != read_size) {
+            fprintf(stderr, "Failed to write file!\n");
+            exit(EXIT_FAILURE);
+        }
         ofs += read_size;
     }
 

@@ -22,6 +22,8 @@ Options:
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:
+  --plaintext=file   Specify file path for saving a decrypted copy of the NCA.
+  --header=file      Specify Header file path.
   --section0=file    Specify Section 0 file path.
   --section1=file    Specify Section 1 file path.
   --section2=file    Specify Section 2 file path.
@@ -36,9 +38,10 @@ NCA options:
   --romfsdir=dir     Specify RomFS directory path. Overrides appropriate section directory path.
   --listromfs        List files in RomFS.
   --baseromfs        Set Base RomFS to use with update partitions.
-  --basenca        Set Base NCA to use with update partitions.
+  --basenca          Set Base NCA to use with update partitions.
 PFS0 options:
-  --outdir=dir       Specify PFS0 directory path.```
+  --outdir=dir       Specify PFS0 directory path.
+```
 
 ## Building
 

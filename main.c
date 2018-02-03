@@ -30,6 +30,8 @@ static void usage(void) {
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
+        "  --plaintext=file   Specify file path for saving a decrypted copy of the NCA.\n"
+        "  --header=file      Specify Header file path.\n"
         "  --section0=file    Specify Section 0 file path.\n"
         "  --section1=file    Specify Section 1 file path.\n"
         "  --section2=file    Specify Section 2 file path.\n"
@@ -44,7 +46,7 @@ static void usage(void) {
         "  --romfsdir=dir     Specify RomFS directory path. Overrides appropriate section directory path.\n"
         "  --listromfs        List files in RomFS.\n"
         "  --baseromfs        Set Base RomFS to use with update partitions.\n"
-        "  --basenca        Set Base NCA to use with update partitions.\n" 
+        "  --basenca          Set Base NCA to use with update partitions.\n" 
         "PFS0 options:\n"
         "  --outdir=dir       Specify PFS0 directory path.\n"
         "\n", __TIME__, __DATE__, prog_name);
@@ -138,6 +140,8 @@ int main(int argc, char **argv) {
             {"baseromfs", 1, NULL, 15},
             {"basenca", 1, NULL, 16},
             {"outdir", 1, NULL, 17},
+            {"plaintext", 1, NULL, 18},
+            {"header", 1, NULL, 19},
             {NULL, 0, NULL, 0},
         };
 
@@ -237,6 +241,12 @@ int main(int argc, char **argv) {
                 break;
             case 17:
                 filepath_set(&nca_ctx.tool_ctx->settings.out_dir_path, optarg); 
+                break;
+            case 18:
+                filepath_set(&nca_ctx.tool_ctx->settings.dec_nca_path, optarg); 
+                break;
+            case 19:
+                filepath_set(&nca_ctx.tool_ctx->settings.header_path, optarg); 
                 break;
             default:
                 usage();

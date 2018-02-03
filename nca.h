@@ -157,6 +157,7 @@ typedef struct {
     uint64_t cur_seek;
     size_t sector_num;
     uint32_t sector_ofs;
+    int physical_reads; /* Should reads be forced physical? */
 } nca_section_ctx_t;
 
 typedef struct nca_ctx {
