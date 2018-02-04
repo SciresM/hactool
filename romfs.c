@@ -124,6 +124,9 @@ void romfs_save(romfs_ctx_t *ctx) {
         if (ctx->tool_ctx->settings.romfs_dir_path.enabled) {
             dirpath = &ctx->tool_ctx->settings.romfs_dir_path.path;
         }
+        if ((dirpath == NULL || dirpath->valid != VALIDITY_VALID) && (ctx->tool_ctx->file_type == FILETYPE_ROMFS && ctx->tool_ctx->settings.out_dir_path.enabled)) {
+            dirpath = &ctx->tool_ctx->settings.out_dir_path.path;
+        }
         if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
             os_makedir(dirpath->os_path);
             romfs_visit_dir(ctx, 0, dirpath);

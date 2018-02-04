@@ -101,8 +101,11 @@ void pfs0_save(pfs0_ctx_t *ctx) {
     if (ctx->is_exefs && ctx->tool_ctx->settings.exefs_dir_path.enabled) {
         dirpath = &ctx->tool_ctx->settings.exefs_dir_path.path;
     }
+    if ((dirpath == NULL || dirpath->valid != VALIDITY_VALID) && (ctx->tool_ctx->file_type == FILETYPE_PFS0 && ctx->tool_ctx->settings.out_dir_path.enabled)) {
+        dirpath = &ctx->tool_ctx->settings.out_dir_path.path;
+    }
     if (dirpath == NULL || dirpath->valid != VALIDITY_VALID) {
-        dirpath = &ctx->tool_ctx->settings.out_dir_path;
+        dirpath = &ctx->tool_ctx->settings.pfs0_dir_path;
     }
     if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
         os_makedir(dirpath->os_path);

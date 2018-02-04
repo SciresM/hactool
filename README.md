@@ -18,7 +18,7 @@ Options:
   -r, --raw          Keep raw data, don't unpack.
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
-  -t, --intype=type  Specify input file type [nca, pfs0]
+  -t, --intype=type  Specify input file type [nca, pfs0, romfs]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:
@@ -40,7 +40,17 @@ NCA options:
   --baseromfs        Set Base RomFS to use with update partitions.
   --basenca          Set Base NCA to use with update partitions.
 PFS0 options:
-  --outdir=dir       Specify PFS0 directory path.
+  --pfs0dir=dir      Specify PFS0 directory path.
+  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.
+  --exefsdir=dir     Specify PFS0 directory path. Overrides previous paths, if present for ExeFS PFS0.
+RomFS options:
+  --romfsdir=dir     Specify RomFS directory path.
+  --outdir=dir       Specify RomFS directory path. Overrides previous path, if present.
+  --listromfs        List files in RomFS.
+HFS0 options:
+  --hfs0dir=dir      Specify HFS0 directory path.
+  --outdir=dir       Specify HFS0 directory path. Overrides previous path, if present.
+  --exefsdir=dir     Specify HFS0 directory path. Overrides previous paths, if present.
 ```
 
 ## Building

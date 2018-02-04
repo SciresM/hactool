@@ -8,6 +8,7 @@
 #include "settings.h"
 #include "pki.h"
 #include "nca.h"
+#include "hfs0.h"
 
 static char *prog_name = "hactool";
 
@@ -48,10 +49,17 @@ static void usage(void) {
         "  --baseromfs        Set Base RomFS to use with update partitions.\n"
         "  --basenca          Set Base NCA to use with update partitions.\n" 
         "PFS0 options:\n"
-        "  --outdir=dir       Specify PFS0 directory path.\n"
+        "  --pfs0dir=dir      Specify PFS0 directory path.\n"
+        "  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.\n"
+        "  --exefsdir=dir     Specify PFS0 directory path. Overrides previous paths, if present for ExeFS PFS0.\n"
         "RomFS options:\n"
         "  --romfsdir=dir     Specify RomFS directory path.\n"
+        "  --outdir=dir       Specify RomFS directory path. Overrides previous path, if present.\n"
         "  --listromfs        List files in RomFS.\n"
+        "HFS0 options:\n"
+        "  --hfs0dir=dir      Specify HFS0 directory path.\n"
+        "  --outdir=dir       Specify HFS0 directory path. Overrides previous path, if present.\n"
+        "  --exefsdir=dir     Specify HFS0 directory path. Overrides previous paths, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -145,6 +153,8 @@ int main(int argc, char **argv) {
             {"outdir", 1, NULL, 17},
             {"plaintext", 1, NULL, 18},
             {"header", 1, NULL, 19},
+            {"pfs0dir", 1, NULL, 20},
+            {"hfs0dir", 1, NULL, 21},
             {NULL, 0, NULL, 0},
         };
 
@@ -175,12 +185,11 @@ int main(int argc, char **argv) {
                 } else if (!strcmp(optarg, "pfs0") || !strcmp(optarg, "exefs")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PFS0;
                 } else if (!strcmp(optarg, "romfs")) {
-                    nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS;
-                } 
-                /* } else if (!strcmp(optarg, "hfs0")) {
-                 *    nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
-                 * }
-                 * } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS; 
+                } else if (!strcmp(optarg, "hfs0")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
+                }
+                /* } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
                  *    nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
                  * }
                  * } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
@@ -258,13 +267,20 @@ int main(int argc, char **argv) {
                 nca_ctx.tool_ctx->base_nca_ctx->file = base_ctx.file;
                 break;
             case 17:
-                filepath_set(&nca_ctx.tool_ctx->settings.out_dir_path, optarg); 
+                tool_ctx.settings.out_dir_path.enabled = 1;
+                filepath_set(&tool_ctx.settings.out_dir_path.path, optarg); 
                 break;
             case 18:
                 filepath_set(&nca_ctx.tool_ctx->settings.dec_nca_path, optarg); 
                 break;
             case 19:
                 filepath_set(&nca_ctx.tool_ctx->settings.header_path, optarg); 
+                break;
+            case 20:
+                filepath_set(&tool_ctx.settings.pfs0_dir_path, optarg); 
+                break;
+            case 21:
+                filepath_set(&tool_ctx.settings.hfs0_dir_path, optarg); 
                 break;
             default:
                 usage();
@@ -341,6 +357,17 @@ int main(int argc, char **argv) {
             }
             if (romfs_ctx.directories) {
                 free(romfs_ctx.directories);
+            }
+            break;
+        }
+        case FILETYPE_HFS0: {
+            hfs0_ctx_t hfs0_ctx;
+            memset(&hfs0_ctx, 0, sizeof(hfs0_ctx));
+            hfs0_ctx.file = tool_ctx.file;
+            hfs0_ctx.tool_ctx = &tool_ctx;
+            hfs0_process(&hfs0_ctx);
+            if (hfs0_ctx.header) {
+                free(hfs0_ctx.header);
             }
             break;
         }

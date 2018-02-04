@@ -37,6 +37,9 @@ uint64_t _fsize(const char *filename);
 
 void save_file_section(FILE *f_in, uint64_t ofs, uint64_t total_size, struct filepath *filepath);
 
+validity_t check_memory_hash_table(FILE *f_in, unsigned char *hash_table, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, int full_block);
+validity_t check_file_hash_table(FILE *f_in, uint64_t hash_ofs, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, int full_block);
+
 #ifdef _MSC_VER
 inline int fseeko64(FILE *__stream, long long __off, int __whence)
 {

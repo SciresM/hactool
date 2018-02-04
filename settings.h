@@ -49,7 +49,9 @@ typedef struct {
     override_filepath_t exefs_dir_path;
     override_filepath_t romfs_path;
     override_filepath_t romfs_dir_path;
-    filepath_t out_dir_path;
+    override_filepath_t out_dir_path;
+    filepath_t pfs0_dir_path;
+    filepath_t hfs0_dir_path;
     filepath_t dec_nca_path;
     filepath_t header_path;
 } hactool_settings_t;
@@ -59,7 +61,7 @@ enum hactool_file_type
     FILETYPE_NCA,
     FILETYPE_PFS0,
     FILETYPE_ROMFS,
-    /* FILETYPE_HFS0, */
+    FILETYPE_HFS0,
     /* FILETYPE_XCI, */
     /* FILETYPE_PACKAGE2, */
     /* FILETYPE_PACKAGE1, */
