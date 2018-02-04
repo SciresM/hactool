@@ -18,7 +18,7 @@ Options:
   -r, --raw          Keep raw data, don't unpack.
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
-  -t, --intype=type  Specify input file type [nca, pfs0, romfs]
+  -t, --intype=type  Specify input file type [nca, pfs0, romfs, hfs0]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:
