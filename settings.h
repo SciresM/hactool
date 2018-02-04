@@ -57,7 +57,12 @@ typedef struct {
 enum hactool_file_type
 {
     FILETYPE_NCA,
-    FILETYPE_PFS0
+    FILETYPE_PFS0,
+    FILETYPE_ROMFS,
+    /* FILETYPE_HFS0, */
+    /* FILETYPE_XCI, */
+    /* FILETYPE_PACKAGE2, */
+    /* FILETYPE_PACKAGE1, */
 };
 
 #define ACTION_INFO (1<<0)

@@ -21,26 +21,10 @@ typedef struct {
 
 typedef struct {
     ivfc_hdr_t ivfc_header;
-    uint8_t _0xE0[0x58];
-} romfs_superblock_t;
-
-typedef struct {
-    ivfc_hdr_t ivfc_header;
     uint8_t _0xE0[0x18];
     bktr_header_t relocation_header;
     bktr_header_t subsection_header;
 } bktr_superblock_t;
-
-typedef struct {
-    romfs_superblock_t *superblock;
-    FILE *file;
-    validity_t superblock_hash_validity;
-    ivfc_level_ctx_t ivfc_levels[IVFC_MAX_LEVEL];
-    uint64_t romfs_offset;
-    romfs_hdr_t header;
-    romfs_direntry_t *directories;
-    romfs_fentry_t *files;
-} romfs_ctx_t;
 
 typedef struct {
     bktr_superblock_t *superblock;

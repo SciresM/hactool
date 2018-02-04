@@ -17,7 +17,7 @@ all:
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
-hactool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o utils.o nca.o main.o filepath.o
+hactool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o romfs.o utils.o nca.o main.o filepath.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
@@ -35,6 +35,8 @@ pki.o: pki.h aes.h types.h
 nca.o: nca.h aes.h sha.h rsa.h bktr.h filepath.h types.h
 
 npdm.o: npdm.c types.h
+
+romfs.o: ivfc.h types.h
 
 rsa.o: rsa.h sha.h types.h
 

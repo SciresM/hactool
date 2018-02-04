@@ -4,7 +4,7 @@
 void pfs0_process(pfs0_ctx_t *ctx) {
     /* Read *just* safe amount. */
     pfs0_header_t raw_header; 
-    fseek(ctx->file, 0, SEEK_SET);
+    fseeko64(ctx->file, 0, SEEK_SET);
     if (fread(&raw_header, 1, sizeof(raw_header), ctx->file) != sizeof(raw_header)) {
         fprintf(stderr, "Failed to read PFS0 header!\n");
         exit(EXIT_FAILURE);
@@ -22,7 +22,7 @@ void pfs0_process(pfs0_ctx_t *ctx) {
         exit(EXIT_FAILURE);
     }
     
-    fseek(ctx->file, 0, SEEK_SET);
+    fseeko64(ctx->file, 0, SEEK_SET);
     if (fread(ctx->header, 1, header_size, ctx->file) != header_size) {
         fprintf(stderr, "Failed to read PFS0 header!\n");
         exit(EXIT_FAILURE);
@@ -51,7 +51,7 @@ void pfs0_process(pfs0_ctx_t *ctx) {
                 fprintf(stderr, "Failed to allocate NPDM!\n");
                 exit(EXIT_FAILURE);
             }
-            fseek(ctx->file, pfs0_get_header_size(ctx->header) + cur_file->offset, SEEK_SET);
+            fseeko64(ctx->file, pfs0_get_header_size(ctx->header) + cur_file->offset, SEEK_SET);
             if (fread(ctx->npdm, 1, cur_file->size, ctx->file) != cur_file->size) {
                 fprintf(stderr, "Failed to read NPDM!\n");
                 exit(EXIT_FAILURE);

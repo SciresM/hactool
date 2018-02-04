@@ -26,7 +26,7 @@ static void usage(void) {
         "  -r, --raw          Keep raw data, don't unpack.\n"
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
-        "  -t, --intype=type  Specify input file type [nca, pfs0]\n"
+        "  -t, --intype=type  Specify input file type [nca, pfs0, romfs]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
@@ -49,6 +49,9 @@ static void usage(void) {
         "  --basenca          Set Base NCA to use with update partitions.\n" 
         "PFS0 options:\n"
         "  --outdir=dir       Specify PFS0 directory path.\n"
+        "RomFS options:\n"
+        "  --romfsdir=dir     Specify RomFS directory path.\n"
+        "  --listromfs        List files in RomFS.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -171,7 +174,22 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NCA;
                 } else if (!strcmp(optarg, "pfs0") || !strcmp(optarg, "exefs")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PFS0;
-                }
+                } else if (!strcmp(optarg, "romfs")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS;
+                } 
+                /* } else if (!strcmp(optarg, "hfs0")) {
+                 *    nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
+                 * }
+                 * } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
+                 *    nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
+                 * }
+                 * } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
+                 *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
+                 * }
+                 * } else if (!strcmp(optarg, "package1") || !strcmp(optarg, "pk11")) {
+                 *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE1;
+                 * }
+                 */
                 break;
 
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
@@ -266,50 +284,71 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
     
-    if (tool_ctx.file_type == FILETYPE_NCA) {
-        if (nca_ctx.tool_ctx->base_nca_ctx != NULL) {
-            memcpy(&base_ctx.settings.keyset, &tool_ctx.settings.keyset, sizeof(nca_keyset_t));
-            nca_ctx.tool_ctx->base_nca_ctx->tool_ctx = &base_ctx;
-            nca_process(nca_ctx.tool_ctx->base_nca_ctx);
-            int found_romfs = 0;
-            for (unsigned int i = 0; i < 4; i++) {
-                if (nca_ctx.tool_ctx->base_nca_ctx->section_contexts[i].is_present && nca_ctx.tool_ctx->base_nca_ctx->section_contexts[i].type == ROMFS) {
-                    found_romfs = 1;
-                    break;
+    switch (tool_ctx.file_type) {
+        case FILETYPE_NCA: {
+            if (nca_ctx.tool_ctx->base_nca_ctx != NULL) {
+                memcpy(&base_ctx.settings.keyset, &tool_ctx.settings.keyset, sizeof(nca_keyset_t));
+                nca_ctx.tool_ctx->base_nca_ctx->tool_ctx = &base_ctx;
+                nca_process(nca_ctx.tool_ctx->base_nca_ctx);
+                int found_romfs = 0;
+                for (unsigned int i = 0; i < 4; i++) {
+                    if (nca_ctx.tool_ctx->base_nca_ctx->section_contexts[i].is_present && nca_ctx.tool_ctx->base_nca_ctx->section_contexts[i].type == ROMFS) {
+                        found_romfs = 1;
+                        break;
+                    }
+                }
+                if (found_romfs == 0) {
+                    fprintf(stderr, "Unable to locate RomFS in base NCA!\n");
+                    return EXIT_FAILURE;
                 }
             }
-            if (found_romfs == 0) {
-                fprintf(stderr, "Unable to locate RomFS in base NCA!\n");
-                return EXIT_FAILURE;
-            }
-        }
 
-        nca_ctx.file = tool_ctx.file;
-        nca_process(&nca_ctx);
-        nca_free_section_contexts(&nca_ctx);
-        
-        if (nca_ctx.tool_ctx->base_file != NULL) {
-            fclose(nca_ctx.tool_ctx->base_file);
-            if (nca_ctx.tool_ctx->base_file_type == BASEFILE_NCA) {
-                nca_free_section_contexts(nca_ctx.tool_ctx->base_nca_ctx);
-                free(nca_ctx.tool_ctx->base_nca_ctx);
-            }
-        }     
-    } else if (tool_ctx.file_type == FILETYPE_PFS0) {
-        pfs0_ctx_t pfs0_ctx;
-        memset(&pfs0_ctx, 0, sizeof(pfs0_ctx));
-        pfs0_ctx.file = tool_ctx.file;
-        pfs0_ctx.tool_ctx = &tool_ctx;
-        pfs0_process(&pfs0_ctx);
-        if (pfs0_ctx.header) {
-            free(pfs0_ctx.header);
+            nca_ctx.file = tool_ctx.file;
+            nca_process(&nca_ctx);
+            nca_free_section_contexts(&nca_ctx);
+            
+            if (nca_ctx.tool_ctx->base_file != NULL) {
+                fclose(nca_ctx.tool_ctx->base_file);
+                if (nca_ctx.tool_ctx->base_file_type == BASEFILE_NCA) {
+                    nca_free_section_contexts(nca_ctx.tool_ctx->base_nca_ctx);
+                    free(nca_ctx.tool_ctx->base_nca_ctx);
+                }
+            }     
+            break;
         }
-        if (pfs0_ctx.npdm) {
-            free(pfs0_ctx.npdm);
+        case FILETYPE_PFS0: {
+            pfs0_ctx_t pfs0_ctx;
+            memset(&pfs0_ctx, 0, sizeof(pfs0_ctx));
+            pfs0_ctx.file = tool_ctx.file;
+            pfs0_ctx.tool_ctx = &tool_ctx;
+            pfs0_process(&pfs0_ctx);
+            if (pfs0_ctx.header) {
+                free(pfs0_ctx.header);
+            }
+            if (pfs0_ctx.npdm) {
+                free(pfs0_ctx.npdm);
+            }
+            break;
+        }
+        case FILETYPE_ROMFS: {
+            romfs_ctx_t romfs_ctx;
+            memset(&romfs_ctx, 0, sizeof(romfs_ctx));
+            romfs_ctx.file = tool_ctx.file;
+            romfs_ctx.tool_ctx = &tool_ctx;
+            romfs_process(&romfs_ctx);
+            if (romfs_ctx.files) {
+                free(romfs_ctx.files);
+            }
+            if (romfs_ctx.directories) {
+                free(romfs_ctx.directories);
+            }
+            break;
+        }
+        default: {
+            fprintf(stderr, "Unknown File Type!\n\n");
+            usage();
         }
     }
-    
-
     
     if (tool_ctx.file != NULL) {
         fclose(tool_ctx.file);
