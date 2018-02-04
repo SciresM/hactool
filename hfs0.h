@@ -53,5 +53,6 @@ void hfs0_process(hfs0_ctx_t *ctx);
 void hfs0_save(hfs0_ctx_t *ctx);
 void hfs0_print(hfs0_ctx_t *ctx);
 
+void hfs0_save_file(hfs0_ctx_t *ctx, uint32_t i, filepath_t *dirpath);
 
 #endif

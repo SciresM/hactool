@@ -8,7 +8,7 @@
 #include "settings.h"
 #include "pki.h"
 #include "nca.h"
-#include "hfs0.h"
+#include "xci.h"
 
 static char *prog_name = "hactool";
 
@@ -60,6 +60,12 @@ static void usage(void) {
         "  --hfs0dir=dir      Specify HFS0 directory path.\n"
         "  --outdir=dir       Specify HFS0 directory path. Overrides previous path, if present.\n"
         "  --exefsdir=dir     Specify HFS0 directory path. Overrides previous paths, if present.\n"
+        "XCI options:\n"
+        "  --rootdir=dir      Specify XCI root HFS0 directory path.\n"
+        "  --updatedir=dir    Specify XCI update HFS0 directory path.\n"
+        "  --normaldir=dir    Specify XCI update HFS0 directory path.\n"
+        "  --securedir=dir    Specify XCI update HFS0 directory path.\n"
+        "  --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -155,6 +161,10 @@ int main(int argc, char **argv) {
             {"header", 1, NULL, 19},
             {"pfs0dir", 1, NULL, 20},
             {"hfs0dir", 1, NULL, 21},
+            {"rootdir", 1, NULL, 22},
+            {"updatedir", 1, NULL, 23},
+            {"normaldir", 1, NULL, 24},
+            {"securedir", 1, NULL, 25},
             {NULL, 0, NULL, 0},
         };
 
@@ -188,11 +198,10 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS; 
                 } else if (!strcmp(optarg, "hfs0")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
+                } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
                 }
-                /* } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
-                 *    nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
-                 * }
-                 * } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
+                /* } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
                  *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
                  * }
                  * } else if (!strcmp(optarg, "package1") || !strcmp(optarg, "pk11")) {
@@ -282,6 +291,18 @@ int main(int argc, char **argv) {
             case 21:
                 filepath_set(&tool_ctx.settings.hfs0_dir_path, optarg); 
                 break;
+            case 22:
+                filepath_set(&tool_ctx.settings.rootpt_dir_path, optarg); 
+                break;
+            case 23:
+                filepath_set(&tool_ctx.settings.update_dir_path, optarg); 
+                break;
+            case 24:
+                filepath_set(&tool_ctx.settings.normal_dir_path, optarg); 
+                break;
+            case 25:
+                filepath_set(&tool_ctx.settings.secure_dir_path, optarg); 
+                break;
             default:
                 usage();
                 return EXIT_FAILURE;
@@ -369,6 +390,14 @@ int main(int argc, char **argv) {
             if (hfs0_ctx.header) {
                 free(hfs0_ctx.header);
             }
+            break;
+        }
+        case FILETYPE_XCI: {
+            xci_ctx_t xci_ctx;
+            memset(&xci_ctx, 0, sizeof(xci_ctx));
+            xci_ctx.file = tool_ctx.file;
+            xci_ctx.tool_ctx = &tool_ctx;
+            xci_process(&xci_ctx);
             break;
         }
         default: {
