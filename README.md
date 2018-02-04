@@ -54,8 +54,8 @@ HFS0 options:
 XCI options:
   --rootdir=dir      Specify XCI root HFS0 directory path.
   --updatedir=dir    Specify XCI update HFS0 directory path.
-  --normaldir=dir    Specify XCI update HFS0 directory path.
-  --securedir=dir    Specify XCI update HFS0 directory path.
+  --normaldir=dir    Specify XCI normal HFS0 directory path.
+  --securedir=dir    Specify XCI secure HFS0 directory path.
   --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.
 ```
 

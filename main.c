@@ -63,8 +63,8 @@ static void usage(void) {
         "XCI options:\n"
         "  --rootdir=dir      Specify XCI root HFS0 directory path.\n"
         "  --updatedir=dir    Specify XCI update HFS0 directory path.\n"
-        "  --normaldir=dir    Specify XCI update HFS0 directory path.\n"
-        "  --securedir=dir    Specify XCI update HFS0 directory path.\n"
+        "  --normaldir=dir    Specify XCI normal HFS0 directory path.\n"
+        "  --securedir=dir    Specify XCI secure HFS0 directory path.\n"
         "  --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
