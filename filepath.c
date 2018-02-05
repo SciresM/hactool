@@ -7,7 +7,7 @@
 #include "types.h"
 #include "filepath.h"
 
-#include "convertUTF.h"
+#include "ConvertUTF.h"
 
 void os_strcpy(oschar_t *dst, const char *src) {
 #ifdef _WIN32
