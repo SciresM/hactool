@@ -64,7 +64,6 @@ XCI options:
 Copy `config.mk.template` to `config.mk`, make changes as required, and then run `make`.
 If your `make` is not GNU make (e.g. on BSD variants), you need to call `gmake` instead.
 
-You may need [libiconv](https://www.gnu.org/software/libiconv/) when not building on Linux.
 If on Windows, I recommend using MinGW.
 
 ## Licensing
