@@ -7,25 +7,24 @@
 #include "types.h"
 #include "filepath.h"
 
-#include <iconv.h>
+#include "convertUTF.h"
 
 void os_strcpy(oschar_t *dst, const char *src) {
 #ifdef _WIN32
     if (src == NULL) return;
 
+    const UTF8 *sourceStart = (const UTF8 *)src;
+    UTF16 *targetStart = (UTF16 *)dst;
     uint32_t src_len, dst_len;
-    size_t in_bytes, out_bytes;
-    char *in, *out;
     src_len = strlen(src);
     dst_len = src_len + 1;
-    in = (char *)src;
-    out = (char *)dst;
-    in_bytes = src_len;
-    out_bytes = dst_len * sizeof(oschar_t);
+    const UTF8 *sourceEnd = (const UTF8 *)(src + src_len);
+    UTF16 *targetEnd = (UTF16 *)(dst + dst_len);
 
-    iconv_t cd = iconv_open("UTF-16LE", "UTF-8");
-    iconv(cd, &in, &in_bytes, &out, &out_bytes);
-    iconv_close(cd);
+    if (ConvertUTF8toUTF16(&sourceStart, sourceEnd, &targetStart, targetEnd, 0) != conversionOK) {
+        fprintf(stderr, "Failed to convert %s to UTF-16!\n", src);
+        exit(EXIT_FAILURE);
+    }
 #else
     strcpy(dst, src);
 #endif

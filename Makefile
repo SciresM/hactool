@@ -1,9 +1,5 @@
 include config.mk
 
-ifeq ($(OS),Windows_NT)
-LDFLAGS += -liconv
-endif
-
 .PHONY: clean
 
 INCLUDE = -I ./mbedtls/include
@@ -17,7 +13,7 @@ all:
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
-hactool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o hfs0.o romfs.o utils.o nca.o xci.o main.o filepath.o
+hactool: sha.o aes.o rsa.o npdm.o bktr.o pki.o pfs0.o hfs0.o romfs.o utils.o nca.o xci.o main.o filepath.o ConvertUTF.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
@@ -47,6 +43,8 @@ sha.o: sha.h types.h
 utils.o: utils.h types.h
 
 xci.o: xci.h types.h hfs0.h
+
+ConvertUTF.o: ConvertUTF.h
 
 clean:
 	rm -f *.o hactool hactool.exe
