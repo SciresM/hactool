@@ -27,7 +27,7 @@ static void usage(void) {
         "  -r, --raw          Keep raw data, don't unpack.\n"
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
-        "  -t, --intype=type  Specify input file type [nca, pfs0, romfs, hfs0]\n"
+        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
