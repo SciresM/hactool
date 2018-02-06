@@ -9,6 +9,7 @@
 #include "pki.h"
 #include "nca.h"
 #include "xci.h"
+#include "extkeys.h"
 
 static char *prog_name = "hactool";
 
@@ -27,6 +28,7 @@ static void usage(void) {
         "  -r, --raw          Keep raw data, don't unpack.\n"
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
+        "  -k, --keyset       Load keys from an external file.\n"
         "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
@@ -70,56 +72,20 @@ static void usage(void) {
     exit(EXIT_FAILURE);
 }
 
-static int ishex(char c) {
-    if ('a' <= c && c <= 'f') return 1;
-    if ('A' <= c && c <= 'F') return 1;
-    if ('0' <= c && c <= '9') return 1;
-    return 0;
-}
-
-static char hextoi(char c) {
-    if ('a' <= c && c <= 'f') return c - 'a' + 0xA;
-    if ('A' <= c && c <= 'F') return c - 'A' + 0xA;
-    if ('0' <= c && c <= '9') return c - '0';
-    return 0;
-}
-
-void parse_hex_key(unsigned char *key, const char *hex) {
-    if (strlen(hex) != 32) {
-        fprintf(stderr, "Key must be 32 hex digits!\n");
-        usage();
-    }
-
-    for (unsigned int i = 0; i < 32; i++) {
-        if (!ishex(hex[i])) {
-            fprintf(stderr, "Key must be 32 hex digits!\n");
-            usage();
-        }
-    }
-
-    memset(key, 0, 16);
-
-    for (unsigned int i = 0; i < 32; i++) {
-        char val = hextoi(hex[i]);
-        if ((i & 1) == 0) {
-            val <<= 4;
-        }
-        key[i >> 1] |= val;
-    }
-}
-
 int main(int argc, char **argv) {
     hactool_ctx_t tool_ctx;
     hactool_ctx_t base_ctx; /* Context for base NCA, if used. */
     nca_ctx_t nca_ctx;
     char input_name[0x200];
-
+    filepath_t keypath;
+    
     prog_name = (argc < 1) ? "hactool" : argv[0];
 
     nca_init(&nca_ctx);
     memset(&tool_ctx, 0, sizeof(tool_ctx));
     memset(&base_ctx, 0, sizeof(base_ctx));
     memset(input_name, 0, sizeof(input_name));
+    filepath_init(&keypath);
     nca_ctx.tool_ctx = &tool_ctx;
     
     nca_ctx.tool_ctx->file_type = FILETYPE_NCA;
@@ -139,6 +105,7 @@ int main(int argc, char **argv) {
             {"verify", 0, NULL, 'y'},
             {"raw", 0, NULL, 'r'},
             {"intype", 1, NULL, 't'},
+            {"keyset", 1, NULL, 'k'},
             {"section0", 1, NULL, 0},
             {"section1", 1, NULL, 1},
             {"section2", 1, NULL, 2},
@@ -168,7 +135,7 @@ int main(int argc, char **argv) {
             {NULL, 0, NULL, 0},
         };
 
-        c = getopt_long(argc, argv, "dryxt:i", long_options, &option_index);
+        c = getopt_long(argc, argv, "dryxt:ik:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -188,6 +155,10 @@ int main(int argc, char **argv) {
                 break;
             case 'd':
                 pki_initialize_keyset(&tool_ctx.settings.keyset, KEYSET_DEV);
+                nca_ctx.tool_ctx->action |= ACTION_DEV;
+                break;
+            case 'k':
+                filepath_set(&keypath, optarg);
                 break;
             case 't':
                 if (!strcmp(optarg, "nca")) {
@@ -235,11 +206,11 @@ int main(int argc, char **argv) {
                 filepath_set(&nca_ctx.tool_ctx->settings.romfs_dir_path.path, optarg); 
                 break;
             case 12:
-                parse_hex_key(nca_ctx.tool_ctx->settings.titlekey, optarg);
+                parse_hex_key(nca_ctx.tool_ctx->settings.titlekey, optarg, 16);
                 nca_ctx.tool_ctx->settings.has_titlekey = 1;
                 break;
             case 13:
-                parse_hex_key(nca_ctx.tool_ctx->settings.contentkey, optarg);
+                parse_hex_key(nca_ctx.tool_ctx->settings.contentkey, optarg, 16);
                 nca_ctx.tool_ctx->settings.has_contentkey = 1;
                 break;
             case 14:
@@ -308,6 +279,31 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
         }
     }
+    
+    /* Try to populate default keyfile. */
+    if (keypath.valid == VALIDITY_INVALID) {
+        char *home = getenv("HOME");
+        if (home == NULL) {
+            home = getenv("USERPROFILE");
+        }
+        if (home != NULL) {
+            filepath_set(&keypath, home);
+            filepath_append(&keypath, ".switch");
+            filepath_append(&keypath, "%s.keys", (tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
+        }
+    }
+    
+    /* Load external keys, if relevant. */
+    if (keypath.valid == VALIDITY_VALID) {
+        FILE *keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
+        if (keyfile != NULL) {
+            extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
+            fclose(keyfile);
+        }
+    }
+    
+
+    
 
     if (optind == argc - 1) {
         /* Copy input file. */

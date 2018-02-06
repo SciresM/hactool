@@ -1,9 +1,6 @@
 /config.mk
 /hactool
 /hactool.exe
-/pki_zero.c
-/pki_full.c
-/pki_staging.c
 /*.o
 /*.dll
 /bin

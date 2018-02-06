@@ -18,6 +18,7 @@ Options:
   -r, --raw          Keep raw data, don't unpack.
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
+  -k, --keyset       Load keys from an external file.
   -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
@@ -65,6 +66,16 @@ Copy `config.mk.template` to `config.mk`, make changes as required, and then run
 If your `make` is not GNU make (e.g. on BSD variants), you need to call `gmake` instead.
 
 If on Windows, I recommend using MinGW.
+
+## External Keys
+
+External keys can be provided by the -k/--keyset argument to the a keyset filename.
+Keyset files are text files containing one key per line, in the form "key_name = HEXADECIMALKEY".
+Case shouldn't matter, nor should whitespace.
+
+In addition, if -k/--keyset is not set, hactool will check for the presence of a keyset file
+in $HOME/.switch/prod.keys (or $HOME/.switch/dev.keys if -d/--dev is set). If present, this file
+will automatically be loaded.
 
 ## Licensing
 

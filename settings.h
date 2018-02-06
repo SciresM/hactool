@@ -76,6 +76,7 @@ enum hactool_file_type
 #define ACTION_VERIFY (1<<2)
 #define ACTION_RAW (1<<3)
 #define ACTION_LISTROMFS (1<<4)
+#define ACTION_DEV (1<<5)
 
 struct nca_ctx; /* This will get re-defined by nca.h. */
 
