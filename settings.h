@@ -16,6 +16,9 @@ typedef enum {
 
 typedef struct {
     unsigned char master_keys[0x20][0x10];               /* Firmware master keys. */
+    unsigned char package1_keys[0x20][0x10];             /* Package1 keys. */
+    unsigned char package2_keys[0x20][0x10];             /* Package2 keys. */
+    unsigned char package2_key_source[0x10];             /* Seed for Package2 key. */
     unsigned char aes_kek_generation_source[0x10];       /* Seed for GenerateAesKek, usecase + generation 0. */
     unsigned char aes_key_generation_source[0x10];       /* Seed for GenerateAesKey. */
     unsigned char key_area_key_application_source[0x10]; /* Seed for kaek 0. */
@@ -52,6 +55,7 @@ typedef struct {
     override_filepath_t out_dir_path;
     filepath_t pfs0_dir_path;
     filepath_t hfs0_dir_path;
+    filepath_t pk11_dir_path;
     filepath_t dec_nca_path;
     filepath_t rootpt_dir_path;
     filepath_t update_dir_path;
@@ -67,9 +71,9 @@ enum hactool_file_type
     FILETYPE_ROMFS,
     FILETYPE_HFS0,
     FILETYPE_XCI,
-    FILETYPE_NPDM
+    FILETYPE_NPDM,
+    FILETYPE_PACKAGE1,
     /* FILETYPE_PACKAGE2, */
-    /* FILETYPE_PACKAGE1, */
 };
 
 #define ACTION_INFO (1<<0)

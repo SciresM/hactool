@@ -58,6 +58,31 @@ void memdump(FILE *f, const char *prefix, const void *data, size_t size) {
     }
 }
 
+void save_buffer_to_file(void *buf, uint64_t size, struct filepath *filepath) {
+    FILE *f_out = os_fopen(filepath->os_path, OS_MODE_WRITE);
+
+    if (f_out == NULL) {
+        fprintf(stderr, "Failed to open %s!\n", filepath->char_path);
+        return;
+    }
+    
+    fwrite(buf, 1, size, f_out);
+    
+    fclose(f_out);
+}
+
+void save_buffer_to_directory_file(void *buf, uint64_t size, struct filepath *dirpath, const char *filename) {
+    struct filepath filepath;
+    filepath_copy(&filepath, dirpath);
+    filepath_append(&filepath, filename);
+    if (filepath.valid == VALIDITY_VALID) {
+        save_buffer_to_file(buf, size, &filepath);
+    } else {
+        fprintf(stderr, "Failed to create filepath!\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void save_file_section(FILE *f_in, uint64_t ofs, uint64_t total_size, filepath_t *filepath) {
     FILE *f_out = os_fopen(filepath->os_path, OS_MODE_WRITE);
 
@@ -156,4 +181,19 @@ validity_t check_file_hash_table(FILE *f_in, uint64_t hash_ofs, uint64_t data_of
     free(hash_table);
 
     return result;
+}
+
+const char *get_key_revision_summary(uint8_t key_rev) {
+    switch (key_rev) {
+        case 0:
+            return "1.0.0-2.3.0";
+        case 1:
+            return "3.0.0";
+        case 2:
+            return "3.0.1-3.0.2";
+        case 3:
+            return "4.0.0-4.1.0";
+        default:
+            return "Unknown";
+    }
 }

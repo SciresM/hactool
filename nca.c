@@ -554,21 +554,6 @@ char *nca_get_content_type(nca_ctx_t *ctx) {
     }
 }
 
-char *nca_get_master_key_summary(uint8_t master_key_rev) {
-    switch (master_key_rev) {
-        case 0:
-            return "1.0.0-2.3.0";
-        case 1:
-            return "3.0.0";
-        case 2:
-            return "3.0.1-3.0.2";
-        case 3:
-            return "4.0.0-4.1.0";
-        default:
-            return "Unknown";
-    }
-}
-
 char *nca_get_encryption_type(nca_ctx_t *ctx) {
     if (ctx->has_rights_id) {
         return "Titlekey crypto";
@@ -665,7 +650,7 @@ void nca_print(nca_ctx_t *ctx) {
     printf("SDK Version:                        %"PRId8".%"PRId8".%"PRId8".%"PRId8"\n", ctx->header.sdk_major, ctx->header.sdk_minor, ctx->header.sdk_micro, ctx->header.sdk_revision);
     printf("Distribution type:                  %s\n", nca_get_distribution_type(ctx));
     printf("Content Type:                       %s\n", nca_get_content_type(ctx));
-    printf("Master Key Revision:                %"PRIx8" (%s)\n", ctx->crypto_type, nca_get_master_key_summary(ctx->crypto_type));
+    printf("Master Key Revision:                %"PRIx8" (%s)\n", ctx->crypto_type, get_key_revision_summary(ctx->crypto_type));
     printf("Encryption Type:                    %s\n", nca_get_encryption_type(ctx));
 
     if (ctx->has_rights_id) {        

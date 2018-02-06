@@ -209,6 +209,9 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "header_key") == 0) {
                 parse_hex_key(keyset->header_key, value, sizeof(keyset->header_key));
                 matched_key = 1;
+            } else if (strcmp(key, "package2_key_source") == 0) {
+                parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));
+                matched_key = 1;
             } else {
                 char test_name[0x100];
                 memset(test_name, 0, sizeof(100));
@@ -216,6 +219,20 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                     snprintf(test_name, sizeof(test_name), "master_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_keys[i], value, sizeof(keyset->master_keys[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "package1_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->package1_keys[i], value, sizeof(keyset->package1_keys[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "package2_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->package2_keys[i], value, sizeof(keyset->package2_keys[i]));
                         matched_key = 1;
                         break;
                     }

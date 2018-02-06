@@ -10,6 +10,7 @@
 #include "nca.h"
 #include "xci.h"
 #include "extkeys.h"
+#include "packages.h"
 
 static char *prog_name = "hactool";
 
@@ -29,7 +30,7 @@ static void usage(void) {
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
         "  -k, --keyset       Load keys from an external file.\n"
-        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm]\n"
+        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
@@ -68,6 +69,9 @@ static void usage(void) {
         "  --normaldir=dir    Specify XCI normal HFS0 directory path.\n"
         "  --securedir=dir    Specify XCI secure HFS0 directory path.\n"
         "  --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.\n"
+        "Package1 options:\n"
+        "  --package1dir=dir  Specify Package1 directory path.\n"
+        "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -132,6 +136,7 @@ int main(int argc, char **argv) {
             {"updatedir", 1, NULL, 23},
             {"normaldir", 1, NULL, 24},
             {"securedir", 1, NULL, 25},
+            {"package1dir", 1, NULL, 26},
             {NULL, 0, NULL, 0},
         };
 
@@ -173,12 +178,11 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
                 } else if (!strcmp(optarg, "npdm") || !strcmp(optarg, "meta")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NPDM;
+                } else if (!strcmp(optarg, "package1") || !strcmp(optarg, "pk11")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE1;
                 }
                 /* } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
                  *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
-                 * }
-                 * } else if (!strcmp(optarg, "package1") || !strcmp(optarg, "pk11")) {
-                 *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE1;
                  * }
                  */
                 break;
@@ -275,6 +279,9 @@ int main(int argc, char **argv) {
                 break;
             case 25:
                 filepath_set(&tool_ctx.settings.secure_dir_path, optarg); 
+                break;
+            case 26:
+                filepath_set(&tool_ctx.settings.pk11_dir_path, optarg); 
                 break;
             default:
                 usage();
@@ -416,6 +423,17 @@ int main(int argc, char **argv) {
             hfs0_process(&hfs0_ctx);
             if (hfs0_ctx.header) {
                 free(hfs0_ctx.header);
+            }
+            break;
+        }
+        case FILETYPE_PACKAGE1: {
+            pk11_ctx_t pk11_ctx;
+            memset(&pk11_ctx, 0, sizeof(pk11_ctx));
+            pk11_ctx.file = tool_ctx.file;
+            pk11_ctx.tool_ctx = &tool_ctx;
+            pk11_process(&pk11_ctx);
+            if (pk11_ctx.pk11) {
+                free(pk11_ctx.pk11);
             }
             break;
         }

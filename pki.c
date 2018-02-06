@@ -38,6 +38,75 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEY, /* Master Key 30 */
         ZEROES_KEY  /* Master Key 31 */
     },
+    {
+        ZEROES_KEY, /* Package1 Key 00 */
+        ZEROES_KEY, /* Package1 Key 01 */
+        ZEROES_KEY, /* Package1 Key 02 */
+        ZEROES_KEY, /* Package1 Key 03 */
+        ZEROES_KEY, /* Package1 Key 04 */
+        ZEROES_KEY, /* Package1 Key 05 */
+        ZEROES_KEY, /* Package1 Key 06 */
+        ZEROES_KEY, /* Package1 Key 07 */
+        ZEROES_KEY, /* Package1 Key 08 */
+        ZEROES_KEY, /* Package1 Key 09 */
+        ZEROES_KEY, /* Package1 Key 10 */
+        ZEROES_KEY, /* Package1 Key 11 */
+        ZEROES_KEY, /* Package1 Key 12 */
+        ZEROES_KEY, /* Package1 Key 13 */
+        ZEROES_KEY, /* Package1 Key 14 */
+        ZEROES_KEY, /* Package1 Key 15 */
+        ZEROES_KEY, /* Package1 Key 16 */
+        ZEROES_KEY, /* Package1 Key 17 */
+        ZEROES_KEY, /* Package1 Key 18 */
+        ZEROES_KEY, /* Package1 Key 19 */
+        ZEROES_KEY, /* Package1 Key 20 */
+        ZEROES_KEY, /* Package1 Key 21 */
+        ZEROES_KEY, /* Package1 Key 22 */
+        ZEROES_KEY, /* Package1 Key 23 */
+        ZEROES_KEY, /* Package1 Key 24 */
+        ZEROES_KEY, /* Package1 Key 25 */
+        ZEROES_KEY, /* Package1 Key 26 */
+        ZEROES_KEY, /* Package1 Key 27 */
+        ZEROES_KEY, /* Package1 Key 28 */
+        ZEROES_KEY, /* Package1 Key 29 */
+        ZEROES_KEY, /* Package1 Key 30 */
+        ZEROES_KEY  /* Package1 Key 31 */
+    },
+    {
+        ZEROES_KEY, /* Package2 Key 00 */
+        ZEROES_KEY, /* Package2 Key 01 */
+        ZEROES_KEY, /* Package2 Key 02 */
+        ZEROES_KEY, /* Package2 Key 03 */
+        ZEROES_KEY, /* Package2 Key 04 */
+        ZEROES_KEY, /* Package2 Key 05 */
+        ZEROES_KEY, /* Package2 Key 06 */
+        ZEROES_KEY, /* Package2 Key 07 */
+        ZEROES_KEY, /* Package2 Key 08 */
+        ZEROES_KEY, /* Package2 Key 09 */
+        ZEROES_KEY, /* Package2 Key 10 */
+        ZEROES_KEY, /* Package2 Key 11 */
+        ZEROES_KEY, /* Package2 Key 12 */
+        ZEROES_KEY, /* Package2 Key 13 */
+        ZEROES_KEY, /* Package2 Key 14 */
+        ZEROES_KEY, /* Package2 Key 15 */
+        ZEROES_KEY, /* Package2 Key 16 */
+        ZEROES_KEY, /* Package2 Key 17 */
+        ZEROES_KEY, /* Package2 Key 18 */
+        ZEROES_KEY, /* Package2 Key 19 */
+        ZEROES_KEY, /* Package2 Key 20 */
+        ZEROES_KEY, /* Package2 Key 21 */
+        ZEROES_KEY, /* Package2 Key 22 */
+        ZEROES_KEY, /* Package2 Key 23 */
+        ZEROES_KEY, /* Package2 Key 24 */
+        ZEROES_KEY, /* Package2 Key 25 */
+        ZEROES_KEY, /* Package2 Key 26 */
+        ZEROES_KEY, /* Package2 Key 27 */
+        ZEROES_KEY, /* Package2 Key 28 */
+        ZEROES_KEY, /* Package2 Key 29 */
+        ZEROES_KEY, /* Package2 Key 30 */
+        ZEROES_KEY  /* Package2 Key 31 */
+    },
+    ZEROES_KEY, /* Package2 Key Source */
     ZEROES_KEY, /* Generate Aes Kek Source */
     ZEROES_KEY, /* Generate Aes Key Source */
     ZEROES_KEY, /* Key Area Encryption Key Source Application */
@@ -188,6 +257,75 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEY, /* Master Key 30 */
         ZEROES_KEY  /* Master Key 31 */
     },
+    {
+        ZEROES_KEY, /* Package1 Key 00 */
+        ZEROES_KEY, /* Package1 Key 01 */
+        ZEROES_KEY, /* Package1 Key 02 */
+        ZEROES_KEY, /* Package1 Key 03 */
+        ZEROES_KEY, /* Package1 Key 04 */
+        ZEROES_KEY, /* Package1 Key 05 */
+        ZEROES_KEY, /* Package1 Key 06 */
+        ZEROES_KEY, /* Package1 Key 07 */
+        ZEROES_KEY, /* Package1 Key 08 */
+        ZEROES_KEY, /* Package1 Key 09 */
+        ZEROES_KEY, /* Package1 Key 10 */
+        ZEROES_KEY, /* Package1 Key 11 */
+        ZEROES_KEY, /* Package1 Key 12 */
+        ZEROES_KEY, /* Package1 Key 13 */
+        ZEROES_KEY, /* Package1 Key 14 */
+        ZEROES_KEY, /* Package1 Key 15 */
+        ZEROES_KEY, /* Package1 Key 16 */
+        ZEROES_KEY, /* Package1 Key 17 */
+        ZEROES_KEY, /* Package1 Key 18 */
+        ZEROES_KEY, /* Package1 Key 19 */
+        ZEROES_KEY, /* Package1 Key 20 */
+        ZEROES_KEY, /* Package1 Key 21 */
+        ZEROES_KEY, /* Package1 Key 22 */
+        ZEROES_KEY, /* Package1 Key 23 */
+        ZEROES_KEY, /* Package1 Key 24 */
+        ZEROES_KEY, /* Package1 Key 25 */
+        ZEROES_KEY, /* Package1 Key 26 */
+        ZEROES_KEY, /* Package1 Key 27 */
+        ZEROES_KEY, /* Package1 Key 28 */
+        ZEROES_KEY, /* Package1 Key 29 */
+        ZEROES_KEY, /* Package1 Key 30 */
+        ZEROES_KEY  /* Package1 Key 31 */
+    },
+    {
+        ZEROES_KEY, /* Package2 Key 00 */
+        ZEROES_KEY, /* Package2 Key 01 */
+        ZEROES_KEY, /* Package2 Key 02 */
+        ZEROES_KEY, /* Package2 Key 03 */
+        ZEROES_KEY, /* Package2 Key 04 */
+        ZEROES_KEY, /* Package2 Key 05 */
+        ZEROES_KEY, /* Package2 Key 06 */
+        ZEROES_KEY, /* Package2 Key 07 */
+        ZEROES_KEY, /* Package2 Key 08 */
+        ZEROES_KEY, /* Package2 Key 09 */
+        ZEROES_KEY, /* Package2 Key 10 */
+        ZEROES_KEY, /* Package2 Key 11 */
+        ZEROES_KEY, /* Package2 Key 12 */
+        ZEROES_KEY, /* Package2 Key 13 */
+        ZEROES_KEY, /* Package2 Key 14 */
+        ZEROES_KEY, /* Package2 Key 15 */
+        ZEROES_KEY, /* Package2 Key 16 */
+        ZEROES_KEY, /* Package2 Key 17 */
+        ZEROES_KEY, /* Package2 Key 18 */
+        ZEROES_KEY, /* Package2 Key 19 */
+        ZEROES_KEY, /* Package2 Key 20 */
+        ZEROES_KEY, /* Package2 Key 21 */
+        ZEROES_KEY, /* Package2 Key 22 */
+        ZEROES_KEY, /* Package2 Key 23 */
+        ZEROES_KEY, /* Package2 Key 24 */
+        ZEROES_KEY, /* Package2 Key 25 */
+        ZEROES_KEY, /* Package2 Key 26 */
+        ZEROES_KEY, /* Package2 Key 27 */
+        ZEROES_KEY, /* Package2 Key 28 */
+        ZEROES_KEY, /* Package2 Key 29 */
+        ZEROES_KEY, /* Package2 Key 30 */
+        ZEROES_KEY  /* Package2 Key 31 */
+    },
+    ZEROES_KEY, /* Package2 Key Source */
     ZEROES_KEY, /* Generate Aes Kek Source */
     ZEROES_KEY, /* Generate Aes Key Source */
     ZEROES_KEY, /* Key Area Encryption Key Source Application */
@@ -349,6 +487,11 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         /* Derive Titlekek */
         if (memcmp(keyset->titlekek_source, zeroes, 0x10) != 0) {
             aes_decrypt(master_ctx, &keyset->titlekeks[i], keyset->titlekek_source, 0x10);
+        }
+        
+        /* Derive Package2 Key */
+        if (memcmp(keyset->package2_key_source, zeroes, 0x10) != 0) {
+            aes_decrypt(master_ctx, &keyset->package2_keys[i], keyset->package2_key_source, 0x10);
         }
         
         /* Derive Header Key */
