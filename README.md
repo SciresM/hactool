@@ -19,7 +19,7 @@ Options:
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
   -k, --keyset       Load keys from an external file.
-  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0]
+  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:

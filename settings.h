@@ -67,6 +67,7 @@ enum hactool_file_type
     FILETYPE_ROMFS,
     FILETYPE_HFS0,
     FILETYPE_XCI,
+    FILETYPE_NPDM
     /* FILETYPE_PACKAGE2, */
     /* FILETYPE_PACKAGE1, */
 };

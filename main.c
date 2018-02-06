@@ -29,7 +29,7 @@ static void usage(void) {
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
         "  -k, --keyset       Load keys from an external file.\n"
-        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0]\n"
+        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
@@ -171,6 +171,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
                 } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_XCI;
+                } else if (!strcmp(optarg, "npdm") || !strcmp(optarg, "meta")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_NPDM;
                 }
                 /* } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
                  *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
@@ -375,6 +377,34 @@ int main(int argc, char **argv) {
             if (romfs_ctx.directories) {
                 free(romfs_ctx.directories);
             }
+            break;
+        }
+        case FILETYPE_NPDM: {
+            npdm_t raw_hdr;
+            memset(&raw_hdr, 0, sizeof(raw_hdr));
+            if (fread(&raw_hdr, 1, sizeof(raw_hdr), tool_ctx.file) != sizeof(raw_hdr)) {
+                fprintf(stderr, "Failed to read NPDM header!\n");
+                exit(EXIT_FAILURE);
+            }
+            if (raw_hdr.magic != MAGIC_META) {
+                fprintf(stderr, "NPDM seems corrupt!\n");
+                exit(EXIT_FAILURE);
+            }
+            uint64_t npdm_size = raw_hdr.aci0_size + raw_hdr.aci0_offset;
+            if (raw_hdr.acid_offset + raw_hdr.acid_size > npdm_size) {
+                npdm_size = raw_hdr.acid_offset + raw_hdr.acid_size;
+            }
+            fseeko64(tool_ctx.file, 0, SEEK_SET);
+            npdm_t *npdm = malloc(npdm_size);
+            if (npdm == NULL) {
+                fprintf(stderr, "Failed to allocate NPDM!\n");
+                exit(EXIT_FAILURE);
+            }
+            if (fread(npdm, 1, npdm_size, tool_ctx.file) != npdm_size) {
+                fprintf(stderr, "Failed to read NPDM!\n");
+                exit(EXIT_FAILURE);
+            }
+            npdm_print(npdm, &tool_ctx);
             break;
         }
         case FILETYPE_HFS0: {
