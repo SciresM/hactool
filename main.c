@@ -300,6 +300,7 @@ int main(int argc, char **argv) {
         FILE *keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
         if (keyfile != NULL) {
             extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
+            pki_derive_keys(&tool_ctx.settings.keyset);
             fclose(keyfile);
         }
     }

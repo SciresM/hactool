@@ -186,7 +186,7 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                 parse_hex_key(keyset->aes_kek_generation_source, value, sizeof(keyset->aes_kek_generation_source));
                 matched_key = 1;
             } else if (strcmp(key, "aes_key_generation_source") == 0) {
-                parse_hex_key(keyset->aes_kek_generation_source, value, sizeof(keyset->aes_kek_generation_source));            
+                parse_hex_key(keyset->aes_key_generation_source, value, sizeof(keyset->aes_key_generation_source));            
                 matched_key = 1;
             } else if (strcmp(key, "key_area_key_application_source") == 0) {
                 parse_hex_key(keyset->key_area_key_application_source, value, sizeof(keyset->key_area_key_application_source));
