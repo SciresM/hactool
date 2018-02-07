@@ -30,7 +30,7 @@ static void usage(void) {
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
         "  -k, --keyset       Load keys from an external file.\n"
-        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11]\n"
+        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11, pk21, ini1, kip1]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
@@ -71,6 +71,12 @@ static void usage(void) {
         "  --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.\n"
         "Package1 options:\n"
         "  --package1dir=dir  Specify Package1 directory path.\n"
+        "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
+        "Package2 options:\n"
+        "  --package2dir=dir  Specify Package1 directory path.\n"
+        "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
+        "INI1 options:\n"
+        "  --ini1dir=dir  Specify Package1 directory path.\n"
         "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
@@ -137,6 +143,9 @@ int main(int argc, char **argv) {
             {"normaldir", 1, NULL, 24},
             {"securedir", 1, NULL, 25},
             {"package1dir", 1, NULL, 26},
+            {"package2dir", 1, NULL, 27},
+            {"ini1dir", 1, NULL, 28},
+            {"extractini1", 0, NULL, 29},
             {NULL, 0, NULL, 0},
         };
 
@@ -182,6 +191,10 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE1;
                 } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
+                } else if (!strcmp(optarg, "ini1")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_INI1;
+                } else if (!strcmp(optarg, "kip1") || !strcmp(optarg, "kip")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_KIP1;
                 }
                 break;
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
@@ -279,6 +292,15 @@ int main(int argc, char **argv) {
                 break;
             case 26:
                 filepath_set(&tool_ctx.settings.pk11_dir_path, optarg); 
+                break;
+            case 27:
+                filepath_set(&tool_ctx.settings.pk21_dir_path, optarg); 
+                break;
+            case 28:
+                filepath_set(&tool_ctx.settings.ini1_dir_path, optarg); 
+                break;
+            case 29:
+                tool_ctx.action |= ACTION_EXTRACTINI1;
                 break;
             default:
                 usage();
@@ -442,6 +464,28 @@ int main(int argc, char **argv) {
             pk21_process(&pk21_ctx);
             if (pk21_ctx.sections) {
                 free(pk21_ctx.sections);
+            }
+            break;
+        }
+        case FILETYPE_INI1: {
+            ini1_ctx_t ini1_ctx;
+            memset(&ini1_ctx, 0, sizeof(ini1_ctx));
+            ini1_ctx.file = tool_ctx.file;
+            ini1_ctx.tool_ctx = &tool_ctx;
+            ini1_process(&ini1_ctx);
+            if (ini1_ctx.header) {
+                free(ini1_ctx.header);
+            }
+            break;
+        }
+        case FILETYPE_KIP1: {
+            kip1_ctx_t kip1_ctx;
+            memset(&kip1_ctx, 0, sizeof(kip1_ctx));
+            kip1_ctx.file = tool_ctx.file;
+            kip1_ctx.tool_ctx = &tool_ctx;
+            kip1_process(&kip1_ctx);
+            if (kip1_ctx.header) {
+                free(kip1_ctx.header);
             }
             break;
         }

@@ -134,4 +134,7 @@ static inline npdm_aci0_t *npdm_get_aci0(npdm_t *npdm) {
 
 void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
+char *npdm_get_proc_category(int process_category);
+void kac_print(uint32_t *descriptors, uint32_t num_descriptors);
+
 #endif

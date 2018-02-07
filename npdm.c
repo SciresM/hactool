@@ -212,8 +212,8 @@ const fs_perm_t fs_permissions_bool[MAX_FS_PERM_BOOL] = {
     {"Unknown (0x1A)", 0x8000000000004020}
 };
 
-char *npdm_get_proc_category(npdm_t *npdm) {
-    switch (npdm->process_category) {
+char *npdm_get_proc_category(int process_category) {
+    switch (process_category) {
         case 0:
             return "Regular Title";
         case 1:

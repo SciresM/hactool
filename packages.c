@@ -194,7 +194,20 @@ void pk21_process(pk21_ctx_t *ctx) {
         offset += ctx->header.section_sizes[i];
     }
     
-    /* TODO: Parse INI1 */
+    ctx->ini1_ctx.tool_ctx = ctx->tool_ctx;
+    ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
+    if (ctx->ini1_ctx.header->magic == MAGIC_INI1 && ctx->ini1_ctx.header->num_processes <= INI1_MAX_KIPS) {
+        offset = 0;
+        for (unsigned int i = 0; i < ctx->ini1_ctx.header->num_processes; i++) {
+            ctx->ini1_ctx.kips[i].tool_ctx = ctx->tool_ctx;
+            ctx->ini1_ctx.kips[i].header = (kip1_header_t *)&ctx->ini1_ctx.header->kip_data[offset];
+            if (ctx->ini1_ctx.kips[i].header->magic != MAGIC_KIP1) {
+                fprintf(stderr, "INI1 is corrupted!\n");
+                exit(EXIT_FAILURE);
+            }
+            offset += kip1_get_size(&ctx->ini1_ctx.kips[i]);
+        }
+    }
     
     if (ctx->tool_ctx->action & ACTION_INFO) {
         pk21_print(ctx);
@@ -244,12 +257,49 @@ void pk21_print(pk21_ctx_t *ctx) {
         printf("        Load Address:               %08"PRIx32"\n", ctx->header.section_offsets[i] + 0x80000000);
         printf("        Size:                       %08"PRIx32"\n", ctx->header.section_sizes[i]);
     }
-   
     
     printf("\n");
+    ini1_print(&ctx->ini1_ctx);
 }
 
 void pk21_save(pk21_ctx_t *ctx) {
-    printf("Saving PK21 currently not implemented.\n");
-    /* TODO: Save sections + extract INI1 */
+    /* Extract to directory. */
+    filepath_t *dirpath = NULL;
+    if (ctx->tool_ctx->file_type == FILETYPE_PACKAGE2 && ctx->tool_ctx->settings.out_dir_path.enabled) {
+        dirpath = &ctx->tool_ctx->settings.out_dir_path.path;
+    }
+    if (dirpath == NULL || dirpath->valid != VALIDITY_VALID) {
+        dirpath = &ctx->tool_ctx->settings.pk21_dir_path;
+    }
+    if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+        os_makedir(dirpath->os_path);
+        
+        /* Save Decrypted.bin */
+        printf("Saving decrypted binary to %s/Decrypted.bin\n", dirpath->char_path);
+        char *decrypted_bin = malloc(ctx->package_size);
+        if (decrypted_bin == NULL) {
+            fprintf(stderr, "Failed to allocate buffer!\n");
+            exit(EXIT_FAILURE);
+        }
+        memcpy(decrypted_bin, &ctx->header, 0x200);
+        memcpy(decrypted_bin + sizeof(ctx->header), ctx->sections, ctx->package_size - 0x200);
+        save_buffer_to_directory_file(decrypted_bin, ctx->package_size, dirpath, "Decrypted.bin");
+        free(decrypted_bin);
+        
+        /* Save Kernel.bin */
+        printf("Saving Kernel.bin to %s/Kernel.bin...\n", dirpath->char_path);
+        save_buffer_to_directory_file(ctx->sections, ctx->header.section_sizes[0], dirpath, "Kernel.bin");
+        
+        /* Save INI1.bin */
+        printf("Saving INI1.bin to %s/INI1.bin...\n", dirpath->char_path);
+        save_buffer_to_directory_file(ctx->sections +  ctx->header.section_sizes[0], ctx->header.section_sizes[1], dirpath, "INI1.bin");
+    }
+    if (ctx->ini1_ctx.header != NULL && (ctx->tool_ctx->action & ACTION_EXTRACTINI1 || ctx->tool_ctx->settings.ini1_dir_path.valid == VALIDITY_VALID)) {
+        filepath_t *ini1_dirpath = &ctx->tool_ctx->settings.ini1_dir_path;
+        if (ini1_dirpath->valid != VALIDITY_VALID && dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+            filepath_copy(ini1_dirpath, dirpath);
+            filepath_append(ini1_dirpath, "INI1");
+        }
+        ini1_save(&ctx->ini1_ctx);
+    }
 }

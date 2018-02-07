@@ -57,6 +57,8 @@ typedef struct {
     filepath_t pfs0_dir_path;
     filepath_t hfs0_dir_path;
     filepath_t pk11_dir_path;
+    filepath_t pk21_dir_path;
+    filepath_t ini1_dir_path;
     filepath_t dec_nca_path;
     filepath_t rootpt_dir_path;
     filepath_t update_dir_path;
@@ -74,7 +76,9 @@ enum hactool_file_type
     FILETYPE_XCI,
     FILETYPE_NPDM,
     FILETYPE_PACKAGE1,
-    FILETYPE_PACKAGE2
+    FILETYPE_PACKAGE2,
+    FILETYPE_INI1,
+    FILETYPE_KIP1
 };
 
 #define ACTION_INFO (1<<0)
@@ -83,6 +87,7 @@ enum hactool_file_type
 #define ACTION_RAW (1<<3)
 #define ACTION_LISTROMFS (1<<4)
 #define ACTION_DEV (1<<5)
+#define ACTION_EXTRACTINI1 (1<<6)
 
 struct nca_ctx; /* This will get re-defined by nca.h. */
 

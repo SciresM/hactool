@@ -625,7 +625,7 @@ void nca_print_sections(nca_ctx_t *ctx) {
 /* Print out information about the NCA. */
 void nca_print(nca_ctx_t *ctx) {
     printf("\nNCA:\n");
-    print_magic("Magic:                         ", ctx->header.magic);
+    print_magic("Magic:                              ", ctx->header.magic);
 
     if (ctx->tool_ctx->action & ACTION_VERIFY && ctx->fixed_sig_validity != VALIDITY_UNCHECKED) {
         if (ctx->fixed_sig_validity == VALIDITY_VALID) {

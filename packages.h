@@ -4,6 +4,7 @@
 #include "types.h"
 #include "utils.h"
 #include "settings.h"
+#include "kip.h"
 
 #define MAGIC_PK11 0x31314B50
 #define MAGIC_PK21 0x31324B50
@@ -87,6 +88,7 @@ typedef struct {
     validity_t section_validities[4];
     unsigned char *sections;
     pk21_header_t header;
+    ini1_ctx_t ini1_ctx;
 } pk21_ctx_t;
 
 void pk21_process(pk21_ctx_t *ctx);

@@ -13,7 +13,7 @@ all:
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
-hactool: sha.o aes.o extkeys.o rsa.o npdm.o bktr.o packages.o pki.o pfs0.o hfs0.o romfs.o utils.o nca.o xci.o main.o filepath.o ConvertUTF.o
+hactool: sha.o aes.o extkeys.o rsa.o npdm.o bktr.o kip.o packages.o pki.o pfs0.o hfs0.o romfs.o utils.o nca.o xci.o main.o filepath.o ConvertUTF.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
@@ -26,9 +26,11 @@ filepath.o: filepath.c types.h
 
 hfs0.o: hfs0.h types.h
 
+kip.o: kip.h types.h
+
 main.o: main.c pki.h types.h
 
-packages.o: packages.h aes.h types.h
+packages.o: packages.h aes.h kip.h types.h
 
 pfs0.o: pfs0.h types.h
 
