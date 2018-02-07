@@ -63,7 +63,7 @@ void ini1_print(ini1_ctx_t *ctx) {
 }
 
 void ini1_save(ini1_ctx_t *ctx) {
-    filepath_t *dirpath;
+    filepath_t *dirpath = NULL;
     if (ctx->tool_ctx->file_type == FILETYPE_INI1 && ctx->tool_ctx->settings.out_dir_path.enabled) {
         dirpath = &ctx->tool_ctx->settings.out_dir_path.path;
     }

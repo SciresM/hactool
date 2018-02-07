@@ -296,7 +296,7 @@ void kac_print(uint32_t *descriptors, uint32_t num_descriptors) {
                 break;
             case 4: /* Syscall mask. */
                 syscall_base = (desc >> 24) * 0x18;
-                for (unsigned int sc = 0; sc < 0x18; sc++) {
+                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0x80; sc++) {
                     kac.svcs_allowed[syscall_base+sc] = desc & 1;
                     desc >>= 1;
                 }
@@ -606,7 +606,7 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     printf("    MMU Flags:                      %"PRIx8"\n", npdm->mmu_flags);
     printf("    Main Thread Priority:           %"PRId8"\n", npdm->main_thread_prio);
     printf("    Default CPU ID:                 %"PRIx8"\n", npdm->default_cpuid);
-    printf("    Process Category:               %s\n", npdm_get_proc_category(npdm));
+    printf("    Process Category:               %s\n", npdm_get_proc_category(npdm->process_category));
     printf("    Main Thread Stack Size:         0x%"PRIx32"\n", npdm->main_stack_size);
     printf("    Title Name:                     %s\n", npdm->title_name);
     npdm_acid_t *acid = npdm_get_acid(npdm);
