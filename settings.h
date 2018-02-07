@@ -32,6 +32,7 @@ typedef struct {
     unsigned char key_area_keys[0x20][3][0x10];          /* Key area encryption keys. */
     unsigned char nca_hdr_fixed_key_modulus[0x100];      /* NCA header fixed key RSA pubk. */
     unsigned char acid_fixed_key_modulus[0x100];         /* ACID fixed key RSA pubk. */
+    unsigned char package2_fixed_key_modulus[0x100];     /* Package2 Header RSA pubk. */
 } nca_keyset_t;
 
 typedef struct {
@@ -73,7 +74,7 @@ enum hactool_file_type
     FILETYPE_XCI,
     FILETYPE_NPDM,
     FILETYPE_PACKAGE1,
-    /* FILETYPE_PACKAGE2, */
+    FILETYPE_PACKAGE2
 };
 
 #define ACTION_INFO (1<<0)

@@ -180,13 +180,10 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NPDM;
                 } else if (!strcmp(optarg, "package1") || !strcmp(optarg, "pk11")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE1;
+                } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
                 }
-                /* } else if (!strcmp(optarg, "package2") || !strcmp(optarg, "pk21")) {
-                 *    nca_ctx.tool_ctx->file_type = FILETYPE_PACKAGE2;
-                 * }
-                 */
                 break;
-
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
             case 1: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[1], optarg); break;
             case 2: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[2], optarg); break;
@@ -434,6 +431,17 @@ int main(int argc, char **argv) {
             pk11_process(&pk11_ctx);
             if (pk11_ctx.pk11) {
                 free(pk11_ctx.pk11);
+            }
+            break;
+        }
+        case FILETYPE_PACKAGE2: {
+            pk21_ctx_t pk21_ctx;
+            memset(&pk21_ctx, 0, sizeof(pk21_ctx));
+            pk21_ctx.file = tool_ctx.file;
+            pk21_ctx.tool_ctx = &tool_ctx;
+            pk21_process(&pk21_ctx);
+            if (pk21_ctx.sections) {
+                free(pk21_ctx.sections);
             }
             break;
         }

@@ -56,4 +56,41 @@ void pk11_process(pk11_ctx_t *ctx);
 void pk11_print(pk11_ctx_t *ctx);
 void pk11_save(pk11_ctx_t *ctx);
 
+
+/* Package2 */
+#pragma pack(push, 1)
+typedef struct {
+    unsigned char signature[0x100];
+    union {
+        unsigned char ctr[0x10];
+        uint32_t ctr_dwords[0x4];
+    };
+    unsigned char section_ctrs[4][0x10];
+    uint32_t magic;
+    uint32_t base_offset;
+    uint32_t _0x58;
+    uint8_t version_max; /* Must be > TZ value. */
+    uint8_t version_min; /* Must be < TZ value. */
+    uint16_t _0x5E;
+    uint32_t section_sizes[4];
+    uint32_t section_offsets[4];
+    unsigned char section_hashes[4][0x20];
+} pk21_header_t;
+#pragma pack(pop)
+
+typedef struct {
+    FILE *file;
+    hactool_ctx_t *tool_ctx;
+    unsigned int key_rev;
+    uint32_t package_size;
+    validity_t signature_validity;
+    validity_t section_validities[4];
+    unsigned char *sections;
+    pk21_header_t header;
+} pk21_ctx_t;
+
+void pk21_process(pk21_ctx_t *ctx);
+void pk21_print(pk21_ctx_t *ctx);
+void pk21_save(pk21_ctx_t *ctx);
+
 #endif

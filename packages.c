@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "packages.h"
 #include "aes.h"
+#include "rsa.h"
+#include "sha.h"
 
 void pk11_process(pk11_ctx_t *ctx) {
     fseeko64(ctx->file, 0, SEEK_SET);
@@ -115,4 +117,139 @@ void pk11_save(pk11_ctx_t *ctx) {
         printf("Saving Secure_Monitor.bin to %s/Secure_Monitor.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(pk11_get_secmon(ctx), ctx->pk11->secmon_size, dirpath, "Secure_Monitor.bin");
     }
+}
+
+void pk21_process(pk21_ctx_t *ctx) {    
+    fseeko64(ctx->file, 0, SEEK_SET);
+    if (fread(&ctx->header, 1, sizeof(ctx->header), ctx->file) != sizeof(ctx->header)) {
+        fprintf(stderr, "Failed to read PK21 Header!\n");
+        exit(EXIT_FAILURE);
+    }
+        
+    if (rsa2048_pss_verify(&ctx->header.ctr, 0x100, ctx->header.signature, ctx->tool_ctx->settings.keyset.package2_fixed_key_modulus)) {
+        ctx->signature_validity = VALIDITY_VALID;
+    } else {
+        ctx->signature_validity = VALIDITY_INVALID;
+    }
+    
+    /* Nintendo, what the fuck? */
+    ctx->package_size = ctx->header.ctr_dwords[0] ^ ctx->header.ctr_dwords[2] ^ ctx->header.ctr_dwords[3];
+    if (ctx->package_size > 0x7FC000) {
+        fprintf(stderr, "Error: Package2 Header is corrupt!\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    unsigned char ctr[0x10];
+    pk21_header_t temp_header;
+    memcpy(ctr, ctx->header.ctr, sizeof(ctr));
+    
+    aes_ctx_t *crypt_ctx = NULL;
+    for (unsigned int i = 0; i < 0x20; i++) {
+        ctx->key_rev = i;
+        memcpy(&temp_header, &ctx->header, sizeof(temp_header));
+        crypt_ctx = new_aes_ctx(&ctx->tool_ctx->settings.keyset.package2_keys[i], 0x10, AES_MODE_CTR);
+        aes_setiv(crypt_ctx, ctr, 0x10);
+        aes_decrypt(crypt_ctx, &temp_header.ctr[0], &temp_header.ctr[0], 0x100);
+        if (temp_header.magic == MAGIC_PK21) {
+            memcpy(&ctx->header, &temp_header, sizeof(temp_header));
+            memcpy(ctx->header.ctr, ctr, sizeof(ctr));
+            break;
+        }
+        free_aes_ctx(crypt_ctx);
+        crypt_ctx = NULL;
+    }
+    
+    if (crypt_ctx == NULL) {
+        fprintf(stderr, "Failed to decrypt PK21! Is correct key present?\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    if (ctx->package_size != 0x200 + ctx->header.section_sizes[0] + ctx->header.section_sizes[1] + ctx->header.section_sizes[2]) {
+        fprintf(stderr, "Error: Package2 Header is corrupt!\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    ctx->sections = malloc(ctx->package_size);
+    if (ctx->sections == NULL) {
+        fprintf(stderr, "Failed to allocate sections!\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    if (fread(ctx->sections, 1, ctx->package_size - 0x200, ctx->file) != ctx->package_size - 0x200) {
+        fprintf(stderr, "Failed to read PK21 Sections!\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    uint64_t offset = 0;
+    for (unsigned int i = 0; i < 3; i++) {
+        unsigned char calc_hash[0x20];
+        sha256_hash_buffer(calc_hash, ctx->sections + offset, ctx->header.section_sizes[i]);
+        if (memcmp(calc_hash, ctx->header.section_hashes[i], 0x20) == 0) {
+            ctx->section_validities[i] = VALIDITY_VALID;
+        } else {
+            ctx->section_validities[i] = VALIDITY_INVALID;
+        }
+        aes_setiv(crypt_ctx, ctx->header.section_ctrs[i], 0x10);
+        aes_decrypt(crypt_ctx, ctx->sections + offset, ctx->sections + offset, ctx->header.section_sizes[i]);
+        offset += ctx->header.section_sizes[i];
+    }
+    
+    /* TODO: Parse INI1 */
+    
+    if (ctx->tool_ctx->action & ACTION_INFO) {
+        pk21_print(ctx);
+    }
+    
+    if (ctx->tool_ctx->action & ACTION_EXTRACT) {
+        pk21_save(ctx);
+    }
+}
+
+const char *pk21_get_section_name(int section) {
+    switch (section) {
+        case 0: return "Kernel";
+        case 1: return "INI1";
+        case 2: return "Empty";
+        default: return "Unknown";
+    }
+}
+
+void pk21_print(pk21_ctx_t *ctx) {
+    printf("PK21:\n");
+    if (ctx->tool_ctx->action & ACTION_VERIFY && ctx->signature_validity != VALIDITY_UNCHECKED) {
+        if (ctx->signature_validity == VALIDITY_VALID) {
+            memdump(stdout, "    Signature (GOOD):               ", &ctx->header.signature, 0x100);
+        } else {
+            memdump(stdout, "    Signature (FAIL):               ", &ctx->header.signature, 0x100);
+        }
+    } else {
+        memdump(stdout, "    Signature:                      ", &ctx->header.signature, 0x100);
+    }
+    
+    /* What the fuck? */
+    printf("    Header Version:                 %02"PRIx32"\n", (ctx->header.ctr_dwords[1] ^ (ctx->header.ctr_dwords[1] >> 16) ^ (ctx->header.ctr_dwords[1] >> 24)) & 0xFF);
+    
+    for (unsigned int i = 0; i < 3; i++) {
+        printf("    Section %"PRId32" (%s):\n", i, pk21_get_section_name(i));
+        if (ctx->tool_ctx->action & ACTION_VERIFY) {
+            if (ctx->section_validities[i] == VALIDITY_VALID) {
+                memdump(stdout, "        Hash (GOOD):                ", ctx->header.section_hashes[i], 0x20);
+            } else {
+                memdump(stdout, "        Hash (FAIL):                ", ctx->header.section_hashes[i], 0x20);
+            }
+        } else {
+            memdump(stdout, "        Hash:                       ", ctx->header.section_hashes[i], 0x20);
+        }
+        memdump(stdout, "        CTR:                        ", ctx->header.section_ctrs[i], 0x20);
+        printf("        Load Address:               %08"PRIx32"\n", ctx->header.section_offsets[i] + 0x80000000);
+        printf("        Size:                       %08"PRIx32"\n", ctx->header.section_sizes[i]);
+    }
+   
+    
+    printf("\n");
+}
+
+void pk21_save(pk21_ctx_t *ctx) {
+    printf("Saving PK21 currently not implemented.\n");
+    /* TODO: Save sections + extract INI1 */
 }
