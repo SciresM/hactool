@@ -365,7 +365,7 @@ void nca_save(nca_ctx_t *ctx) {
 void nca_process(nca_ctx_t *ctx) {
     /* First things first, decrypt header. */
     if (!nca_decrypt_header(ctx)) {
-        fprintf(stderr, "Invalid NCA header!\n");
+        fprintf(stderr, "Invalid NCA header! Are keys correct?\n");
         return;
     }
 
