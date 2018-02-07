@@ -59,11 +59,11 @@ clean_full:
 	rm -f *.o hactool hactool.exe
 	cd mbedtls && $(MAKE) clean
 
-dist:
+dist: clean_full
 	$(eval HACTOOLVER = $(shell grep '\bHACTOOL_VERSION\b' version.h \
-		| cut -d'	' -f2 \
+		| cut -d' ' -f3 \
 		| sed -e 's/"//g'))
 	mkdir hactool-$(HACTOOLVER)
-	cp *.c *.h config.mk.template Makefile README.md LICENSE hactool-$(HACTOOLVER)
+	cp -R *.c *.h config.mk.template Makefile README.md LICENSE mbedtls hactool-$(HACTOOLVER)
 	tar czf hactool-$(HACTOOLVER).tar.gz hactool-$(HACTOOLVER)
 	rm -r hactool-$(HACTOOLVER)
