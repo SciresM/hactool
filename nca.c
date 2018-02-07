@@ -83,8 +83,8 @@ size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buffer, siz
     nca_update_bktr_ctr(ctx->ctr, subsec->ctr_val, ctx->bktr_ctx.bktr_seek + ctx->offset);
     fseeko64(ctx->file, (ctx->offset + ctx->bktr_ctx.bktr_seek) & ~0xF, SEEK_SET);
     uint32_t block_ofs;
-    bktr_subsection_entry_t *next_subsec = bktr_get_subsection(ctx->bktr_ctx.subsection_block, ctx->bktr_ctx.bktr_seek + count);
-    if (next_subsec == subsec || (ctx->bktr_ctx.bktr_seek + count == next_subsec->offset && next_subsec == subsec + 1)) {
+    bktr_subsection_entry_t *next_subsec = subsec + 1;
+    if (ctx->bktr_ctx.bktr_seek + count <= next_subsec->offset) {
         /* Easy path, reading *only* within the subsection. */
         if ((block_ofs = ctx->bktr_ctx.bktr_seek & 0xF) != 0) {
             if ((read = fread(block_buf, 1, 0x10, ctx->file)) != 0x10) {
@@ -397,7 +397,7 @@ void nca_process(nca_ctx_t *ctx) {
     } else {
         /* Decrypt title key. */
         if (ctx->tool_ctx->settings.has_titlekey) {
-            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, AES_MODE_CTR);
+            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, AES_MODE_ECB);
             aes_decrypt(aes_ctx, ctx->tool_ctx->settings.dec_titlekey, ctx->tool_ctx->settings.titlekey, 0x10);
             free_aes_ctx(aes_ctx);
         }
@@ -901,7 +901,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             exit(EXIT_FAILURE);
         }
         /* Allocate space for an extra (fake) subsection entry, to simplify our logic. */
-        void *subs = calloc(1, sb->subsection_header.size + sizeof(bktr_subsection_entry_t));
+        void *subs = calloc(1, sb->subsection_header.size + 2 * sizeof(bktr_subsection_entry_t));
         if (subs == NULL) {
             fprintf(stderr, "Failed to allocate subsection header!\n");
             exit(EXIT_FAILURE);
@@ -921,11 +921,22 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         ctx->bktr_ctx.relocation_block = relocs;
         ctx->bktr_ctx.subsection_block = subs;
         
+        if (ctx->bktr_ctx.subsection_block->bktr_entry_offset != sb->subsection_header.offset) {
+            free(relocs);
+            free(subs);
+            ctx->bktr_ctx.relocation_block = NULL;
+            ctx->bktr_ctx.subsection_block = NULL;
+            ctx->superblock_hash_validity = VALIDITY_INVALID;
+            return;
+        }
+        
         /* This simplifies logic greatly... */
         ctx->bktr_ctx.relocation_block->entries[ctx->bktr_ctx.relocation_block->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->patch_romfs_size;
         ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].offset = sb->relocation_header.offset;
         ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].ctr_val = ctx->header->section_ctr_low;
-        
+        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries + 1].offset = ctx->size;
+        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries + 1].ctr_val = 0;
+
         
         /* Now parse out the romfs stuff. */
         for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
@@ -1110,8 +1121,10 @@ void nca_save_section(nca_section_ctx_t *ctx) {
                 size = ctx->romfs_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_size;
                 break;
             case BKTR:
-                offset = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_offset;
-                size = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_size;
+                if (ctx->tool_ctx->base_file != NULL) {
+                    offset = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_offset;
+                    size = ctx->bktr_ctx.ivfc_levels[IVFC_MAX_LEVEL - 1].data_size;
+                }
                 break;
             case INVALID:
                 break;
@@ -1131,6 +1144,7 @@ void nca_save_section(nca_section_ctx_t *ctx) {
     }
     if (secpath != NULL && secpath->valid == VALIDITY_VALID) {
         printf("Saving Section %"PRId32" to %s...\n", ctx->section_num, secpath->char_path);
+        printf("Size: %012"PRIx64"\n", size);
         nca_save_section_file(ctx, offset, size, secpath);
     }
 
