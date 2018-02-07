@@ -19,7 +19,7 @@ Options:
   -y, --verify       Verify hashes and signatures.
   -d, --dev          Decrypt with development keys instead of retail.
   -k, --keyset       Load keys from an external file.
-  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm]
+  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11, pk21, ini1, kip1]
   --titlekey=key     Set title key for Rights ID crypto titles.
   --contentkey=key   Set raw key for NCA body decryption.
 NCA options:
@@ -58,6 +58,17 @@ XCI options:
   --normaldir=dir    Specify XCI normal HFS0 directory path.
   --securedir=dir    Specify XCI secure HFS0 directory path.
   --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.
+Package1 options:
+  --package1dir=dir  Specify Package1 directory path.
+  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.
+Package2 options:
+  --package2dir=dir  Specify Package2 directory path.
+  --outdir=dir       Specify Package2 directory path. Overrides previous path, if present.
+  --extractini1      Enable INI1 extraction to default directory (redundant with --ini1dir set).
+  --ini1dir=dir      Specify INI1 directory path. Overrides default path, if present.
+INI1 options:
+  --ini1dir=dir      Specify Package1 directory path.
+  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.
 ```
 
 ## Building

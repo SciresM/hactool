@@ -73,10 +73,12 @@ static void usage(void) {
         "  --package1dir=dir  Specify Package1 directory path.\n"
         "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
         "Package2 options:\n"
-        "  --package2dir=dir  Specify Package1 directory path.\n"
-        "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
+        "  --package2dir=dir  Specify Package2 directory path.\n"
+        "  --outdir=dir       Specify Package2 directory path. Overrides previous path, if present.\n"
+        "  --extractini1      Enable INI1 extraction to default directory (redundant with --ini1dir set).\n"
+        "  --ini1dir=dir      Specify INI1 directory path. Overrides default path, if present.\n"
         "INI1 options:\n"
-        "  --ini1dir=dir  Specify Package1 directory path.\n"
+        "  --ini1dir=dir      Specify Package1 directory path.\n"
         "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
