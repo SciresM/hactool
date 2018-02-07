@@ -311,30 +311,47 @@ int main(int argc, char **argv) {
     }
     
     /* Try to populate default keyfile. */
+    /* Use $HOME/.switch/prod.keys if it exists */
+    char *home = getenv("HOME");
+    if (home == NULL)
+        home = getenv("USERPROFILE");
     if (keypath.valid == VALIDITY_INVALID) {
-        char *home = getenv("HOME");
-        if (home == NULL) {
-            home = getenv("USERPROFILE");
-        }
         if (home != NULL) {
             filepath_set(&keypath, home);
             filepath_append(&keypath, ".switch");
             filepath_append(&keypath, "%s.keys", (tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
         }
     }
-    
-    /* Load external keys, if relevant. */
-    if (keypath.valid == VALIDITY_VALID) {
-        FILE *keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
-        if (keyfile != NULL) {
-            extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
-            pki_derive_keys(&tool_ctx.settings.keyset);
-            fclose(keyfile);
-        }
-    }
-    
 
-    
+    /* Load external keys, if relevant. */
+    FILE *keyfile = NULL;
+    if (keypath.valid == VALIDITY_VALID) {
+        keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
+    }
+
+    /* If $HOME/.switch/prod.keys don't exist, try using $XDG_CONFIG_HOME */
+    if (keyfile == NULL) {
+        char *xdgconfig = getenv("XDG_CONFIG_HOME");
+        if (xdgconfig != NULL)
+            filepath_set(&keypath, xdgconfig);
+        else if (home != NULL) {
+            filepath_set(&keypath, home);
+            filepath_append(&keypath, ".config");
+        }
+        /* Keypath contains xdg config. Add switch/%s.keys */
+        filepath_append(&keypath, "switch");
+        filepath_append(&keypath, "%s.keys", (tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
+    }
+
+    if (keyfile == NULL && keypath.valid == VALIDITY_VALID) {
+        keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
+    }
+
+    if (keyfile != NULL) {
+        extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
+        pki_derive_keys(&tool_ctx.settings.keyset);
+        fclose(keyfile);
+    }
 
     if (optind == argc - 1) {
         /* Copy input file. */
