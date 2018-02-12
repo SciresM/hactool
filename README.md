@@ -40,6 +40,8 @@ NCA options:
   --listromfs        List files in RomFS.
   --baseromfs        Set Base RomFS to use with update partitions.
   --basenca          Set Base NCA to use with update partitions.
+  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).
+  --onlyupdated      Ignore non-updated files in update partitions.
 PFS0 options:
   --pfs0dir=dir      Specify PFS0 directory path.
   --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.

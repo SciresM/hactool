@@ -50,7 +50,9 @@ static void usage(void) {
         "  --romfsdir=dir     Specify RomFS directory path. Overrides appropriate section directory path.\n"
         "  --listromfs        List files in RomFS.\n"
         "  --baseromfs        Set Base RomFS to use with update partitions.\n"
-        "  --basenca          Set Base NCA to use with update partitions.\n" 
+        "  --basenca          Set Base NCA to use with update partitions.\n"
+        "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
+        "  --onlyupdated      Ignore non-updated files in update partitions.\n" 
         "PFS0 options:\n"
         "  --pfs0dir=dir      Specify PFS0 directory path.\n"
         "  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.\n"
@@ -148,6 +150,8 @@ int main(int argc, char **argv) {
             {"package2dir", 1, NULL, 27},
             {"ini1dir", 1, NULL, 28},
             {"extractini1", 0, NULL, 29},
+            {"basefake", 0, NULL, 30},
+            {"onlyupdated", 0, NULL, 31},
             {NULL, 0, NULL, 0},
         };
 
@@ -304,6 +308,17 @@ int main(int argc, char **argv) {
             case 29:
                 tool_ctx.action |= ACTION_EXTRACTINI1;
                 break;
+            case 30:
+                if (nca_ctx.tool_ctx->base_file != NULL) {
+                    usage();
+                    return EXIT_FAILURE;
+                }
+                nca_ctx.tool_ctx->base_file_type = BASEFILE_FAKE;
+                nca_ctx.tool_ctx->base_file++; /* Guarantees base_file != NULL. I'm so sorry. */
+                break;
+            case 31:
+                tool_ctx.action |= ACTION_ONLYUPDATEDROMFS;
+                break;
             default:
                 usage();
                 return EXIT_FAILURE;
@@ -370,6 +385,10 @@ int main(int argc, char **argv) {
             nca_ctx.file = tool_ctx.file;
             nca_process(&nca_ctx);
             nca_free_section_contexts(&nca_ctx);
+            
+            if (nca_ctx.tool_ctx->base_file_type == BASEFILE_FAKE) {
+                nca_ctx.tool_ctx->base_file = NULL;
+            }
             
             if (nca_ctx.tool_ctx->base_file != NULL) {
                 fclose(nca_ctx.tool_ctx->base_file);

@@ -32,6 +32,7 @@ typedef struct filepath {
 
 void os_strcpy(oschar_t *dst, const char *src);
 int os_makedir(const oschar_t *dir);
+int os_rmdir(const oschar_t *dir);
 
 void filepath_init(filepath_t *fpath);
 void filepath_copy(filepath_t *fpath, filepath_t *copy);

@@ -215,7 +215,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                             if ((read = fread(buffer, 1, count, ctx->tool_ctx->base_file)) != count) {
                                 return 0;
                             }
-                        } else {
+                        } else if (ctx->tool_ctx->base_file_type == BASEFILE_NCA) {
                             nca_ctx_t *base_ctx = ctx->tool_ctx->base_nca_ctx;
                             unsigned int romfs_section_num;
                             for (romfs_section_num = 0; romfs_section_num < 4; romfs_section_num++) {
@@ -228,6 +228,13 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                                 fprintf(stderr, "Failed to read from Base NCA RomFS!\n");
                                 exit(EXIT_FAILURE);
                             }
+                        } else if (ctx->tool_ctx->base_file_type == BASEFILE_FAKE) {
+                            /* Fake reads. */
+                            memset(buffer, 0xCC, count);
+                            read = count;
+                        } else {
+                            fprintf(stderr, "Unknown Base File Type!\n");
+                            exit(EXIT_FAILURE);
                         }
                     }        
                 } else {
@@ -1190,7 +1197,28 @@ void nca_save_pfs0_section(nca_section_ctx_t *ctx) {
 }
 
 /* RomFS functions... */
-void nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
+int nca_is_romfs_file_updated(nca_section_ctx_t *ctx, uint64_t file_offset, uint64_t file_size) {
+    /* All files in a Base RomFS are "updated". */
+    if (ctx->type == ROMFS) {
+        return 1;
+    }
+       
+    bktr_relocation_entry_t *first_reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, file_offset);
+    bktr_relocation_entry_t *last_reloc = first_reloc;
+    while (last_reloc->virt_offset < file_offset + file_size) {
+        last_reloc++;
+    }
+    
+    for (bktr_relocation_entry_t *cur_reloc = first_reloc; cur_reloc < last_reloc; cur_reloc++) {
+        if (cur_reloc->is_patch) {
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+int nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
     romfs_fentry_t *entry;
     if (ctx->type == ROMFS) {
         entry = romfs_get_fentry(ctx->romfs_ctx.files, file_offset);
@@ -1207,29 +1235,37 @@ void nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
     }
+    
+    int found_file = 1;
 
     /* If we're extracting... */
-    if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
-        printf("Saving %s...\n", cur_path->char_path);
-        uint64_t phys_offset;
-        if (ctx->type == ROMFS) {
-            phys_offset = ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset;
-        } else {
-            phys_offset = ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.data_offset + entry->offset;
-        }
-        nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
+    uint64_t phys_offset;
+    if (ctx->type == ROMFS) {
+        phys_offset = ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset;
     } else {
-        printf("rom:%s\n", cur_path->char_path);
+        phys_offset = ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.data_offset + entry->offset;
+    }
+    if ((ctx->tool_ctx->action & ACTION_ONLYUPDATEDROMFS) == 0 || nca_is_romfs_file_updated(ctx, phys_offset, entry->size)) {
+        if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
+            printf("Saving %s...\n", cur_path->char_path);
+            nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
+        } else {
+            printf("rom:%s\n", cur_path->char_path);
+        }
+    } else {
+        found_file = 0;
     }
 
     free(cur_path);
 
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
-        nca_visit_romfs_file(ctx, entry->sibling, dir_path);
+        return found_file | nca_visit_romfs_file(ctx, entry->sibling, dir_path);
     }
+    
+    return found_file;
 }
 
-void nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
+int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
     romfs_direntry_t *entry;
     if (ctx->type == ROMFS) {
         entry = romfs_get_direntry(ctx->romfs_ctx.directories, dir_offset);
@@ -1251,18 +1287,27 @@ void nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         os_makedir(cur_path->os_path);
     }
+    
+    int any_files = 0;
 
     if (entry->file != ROMFS_ENTRY_EMPTY) {
-        nca_visit_romfs_file(ctx, entry->file, cur_path);
+        any_files |= nca_visit_romfs_file(ctx, entry->file, cur_path);
     }
     if (entry->child != ROMFS_ENTRY_EMPTY) {
-        nca_visit_romfs_dir(ctx, entry->child, cur_path);
+        any_files |= nca_visit_romfs_dir(ctx, entry->child, cur_path);
     }
+    
+    if (any_files == 0 && ctx->type == BKTR && (ctx->tool_ctx->action & ACTION_ONLYUPDATEDROMFS)) {
+        os_rmdir(cur_path->os_path);
+    }
+
+    
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
         nca_visit_romfs_dir(ctx, entry->sibling, parent_path);
     }
-
+    
     free(cur_path);
+    return any_files;
 }
 
 

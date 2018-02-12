@@ -11,7 +11,8 @@ typedef enum {
 
 typedef enum {
     BASEFILE_ROMFS,
-    BASEFILE_NCA
+    BASEFILE_NCA,
+    BASEFILE_FAKE
 } hactool_basefile_t;
 
 typedef struct {
@@ -88,6 +89,7 @@ enum hactool_file_type
 #define ACTION_LISTROMFS (1<<4)
 #define ACTION_DEV (1<<5)
 #define ACTION_EXTRACTINI1 (1<<6)
+#define ACTION_ONLYUPDATEDROMFS (1<<7)
 
 struct nca_ctx; /* This will get re-defined by nca.h. */
 
