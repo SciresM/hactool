@@ -19,8 +19,8 @@ key_area_key_system_source      : Found in FS .rodata.
 header_kek_source               : Found in FS .rodata.
 header_key_source               : Found in FS .rodata.
 
-header_key                      : Derivable from master_key_##, header sources, and aes generation sources.
-key_area_key_application_##     : Derivable from master_key_##, key_area_key_application_source, and aes generation sources.
-key_area_key_ocean_##           : Derivable from master_key_##, key_area_key_ocean_source, and aes generation sources.
-key_area_key_system_##          : Derivable from master_key_##, key_area_key_system_source, and aes generation sources.
+header_key                      : Derivable from master_key_##, aes generation sources, and header sources.
+key_area_key_application_##     : Derivable from master_key_##, aes generation sources, and key_area_key_application_source.
+key_area_key_ocean_##           : Derivable from master_key_##, aes generation sources, and key_area_key_ocean_source.
+key_area_key_system_##          : Derivable from master_key_##, aes generation sources, and key_area_key_system_source.
 ```
