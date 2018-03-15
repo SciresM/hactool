@@ -465,7 +465,6 @@ void nca_process(nca_ctx_t *ctx) {
             if (ctx->tool_ctx->action & ACTION_VERIFY) {
                 printf("Verifying section %"PRId32"...\n", i);
             }
-
             switch (ctx->section_contexts[i].type) {
                 case PFS0:
                     nca_process_pfs0_section(&ctx->section_contexts[i]);
@@ -510,7 +509,7 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
     }
 
     /* Try to support decrypted NCA headers. */
-    if (ctx->header.magic == MAGIC_NCA3) {
+    if (ctx->header.magic == MAGIC_NCA3 || ctx->header.magic == MAGIC_NCA2) {
         if (ctx->header._0x340[0] == 0 && !memcmp(ctx->header._0x340, ctx->header._0x340 + 1, 0xBF)) {
             ctx->is_decrypted = 1;
             return 1;
@@ -518,11 +517,31 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
     }
 
     ctx->is_decrypted = 0;
-
+    
+    nca_header_t dec_header;
+    
+    
+    
     aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.header_key, 32, AES_MODE_XTS);
-    aes_xts_decrypt(aes_ctx, &ctx->header, &ctx->header, 0xC00, 0, 0x200);
+    aes_xts_decrypt(aes_ctx, &dec_header, &ctx->header, 0x400, 0, 0x200);
+    
+    
+    if (dec_header.magic == MAGIC_NCA3) {
+        aes_xts_decrypt(aes_ctx, &dec_header, &ctx->header, 0xC00, 0, 0x200);
+        ctx->header = dec_header;
+    } else if (dec_header.magic == MAGIC_NCA2) {
+        for (unsigned int i = 0; i < 4; i++) {
+            if (dec_header.fs_headers[i]._0x148[0] != 0 || memcmp(dec_header.fs_headers[i]._0x148, dec_header.fs_headers[i]._0x148 + 1, 0xB7)) {
+                aes_xts_decrypt(aes_ctx, &dec_header.fs_headers[i], &ctx->header.fs_headers[i], 0x200, 0, 0x200);
+            } else {
+                memset(&dec_header.fs_headers[i], 0, sizeof(nca_fs_header_t));
+            }
+        }
+        ctx->header = dec_header;
+    }
+    
     free_aes_ctx(aes_ctx);
-    return ctx->header.magic == MAGIC_NCA3;
+    return ctx->header.magic == MAGIC_NCA3 || ctx->header.magic == MAGIC_NCA2;
 }
 
 /* Decrypt key area. */

@@ -12,6 +12,7 @@
 #include "bktr.h"
 
 #define MAGIC_NCA3 0x3341434E /* "NCA3" */
+#define MAGIC_NCA2 0x3241434E /* "NCA2" */
 
 typedef struct {
     uint32_t media_start_offset;
