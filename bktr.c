@@ -1,6 +1,10 @@
 #include "bktr.h"
 #include "utils.h"
 
+bktr_relocation_bucket_t *bktr_get_relocation_bucket(bktr_relocation_block_t *block, uint32_t i) {
+    return (bktr_relocation_bucket_t *)((uint8_t *)block->buckets + (sizeof(bktr_relocation_bucket_t) + sizeof(bktr_relocation_entry_t)) * i);
+}
+
 /* Get a relocation entry from offset and relocation block. */
 bktr_relocation_entry_t *bktr_get_relocation(bktr_relocation_block_t *block, uint64_t offset) {
     /* Weak check for invalid offset. */
@@ -9,16 +13,19 @@ bktr_relocation_entry_t *bktr_get_relocation(bktr_relocation_block_t *block, uin
         exit(EXIT_FAILURE);
     }
     
-    bktr_relocation_bucket_t *bucket = &block->buckets[0];
+    uint32_t bucket_num = 0;
     for (unsigned int i = 1; i < block->num_buckets; i++) {
-        if (block->bucket_virtual_offsets[i] < offset) {
-            bucket++;
+        if (block->bucket_virtual_offsets[i] <= offset) {
+            bucket_num++;
         }
     }
+    
+    bktr_relocation_bucket_t *bucket = bktr_get_relocation_bucket(block, bucket_num);
     
     if (bucket->num_entries == 1) { /* Check for edge case, short circuit. */
         return &bucket->entries[0];
     }
+    
     /* Binary search. */
     uint32_t low = 0, high = bucket->num_entries - 1;
     while (low <= high) {
@@ -37,6 +44,10 @@ bktr_relocation_entry_t *bktr_get_relocation(bktr_relocation_block_t *block, uin
     exit(EXIT_FAILURE);
 }
 
+bktr_subsection_bucket_t *bktr_get_subsection_bucket(bktr_subsection_block_t *block, uint32_t i) {
+    return (bktr_subsection_bucket_t *)((uint8_t *)block->buckets + (sizeof(bktr_subsection_bucket_t) + sizeof(bktr_subsection_entry_t)) * i);
+}
+
 /* Get a subsection entry from offset and subsection block .*/
 bktr_subsection_entry_t *bktr_get_subsection(bktr_subsection_block_t *block, uint64_t offset) {
     /* If offset is past the virtual, we're reading from the BKTR_HEADER subsection. */
@@ -44,12 +55,14 @@ bktr_subsection_entry_t *bktr_get_subsection(bktr_subsection_block_t *block, uin
         return &block->buckets[block->num_buckets - 1].entries[block->buckets[block->num_buckets - 1].num_entries];
     }
     
-    bktr_subsection_bucket_t *bucket = &block->buckets[0];
+    uint32_t bucket_num = 0;
     for (unsigned int i = 1; i < block->num_buckets; i++) {
-        if (block->bucket_physical_offsets[i] < offset) {
-            bucket++;
+        if (block->bucket_physical_offsets[i] <= offset) {
+            bucket_num++;
         }
     }
+    
+    bktr_subsection_bucket_t *bucket = bktr_get_subsection_bucket(block, bucket_num);
     
     if (bucket->num_entries == 1) { /* Check for edge case, short circuit. */
         return &bucket->entries[0];

@@ -921,13 +921,13 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             exit(EXIT_FAILURE);
         }
         /* Allocate space for an extra (fake) relocation entry, to simplify our logic. */
-        void *relocs = calloc(1, sb->relocation_header.size + sizeof(bktr_relocation_entry_t));
+        void *relocs = calloc(1, sb->relocation_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_relocation_entry_t));
         if (relocs == NULL) {
             fprintf(stderr, "Failed to allocate relocation header!\n");
             exit(EXIT_FAILURE);
         }
         /* Allocate space for an extra (fake) subsection entry, to simplify our logic. */
-        void *subs = calloc(1, sb->subsection_header.size + 2 * sizeof(bktr_subsection_entry_t));
+        void *subs = calloc(1, sb->subsection_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_subsection_entry_t) + sizeof(bktr_subsection_entry_t));
         if (subs == NULL) {
             fprintf(stderr, "Failed to allocate subsection header!\n");
             exit(EXIT_FAILURE);
@@ -957,8 +957,24 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         }
         
         /* This simplifies logic greatly... */
-        bktr_relocation_bucket_t *last_reloc_bucket = &ctx->bktr_ctx.relocation_block->buckets[ctx->bktr_ctx.relocation_block->num_buckets - 1];
-        bktr_subsection_bucket_t *last_subsec_bucket = &ctx->bktr_ctx.subsection_block->buckets[ctx->bktr_ctx.subsection_block->num_buckets - 1];
+        for (unsigned int i = ctx->bktr_ctx.relocation_block->num_buckets - 1; i > 0; i--) {
+            memcpy(bktr_get_relocation_bucket(ctx->bktr_ctx.relocation_block, i), &ctx->bktr_ctx.relocation_block->buckets[i], sizeof(bktr_relocation_bucket_t));
+        }
+        for (unsigned int i = 0; i + 1 < ctx->bktr_ctx.relocation_block->num_buckets; i++) {
+            bktr_relocation_bucket_t *cur_bucket = bktr_get_relocation_bucket(ctx->bktr_ctx.relocation_block, i);
+            cur_bucket->entries[cur_bucket->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->bucket_virtual_offsets[i + 1];
+        }
+        for (unsigned int i = ctx->bktr_ctx.subsection_block->num_buckets - 1; i > 0; i--) {
+            memcpy(bktr_get_subsection_bucket(ctx->bktr_ctx.subsection_block, i), &ctx->bktr_ctx.subsection_block->buckets[i], sizeof(bktr_subsection_bucket_t));
+        }
+        for (unsigned int i = 0; i + 1 < ctx->bktr_ctx.subsection_block->num_buckets; i++) {
+            bktr_subsection_bucket_t *cur_bucket = bktr_get_subsection_bucket(ctx->bktr_ctx.subsection_block, i);
+            bktr_subsection_bucket_t *next_bucket = bktr_get_subsection_bucket(ctx->bktr_ctx.subsection_block, i+1);
+            cur_bucket->entries[cur_bucket->num_entries].offset = next_bucket->entries[0].offset;
+            cur_bucket->entries[cur_bucket->num_entries].ctr_val = next_bucket->entries[0].ctr_val;
+        }
+        bktr_relocation_bucket_t *last_reloc_bucket = bktr_get_relocation_bucket(ctx->bktr_ctx.relocation_block, ctx->bktr_ctx.relocation_block->num_buckets - 1);
+        bktr_subsection_bucket_t *last_subsec_bucket = bktr_get_subsection_bucket(ctx->bktr_ctx.subsection_block, ctx->bktr_ctx.subsection_block->num_buckets - 1);
         last_reloc_bucket->entries[last_reloc_bucket->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->total_size;
         last_subsec_bucket->entries[last_subsec_bucket->num_entries].offset = sb->relocation_header.offset;
         last_subsec_bucket->entries[last_subsec_bucket->num_entries].ctr_val = ctx->header->section_ctr_low;

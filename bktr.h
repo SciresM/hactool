@@ -69,7 +69,10 @@ typedef struct {
 } bktr_subsection_block_t;
 #pragma pack(pop)
 
+bktr_relocation_bucket_t *bktr_get_relocation_bucket(bktr_relocation_block_t *block, uint32_t i);
 bktr_relocation_entry_t *bktr_get_relocation(bktr_relocation_block_t *block, uint64_t offset);
+
+bktr_subsection_bucket_t *bktr_get_subsection_bucket(bktr_subsection_block_t *block, uint32_t i);
 bktr_subsection_entry_t *bktr_get_subsection(bktr_subsection_block_t *block, uint64_t offset);
 
 #endif
