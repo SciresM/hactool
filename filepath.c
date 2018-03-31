@@ -9,6 +9,10 @@
 
 #include "ConvertUTF.h"
 
+#ifdef _WIN32
+#include <wchar.h>
+#endif
+
 void os_strcpy(oschar_t *dst, const char *src) {
 #ifdef _WIN32
     if (src == NULL) return;

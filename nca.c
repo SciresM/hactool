@@ -947,7 +947,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         ctx->bktr_ctx.relocation_block = relocs;
         ctx->bktr_ctx.subsection_block = subs;
         
-        if (ctx->bktr_ctx.subsection_block->bktr_entry_offset != sb->subsection_header.offset) {
+        if (ctx->bktr_ctx.subsection_block->total_size != sb->subsection_header.offset) {
             free(relocs);
             free(subs);
             ctx->bktr_ctx.relocation_block = NULL;
@@ -957,12 +957,13 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         }
         
         /* This simplifies logic greatly... */
-        ctx->bktr_ctx.relocation_block->entries[ctx->bktr_ctx.relocation_block->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->patch_romfs_size;
-        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].offset = sb->relocation_header.offset;
-        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries].ctr_val = ctx->header->section_ctr_low;
-        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries + 1].offset = ctx->size;
-        ctx->bktr_ctx.subsection_block->entries[ctx->bktr_ctx.subsection_block->num_entries + 1].ctr_val = 0;
-
+        bktr_relocation_bucket_t *last_reloc_bucket = &ctx->bktr_ctx.relocation_block->buckets[ctx->bktr_ctx.relocation_block->num_buckets - 1];
+        bktr_subsection_bucket_t *last_subsec_bucket = &ctx->bktr_ctx.subsection_block->buckets[ctx->bktr_ctx.subsection_block->num_buckets - 1];
+        last_reloc_bucket->entries[last_reloc_bucket->num_entries].virt_offset = ctx->bktr_ctx.relocation_block->total_size;
+        last_subsec_bucket->entries[last_subsec_bucket->num_entries].offset = sb->relocation_header.offset;
+        last_subsec_bucket->entries[last_subsec_bucket->num_entries].ctr_val = ctx->header->section_ctr_low;
+        last_subsec_bucket->entries[last_subsec_bucket->num_entries + 1].offset = ctx->size;
+        last_subsec_bucket->entries[last_subsec_bucket->num_entries + 1].ctr_val = 0;
         
         /* Now parse out the romfs stuff. */
         for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
@@ -1156,7 +1157,7 @@ void nca_save_section(nca_section_ctx_t *ctx) {
                 break;
         }
     } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL && ctx->tool_ctx->base_file != NULL) {
-        size = ctx->bktr_ctx.relocation_block->patch_romfs_size;
+        size = ctx->bktr_ctx.relocation_block->total_size;
     }
     
     /* Extract to file. */
