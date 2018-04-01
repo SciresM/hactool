@@ -51,8 +51,9 @@ bktr_subsection_bucket_t *bktr_get_subsection_bucket(bktr_subsection_block_t *bl
 /* Get a subsection entry from offset and subsection block .*/
 bktr_subsection_entry_t *bktr_get_subsection(bktr_subsection_block_t *block, uint64_t offset) {
     /* If offset is past the virtual, we're reading from the BKTR_HEADER subsection. */
-    if (offset >= block->buckets[block->num_buckets - 1].entries[block->buckets[block->num_buckets - 1].num_entries].offset) {
-        return &block->buckets[block->num_buckets - 1].entries[block->buckets[block->num_buckets - 1].num_entries];
+    bktr_subsection_bucket_t *last_bucket = bktr_get_subsection_bucket(block, block->num_buckets - 1);
+    if (offset >= last_bucket->entries[last_bucket->num_entries].offset) {
+        return &last_bucket->entries[last_bucket->num_entries];
     }
     
     uint32_t bucket_num = 0;
