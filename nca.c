@@ -316,7 +316,7 @@ void nca_save(nca_ctx_t *ctx) {
     }
     
     /* Save Decrypted NCA. */
-    filepath_t *dec_path = &ctx->tool_ctx->settings.dec_nca_path;
+    filepath_t *dec_path = &ctx->tool_ctx->settings.plaintext_path;
 
     if (dec_path->valid == VALIDITY_VALID) {
         printf("Saving Decrypted NCA to %s...\n", dec_path->char_path);

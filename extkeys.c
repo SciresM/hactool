@@ -212,6 +212,15 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "package2_key_source") == 0) {
                 parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));
                 matched_key = 1;
+            } else if (strcmp(key, "sd_card_kek_source") == 0) {
+                parse_hex_key(keyset->sd_card_kek_source, value, sizeof(keyset->sd_card_kek_source));
+                matched_key = 1;
+            } else if (strcmp(key, "sd_card_nca_key_source") == 0) {
+                parse_hex_key(keyset->sd_card_key_sources[1], value, sizeof(keyset->sd_card_key_sources[1]));
+                matched_key = 1;
+            } else if (strcmp(key, "sd_card_save_key_source") == 0) {
+                parse_hex_key(keyset->sd_card_key_sources[0], value, sizeof(keyset->sd_card_key_sources[0]));
+                matched_key = 1;
             } else {
                 char test_name[0x100];
                 memset(test_name, 0, sizeof(100));

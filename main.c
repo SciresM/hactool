@@ -9,6 +9,7 @@
 #include "pki.h"
 #include "nca.h"
 #include "xci.h"
+#include "nax0.h"
 #include "extkeys.h"
 #include "packages.h"
 
@@ -80,8 +81,11 @@ static void usage(void) {
         "  --extractini1      Enable INI1 extraction to default directory (redundant with --ini1dir set).\n"
         "  --ini1dir=dir      Specify INI1 directory path. Overrides default path, if present.\n"
         "INI1 options:\n"
-        "  --ini1dir=dir      Specify Package1 directory path.\n"
-        "  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.\n"
+        "  --ini1dir=dir      Specify INI1 directory path.\n"
+        "  --outdir=dir       Specify INI1 directory path. Overrides previous path, if present.\n"
+        "NAX0 options:\n"
+        "  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.\n"
+        "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -152,6 +156,8 @@ int main(int argc, char **argv) {
             {"extractini1", 0, NULL, 29},
             {"basefake", 0, NULL, 30},
             {"onlyupdated", 0, NULL, 31},
+            {"sdseed", 1, NULL, 32},
+            {"sdpath", 1, NULL, 33},
             {NULL, 0, NULL, 0},
         };
 
@@ -201,6 +207,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_INI1;
                 } else if (!strcmp(optarg, "kip1") || !strcmp(optarg, "kip")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_KIP1;
+                } else if (!strcmp(optarg, "nax0") || !strcmp(optarg, "nax")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_NAX0;
                 }
                 break;
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
@@ -273,7 +281,7 @@ int main(int argc, char **argv) {
                 filepath_set(&tool_ctx.settings.out_dir_path.path, optarg); 
                 break;
             case 18:
-                filepath_set(&nca_ctx.tool_ctx->settings.dec_nca_path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.plaintext_path, optarg); 
                 break;
             case 19:
                 filepath_set(&nca_ctx.tool_ctx->settings.header_path, optarg); 
@@ -318,6 +326,19 @@ int main(int argc, char **argv) {
                 break;
             case 31:
                 tool_ctx.action |= ACTION_ONLYUPDATEDROMFS;
+                break;
+            case 32:
+                parse_hex_key(nca_ctx.tool_ctx->settings.sdseed, optarg, 16);
+                nca_ctx.tool_ctx->settings.has_sdseed = 1;
+                for (unsigned int key = 0; key < 2; key++) {
+                    for (unsigned int i = 0; i < 0x20; i++) {
+                        tool_ctx.settings.keyset.sd_card_key_sources[key][i] ^= tool_ctx.settings.sdseed[i & 0xF];
+                    }
+                }
+                pki_derive_keys(&tool_ctx.settings.keyset);
+                break;
+            case 33:
+                filepath_set(&tool_ctx.settings.nax0_sd_path, optarg);
                 break;
             default:
                 usage();
@@ -364,6 +385,13 @@ int main(int argc, char **argv) {
 
     if (keyfile != NULL) {
         extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
+        if (tool_ctx.settings.has_sdseed) {
+            for (unsigned int key = 0; key < 2; key++) {
+                for (unsigned int i = 0; i < 0x20; i++) {
+                    tool_ctx.settings.keyset.sd_card_key_sources[key][i] ^= tool_ctx.settings.sdseed[i & 0xF];
+                }
+            }
+        }
         pki_derive_keys(&tool_ctx.settings.keyset);
         fclose(keyfile);
     }
@@ -374,11 +402,37 @@ int main(int argc, char **argv) {
     } else if ((optind < argc) || (argc == 1)) {
         usage();
     }
-
+    
+    /* Special case NAX0. */
+    if (tool_ctx.file_type == FILETYPE_NAX0) {
+        nax0_ctx_t nax_ctx;
+        memset(&nax_ctx, 0, sizeof(nax_ctx));
+        filepath_set(&nax_ctx.base_path, input_name);
+        nax_ctx.tool_ctx = &tool_ctx;
+        nax0_process(&nax_ctx);
+    
+        if (nax_ctx.aes_ctx) {
+            free_aes_ctx(nax_ctx.aes_ctx);
+        }  
+        if (nax_ctx.num_files) {
+            for (unsigned int i = 0; i < nax_ctx.num_files; i++) {
+                fclose(nax_ctx.files[i]);
+            }
+        }
+        if (nax_ctx.files) {
+            free(nax_ctx.files);
+        }
+        printf("Done!\n");
+        return EXIT_SUCCESS;
+    } 
+    
+    
     if ((tool_ctx.file = fopen(input_name, "rb")) == NULL) {
         fprintf(stderr, "unable to open %s: %s\n", input_name, strerror(errno));
         return EXIT_FAILURE;
     }
+
+
     
     switch (tool_ctx.file_type) {
         case FILETYPE_NCA: {

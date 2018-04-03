@@ -114,6 +114,11 @@ const nca_keyset_t nca_keys_retail = {
     ZEROES_KEY, /* Key Area Encryption Key Source System */
     ZEROES_KEY, /* Titlekek Source */
     ZEROES_KEY, /* Headerkek Source */
+    ZEROES_KEY, /* SD Card kek Source. */
+    {
+        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
+        ZEROES_XTS_KEY, /* SD Card Key Source, for saves. */
+    },
     ZEROES_XTS_KEY, /* Encrypted Header Key */
     ZEROES_XTS_KEY, /* Header key */
     {
@@ -183,6 +188,10 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 29 */
         ZEROES_KAEKS, /* Key Area Encryption Keyset 30 */
         ZEROES_KAEKS  /* Key Area Encryption Keyset 31 */
+    },
+    {
+        ZEROES_XTS_KEY, /* SD Card Key, for NCAs. */
+        ZEROES_XTS_KEY, /* SD Card Key, for saves. */
     },
     { /* Fixed RSA key used to validate NCA signature 0. */
         0xBF, 0xBE, 0x40, 0x6C, 0xF4, 0xA7, 0x80, 0xE9, 0xF0, 0x7D, 0x0C, 0x99, 0x61, 0x1D, 0x77, 0x2F,
@@ -351,6 +360,11 @@ const nca_keyset_t nca_keys_dev = {
     ZEROES_KEY, /* Key Area Encryption Key Source System */
     ZEROES_KEY, /* Titlekek Source */
     ZEROES_KEY, /* Headerkek Source */
+    ZEROES_KEY, /* SD Card kek Source. */
+    {
+        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
+        ZEROES_XTS_KEY, /* SD Card Key Source, for saves. */
+    },
     ZEROES_XTS_KEY, /* Encrypted Header Key */
     ZEROES_XTS_KEY, /* Header key */
     {
@@ -420,6 +434,10 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 29 */
         ZEROES_KAEKS, /* Key Area Encryption Keyset 30 */
         ZEROES_KAEKS  /* Key Area Encryption Keyset 31 */
+    },
+    {
+        ZEROES_XTS_KEY, /* SD Card Key, for NCAs. */
+        ZEROES_XTS_KEY, /* SD Card Key, for saves. */
     },
     {
         0xD8, 0xF1, 0x18, 0xEF, 0x32, 0x72, 0x4C, 0xA7, 0x47, 0x4C, 0xB9, 0xEA, 0xB3, 0x04, 0xA8, 0xA4,
@@ -539,6 +557,21 @@ void pki_derive_keys(nca_keyset_t *keyset) {
             free_aes_ctx(header_ctx);
         }
         
+        /* Derive SD Card Key */
+        if (i == 0 && memcmp(keyset->sd_card_kek_source, zeroes, 0x10) != 0) {
+            unsigned char sd_kek[0x10];
+            generate_kek(sd_kek, keyset->sd_card_kek_source, keyset->master_keys[i], keyset->aes_kek_generation_source, keyset->aes_key_generation_source);
+            aes_ctx_t *sd_ctx = new_aes_ctx(sd_kek, 0x10, AES_MODE_ECB);
+
+            for (unsigned int k = 0; k < 2; k++) {
+                if (memcmp(keyset->sd_card_key_sources[k], zeroes, 0x20) != 0) {
+                    aes_decrypt(sd_ctx, keyset->sd_card_keys[k], keyset->sd_card_key_sources[k], 0x20);
+                }
+            }
+            
+            free_aes_ctx(sd_ctx);
+        }
+        
         free_aes_ctx(master_ctx);
     }
 
@@ -558,5 +591,4 @@ void pki_initialize_keyset(nca_keyset_t *keyset, keyset_variant_t variant) {
     }
     
     pki_derive_keys(keyset);
-    
 }

@@ -22,4 +22,6 @@ void free_sha_ctx(sha_ctx_t *ctx);
 
 void sha256_hash_buffer(unsigned char *digest, const void *data, size_t l);
 
+void sha256_get_buffer_hmac(void *digest, const void *secret, size_t s_l, const void *data, size_t d_l);
+
 #endif
