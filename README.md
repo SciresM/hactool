@@ -69,8 +69,14 @@ Package2 options:
   --extractini1      Enable INI1 extraction to default directory (redundant with --ini1dir set).
   --ini1dir=dir      Specify INI1 directory path. Overrides default path, if present.
 INI1 options:
-  --ini1dir=dir      Specify Package1 directory path.
-  --outdir=dir       Specify Package1 directory path. Overrides previous path, if present.
+  --ini1dir=dir      Specify INI1 directory path.
+  --outdir=dir       Specify INI1 directory path. Overrides previous path, if present.
+NAX0 options:
+  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.
+  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).
+Key Derivation options:
+  --sbk=key          Set console unique Secure Boot Key for key derivation.
+  --tseckey=key      Set console unique TSEC Key for key derivation.
 ```
 
 ## Building
