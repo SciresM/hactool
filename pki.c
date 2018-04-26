@@ -1035,7 +1035,7 @@ void pki_print_keys(nca_keyset_t *keyset) {
     }
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->aes_kek_generation_source, aes_kek_generation_source);
-    PRINT_KEY_WITH_NAME(keyset->aes_key_generation_source, aes_kek_generation_source);
+    PRINT_KEY_WITH_NAME(keyset->aes_key_generation_source, aes_key_generation_source);
     PRINT_KEY_WITH_NAME(keyset->titlekek_source, titlekek_source);
     printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
