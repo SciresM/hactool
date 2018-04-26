@@ -31,7 +31,7 @@ static void usage(void) {
         "  -y, --verify       Verify hashes and signatures.\n"
         "  -d, --dev          Decrypt with development keys instead of retail.\n"
         "  -k, --keyset       Load keys from an external file.\n"
-        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11, pk21, ini1, kip1]\n"
+        "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11, pk21, ini1, kip1, keygen]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
         "NCA options:\n"
@@ -86,6 +86,9 @@ static void usage(void) {
         "NAX0 options:\n"
         "  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.\n"
         "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"
+        "Key Derivation options:\n"
+        "  --sbk=key          Set console unique Secure Boot Key for key derivation.\n"
+        "  --tseckey=key      Set console unique TSEC Key for key derivation.\n"
         "\n", __TIME__, __DATE__, prog_name);
     exit(EXIT_FAILURE);
 }
@@ -158,6 +161,8 @@ int main(int argc, char **argv) {
             {"onlyupdated", 0, NULL, 31},
             {"sdseed", 1, NULL, 32},
             {"sdpath", 1, NULL, 33},
+            {"sbk", 1, NULL, 34},
+            {"tseckey", 1, NULL, 35},
             {NULL, 0, NULL, 0},
         };
 
@@ -209,6 +214,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_KIP1;
                 } else if (!strcmp(optarg, "nax0") || !strcmp(optarg, "nax")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NAX0;
+                } else if (!strcmp(optarg, "keygen") || !strcmp(optarg, "keys") || !strcmp(optarg, "boot0") || !strcmp(optarg, "boot")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_BOOT0;
                 }
                 break;
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
@@ -339,6 +346,12 @@ int main(int argc, char **argv) {
                 break;
             case 33:
                 filepath_set(&tool_ctx.settings.nax0_sd_path, optarg);
+                break;
+            case 34:
+                parse_hex_key(nca_ctx.tool_ctx->settings.keygen_sbk, optarg, 16);
+                break;
+            case 35:
+                parse_hex_key(nca_ctx.tool_ctx->settings.keygen_tsec, optarg, 16);
                 break;
             default:
                 usage();
@@ -589,12 +602,39 @@ int main(int argc, char **argv) {
             xci_process(&xci_ctx);
             break;
         }
+        case FILETYPE_BOOT0: {
+            nca_keyset_t new_keyset;
+            memcpy(&new_keyset, &tool_ctx.settings.keyset, sizeof(new_keyset));
+            for (unsigned int i = 0; i < 0x10; i++) {
+                if (tool_ctx.settings.keygen_sbk[i] != 0) {
+                    memcpy(new_keyset.secure_boot_key, tool_ctx.settings.keygen_sbk, 0x10);
+                }
+            }
+            for (unsigned int i = 0; i < 0x10; i++) {
+                if (tool_ctx.settings.keygen_tsec[i] != 0) {
+                    memcpy(new_keyset.tsec_key, tool_ctx.settings.keygen_tsec, 0x10);
+                }
+            }
+            for (unsigned int i = 0; i < 0x20; i++) {
+                fseek(tool_ctx.file, 0x180000 + 0x200 * i, SEEK_SET);
+                if (fread(&new_keyset.encrypted_keyblobs[i], sizeof(new_keyset.encrypted_keyblobs[i]), 1, tool_ctx.file) != 1) {
+                    fprintf(stderr, "Error: Failed to read encrypted_keyblob_%02x from boot0!\n", i);
+                    return EXIT_FAILURE;
+                }
+            }
+            printf("Deriving keys...\n");
+            pki_derive_keys(&new_keyset);
+            printf("--\n");
+            printf("All derivable keys (using loaded sources):\n\n");
+            pki_print_keys(&new_keyset);
+            break;
+        }
         default: {
             fprintf(stderr, "Unknown File Type!\n\n");
             usage();
         }
     }
-    
+
     if (tool_ctx.file != NULL) {
         fclose(tool_ctx.file);
     }

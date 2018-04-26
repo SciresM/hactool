@@ -209,6 +209,9 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "header_key") == 0) {
                 parse_hex_key(keyset->header_key, value, sizeof(keyset->header_key));
                 matched_key = 1;
+            } else if (strcmp(key, "encrypted_header_key") == 0) {
+                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
+                matched_key = 1;
             } else if (strcmp(key, "package2_key_source") == 0) {
                 parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));
                 matched_key = 1;
@@ -221,10 +224,57 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "sd_card_save_key_source") == 0) {
                 parse_hex_key(keyset->sd_card_key_sources[0], value, sizeof(keyset->sd_card_key_sources[0]));
                 matched_key = 1;
+            } else if (strcmp(key, "master_key_source") == 0) {
+                parse_hex_key(keyset->master_key_source, value, sizeof(keyset->master_key_source));
+                matched_key = 1;
+            } else if (strcmp(key, "keyblob_mac_key_source") == 0) {
+                parse_hex_key(keyset->keyblob_mac_key_source, value, sizeof(keyset->keyblob_mac_key_source));
+                matched_key = 1;
+            } else if (strcmp(key, "secure_boot_key") == 0) {
+                parse_hex_key(keyset->secure_boot_key, value, sizeof(keyset->secure_boot_key));
+                matched_key = 1;
+            } else if (strcmp(key, "tsec_key") == 0) {
+                parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
+                matched_key = 1;
             } else {
                 char test_name[0x100];
                 memset(test_name, 0, sizeof(100));
                 for (unsigned int i = 0; i < 0x20 && !matched_key; i++) {
+                    snprintf(test_name, sizeof(test_name), "keyblob_key_source_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->keyblob_key_sources[i], value, sizeof(keyset->keyblob_key_sources[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "keyblob_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->keyblob_keys[i], value, sizeof(keyset->keyblob_keys[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "keyblob_mac_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->keyblob_mac_keys[i], value, sizeof(keyset->keyblob_mac_keys[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "encrypted_keyblob_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->encrypted_keyblobs[i], value, sizeof(keyset->encrypted_keyblobs[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "keyblob_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->keyblobs[i], value, sizeof(keyset->keyblobs[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
                     snprintf(test_name, sizeof(test_name), "master_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_keys[i], value, sizeof(keyset->master_keys[i]));

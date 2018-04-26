@@ -48,6 +48,19 @@ void aes_setiv(aes_ctx_t *ctx, const void *iv, size_t l) {
     }
 }
 
+/* Calculate CMAC. */
+void aes_calculate_cmac(void *dst, void *src, size_t size, const void *key) {
+    mbedtls_cipher_context_t m_ctx;
+    mbedtls_cipher_init(&m_ctx);
+    if (mbedtls_cipher_setup(&m_ctx, mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_ECB))
+        || mbedtls_cipher_cmac_starts(&m_ctx, key, 0x80)
+        || mbedtls_cipher_cmac_update(&m_ctx, src, size)
+        || mbedtls_cipher_cmac_finish(&m_ctx, dst)) {
+            FATAL_ERROR("Failed to calculate CMAC!");
+    }
+}
+
+
 /* Encrypt with context. */
 void aes_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     size_t out_len = 0;
