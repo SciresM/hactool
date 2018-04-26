@@ -1065,13 +1065,8 @@ void pki_print_keys(nca_keyset_t *keyset) {
     }
     printf("\n");
     
-    /*
-    unsigned char titlekeks[0x20][0x10];                 
-    unsigned char key_area_keys[0x20][3][0x10];         
-    */
-    
+    #undef PRINT_KEY_WITH_NAME_IDX
     #undef PRINT_KEY_WITH_NAME
-    #undef PRINT_KEY
 }
 
 void pki_initialize_keyset(nca_keyset_t *keyset, keyset_variant_t variant) {
