@@ -891,7 +891,7 @@ void pki_derive_keys(nca_keyset_t *keyset) {
             continue;
         }
         aes_ctx_t *mac_gen_ctx = new_aes_ctx(&keyset->keyblob_keys[i], 0x10, AES_MODE_ECB);
-        aes_decrypt(sbk_ctx, &keyset->keyblob_mac_keys[i], keyset->keyblob_mac_key_source, 0x10);
+        aes_decrypt(mac_gen_ctx, &keyset->keyblob_mac_keys[i], keyset->keyblob_mac_key_source, 0x10);
         free_aes_ctx(mac_gen_ctx);
     }
     for (unsigned int i = 0; i < 0x20; i++) {
