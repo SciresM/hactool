@@ -125,12 +125,25 @@ void pk21_process(pk21_ctx_t *ctx) {
         fprintf(stderr, "Failed to read PK21 Header!\n");
         exit(EXIT_FAILURE);
     }
-        
-    if (rsa2048_pss_verify(&ctx->header.ctr, 0x100, ctx->header.signature, ctx->tool_ctx->settings.keyset.package2_fixed_key_modulus)) {
-        ctx->signature_validity = VALIDITY_VALID;
-    } else {
-        ctx->signature_validity = VALIDITY_INVALID;
+    
+    bool is_encrypted = false;
+    for (unsigned int i = 0; i < 0x100; i++) {
+        if (ctx->header.signature[i] != 0) {
+            is_encrypted = true;
+        }
     }
+    is_encrypted &= ctx->header.magic == MAGIC_PK21;
+    
+    if (is_encrypted) {
+        if (rsa2048_pss_verify(&ctx->header.ctr, 0x100, ctx->header.signature, ctx->tool_ctx->settings.keyset.package2_fixed_key_modulus)) {
+            ctx->signature_validity = VALIDITY_VALID;
+        } else {
+            ctx->signature_validity = VALIDITY_INVALID;
+        }
+    } else {
+        ctx->signature_validity = VALIDITY_UNCHECKED;
+    }
+    
     
     /* Nintendo, what the fuck? */
     ctx->package_size = ctx->header.ctr_dwords[0] ^ ctx->header.ctr_dwords[2] ^ ctx->header.ctr_dwords[3];
@@ -139,30 +152,33 @@ void pk21_process(pk21_ctx_t *ctx) {
         exit(EXIT_FAILURE);
     }
     
-    unsigned char ctr[0x10];
-    pk21_header_t temp_header;
-    memcpy(ctr, ctx->header.ctr, sizeof(ctr));
-    
     aes_ctx_t *crypt_ctx = NULL;
-    for (unsigned int i = 0; i < 0x20; i++) {
-        ctx->key_rev = i;
-        memcpy(&temp_header, &ctx->header, sizeof(temp_header));
-        crypt_ctx = new_aes_ctx(&ctx->tool_ctx->settings.keyset.package2_keys[i], 0x10, AES_MODE_CTR);
-        aes_setiv(crypt_ctx, ctr, 0x10);
-        aes_decrypt(crypt_ctx, &temp_header.ctr[0], &temp_header.ctr[0], 0x100);
-        if (temp_header.magic == MAGIC_PK21) {
-            memcpy(&ctx->header, &temp_header, sizeof(temp_header));
-            memcpy(ctx->header.ctr, ctr, sizeof(ctr));
-            break;
+    if (is_encrypted) {
+        unsigned char ctr[0x10];
+        pk21_header_t temp_header;
+        memcpy(ctr, ctx->header.ctr, sizeof(ctr));
+        
+        for (unsigned int i = 0; i < 0x20; i++) {
+            ctx->key_rev = i;
+            memcpy(&temp_header, &ctx->header, sizeof(temp_header));
+            crypt_ctx = new_aes_ctx(&ctx->tool_ctx->settings.keyset.package2_keys[i], 0x10, AES_MODE_CTR);
+            aes_setiv(crypt_ctx, ctr, 0x10);
+            aes_decrypt(crypt_ctx, &temp_header.ctr[0], &temp_header.ctr[0], 0x100);
+            if (temp_header.magic == MAGIC_PK21) {
+                memcpy(&ctx->header, &temp_header, sizeof(temp_header));
+                memcpy(ctx->header.ctr, ctr, sizeof(ctr));
+                break;
+            }
+            free_aes_ctx(crypt_ctx);
+            crypt_ctx = NULL;
         }
-        free_aes_ctx(crypt_ctx);
-        crypt_ctx = NULL;
+        
+        if (crypt_ctx == NULL) {
+            fprintf(stderr, "Failed to decrypt PK21! Is correct key present?\n");
+            exit(EXIT_FAILURE);
+        }
     }
-    
-    if (crypt_ctx == NULL) {
-        fprintf(stderr, "Failed to decrypt PK21! Is correct key present?\n");
-        exit(EXIT_FAILURE);
-    }
+
     
     if (ctx->package_size != 0x200 + ctx->header.section_sizes[0] + ctx->header.section_sizes[1] + ctx->header.section_sizes[2]) {
         fprintf(stderr, "Error: Package2 Header is corrupt!\n");
@@ -189,8 +205,10 @@ void pk21_process(pk21_ctx_t *ctx) {
         } else {
             ctx->section_validities[i] = VALIDITY_INVALID;
         }
-        aes_setiv(crypt_ctx, ctx->header.section_ctrs[i], 0x10);
-        aes_decrypt(crypt_ctx, ctx->sections + offset, ctx->sections + offset, ctx->header.section_sizes[i]);
+        if (is_encrypted) {
+            aes_setiv(crypt_ctx, ctx->header.section_ctrs[i], 0x10);
+            aes_decrypt(crypt_ctx, ctx->sections + offset, ctx->sections + offset, ctx->header.section_sizes[i]);   
+        }
         offset += ctx->header.section_sizes[i];
     }
     
