@@ -54,8 +54,8 @@ static void usage(void) {
         "  --basenca          Set Base NCA to use with update partitions.\n"
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
         "  --onlyupdated      Ignore non-updated files in update partitions.\n" 
-        "NPDM options:\n"
-        "  --json=file        Specify file path for saving JSON representation of NPDM to.\n"
+        "NPDM/KIP1 options:\n"
+        "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
         "PFS0 options:\n"
         "  --pfs0dir=dir      Specify PFS0 directory path.\n"
         "  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.\n"
@@ -85,6 +85,7 @@ static void usage(void) {
         "INI1 options:\n"
         "  --ini1dir=dir      Specify INI1 directory path.\n"
         "  --outdir=dir       Specify INI1 directory path. Overrides previous path, if present.\n"
+        "  --saveini1json      Enable generation of JSON descriptors for all INI1 members.\n"
         "NAX0 options:\n"
         "  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.\n"
         "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"
@@ -166,6 +167,7 @@ int main(int argc, char **argv) {
             {"sbk", 1, NULL, 34},
             {"tseckey", 1, NULL, 35},
             {"json", 1, NULL, 36},
+            {"saveini1json", 0, NULL, 37},
             {NULL, 0, NULL, 0},
         };
 
@@ -358,6 +360,9 @@ int main(int argc, char **argv) {
                 break;
             case 36:
                 filepath_set(&tool_ctx.settings.npdm_json_path, optarg); 
+                break;
+            case 37:
+                tool_ctx.action |= ACTION_SAVEINIJSON;
                 break;
             default:
                 usage();

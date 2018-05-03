@@ -677,21 +677,27 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     }
 }
 
-void cJSON_AddU8ToObject(cJSON *obj, char *name, unsigned int val) {
+void cJSON_AddU8ToObject(cJSON *obj, char *name, uint8_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%02x", val);
+    snprintf(buf, sizeof(buf), "0x%02"PRIx8, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
 void cJSON_AddU16ToObject(cJSON *obj, char *name, uint16_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%04x", val & 0xFFFF);
+    snprintf(buf, sizeof(buf), "0x%04"PRIx16, val & 0xFFFF);
+    cJSON_AddStringToObject(obj, name, buf);
+}
+
+void cJSON_AddU32ToObject(cJSON *obj, char *name, uint32_t val) {
+    char buf[0x20] = {0};
+    snprintf(buf, sizeof(buf), "0x%08"PRIx16, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
 void cJSON_AddU64ToObject(cJSON *obj, char *name, uint64_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%016llx", val);
+    snprintf(buf, sizeof(buf), "0x%016"PRIx64, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
@@ -835,7 +841,7 @@ const char *npdm_get_json(npdm_t *npdm) {
     cJSON_AddU64ToObject(npdm_json, "title_id", aci0->title_id);
     cJSON_AddU64ToObject(npdm_json, "title_id_range_min", acid->title_id_range_min);
     cJSON_AddU64ToObject(npdm_json, "title_id_range_max", acid->title_id_range_max);
-    cJSON_AddU64ToObject(npdm_json, "main_thread_stack_size", npdm->main_stack_size);
+    cJSON_AddU32ToObject(npdm_json, "main_thread_stack_size", npdm->main_stack_size);
     cJSON_AddNumberToObject(npdm_json, "main_thread_priority", npdm->main_thread_prio);
     cJSON_AddNumberToObject(npdm_json, "default_cpu_id", npdm->default_cpuid);
     cJSON_AddNumberToObject(npdm_json, "process_category", npdm->process_category);

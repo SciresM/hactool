@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "kip.h"
 #include "npdm.h"
+#include "cJSON.h"
 
 void ini1_process(ini1_ctx_t *ctx) {
     /* Read *just* safe amount. */
@@ -79,8 +80,53 @@ void ini1_save(ini1_ctx_t *ctx) {
             strcat(padded_name, ".kip1");
             printf("Saving %s to %s/%s...\n", padded_name, dirpath->char_path, padded_name);
             save_buffer_to_directory_file(ctx->kips[i].header, kip1_get_size(&ctx->kips[i]), dirpath, padded_name);
+            if (ctx->tool_ctx->action & ACTION_SAVEINIJSON) {
+                printf("SAVING INI JSON!\n");
+                memset(&padded_name, 0, sizeof(padded_name));
+                memcpy(&padded_name, ctx->kips[i].header->name, sizeof(ctx->kips[i].header->name));
+                strcat(padded_name, ".json");
+                filepath_t json_path;
+                filepath_init(&json_path);
+                filepath_copy(&json_path, dirpath);
+                filepath_append(&json_path, padded_name);
+                FILE *f_json = os_fopen(json_path.os_path, OS_MODE_WRITE);
+                if (f_json == NULL) {
+                    fprintf(stderr, "Failed to open %s!\n", json_path.char_path);
+                    return;
+                }
+                const char *json = kip1_get_json(&ctx->kips[i]);
+                if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
+                    fprintf(stderr, "Failed to write JSON file!\n");
+                    exit(EXIT_FAILURE);
+                }
+                fclose(f_json);
+            }
         }
     }
+}
+
+const char *kip1_get_json(kip1_ctx_t *ctx) {
+    cJSON *kip_json = cJSON_CreateObject();
+    const char *output_str = NULL;
+    char work_buffer[0x300] = {0};
+    
+    /* Add KIP1 header fields. */
+    strcpy(work_buffer, ctx->header->name);
+    cJSON_AddStringToObject(kip_json, "name", work_buffer);
+    cJSON_AddU64ToObject(kip_json, "title_id", ctx->header->title_id);
+    cJSON_AddU32ToObject(kip_json, "main_thread_stack_size", ctx->header->section_headers[1].attribute);
+    cJSON_AddNumberToObject(kip_json, "main_thread_priority", ctx->header->main_thread_priority);
+    cJSON_AddNumberToObject(kip_json, "default_cpu_id", ctx->header->default_core);
+    cJSON_AddNumberToObject(kip_json, "process_category", ctx->header->process_category);
+    
+     /* Add KAC. */
+    cJSON *kac_json = kac_get_json(ctx->header->capabilities, sizeof(ctx->header->capabilities) / sizeof(uint32_t));
+    cJSON_AddItemToObject(kip_json, "kernel_capabilities", kac_json);
+    
+    output_str = cJSON_Print(kip_json);
+    
+    cJSON_Delete(kip_json);
+    return output_str;
 }
 
 void kip1_process(kip1_ctx_t *ctx) {
@@ -143,4 +189,18 @@ void kip1_print(kip1_ctx_t *ctx, int suppress) {
 
 void kip1_save(kip1_ctx_t *ctx) {
     /* Do nothing. */
+    filepath_t *json_path = &ctx->tool_ctx->settings.npdm_json_path;
+    if (ctx->tool_ctx->file_type == FILETYPE_KIP1 && json_path->valid == VALIDITY_VALID) {
+        FILE *f_json = os_fopen(json_path->os_path, OS_MODE_WRITE);
+        if (f_json == NULL) {
+            fprintf(stderr, "Failed to open %s!\n", json_path->char_path);
+            return;
+        }
+        const char *json = kip1_get_json(ctx);
+        if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
+            fprintf(stderr, "Failed to write JSON file!\n");
+            exit(EXIT_FAILURE);
+        }
+        fclose(f_json);
+    }
 }

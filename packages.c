@@ -132,7 +132,7 @@ void pk21_process(pk21_ctx_t *ctx) {
             is_encrypted = true;
         }
     }
-    is_encrypted &= ctx->header.magic == MAGIC_PK21;
+    is_encrypted &= ctx->header.magic != MAGIC_PK21;
     
     if (is_encrypted) {
         if (rsa2048_pss_verify(&ctx->header.ctr, 0x100, ctx->header.signature, ctx->tool_ctx->settings.keyset.package2_fixed_key_modulus)) {
@@ -178,7 +178,6 @@ void pk21_process(pk21_ctx_t *ctx) {
             exit(EXIT_FAILURE);
         }
     }
-
     
     if (ctx->package_size != 0x200 + ctx->header.section_sizes[0] + ctx->header.section_sizes[1] + ctx->header.section_sizes[2]) {
         fprintf(stderr, "Error: Package2 Header is corrupt!\n");
