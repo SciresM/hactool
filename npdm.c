@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "settings.h"
 #include "rsa.h"
+#include "cJSON.h"
 
 const char *svc_names[0x80] = {
     "svcUnknown",
@@ -302,20 +303,22 @@ void kac_print(uint32_t *descriptors, uint32_t num_descriptors) {
                 }
                 break;
             case 6: /* Map IO/Normal. */
-                if (cur_mmio == NULL) {
-                    cur_mmio = calloc(1, sizeof(kac_mmio_t));
-                    if (cur_mmio == NULL) {
-                        fprintf(stderr, "Failed to allocate MMIO descriptor!\n");
-                        exit(EXIT_FAILURE);
-                    }
-                    cur_mmio->address = (desc & 0xFFFFFF) << 12;
-                    cur_mmio->is_ro = desc >> 24;
-                } else {
-                    cur_mmio->size = (desc & 0xFFFFFF) << 12;
-                    cur_mmio->is_norm = desc >> 24;
-                    kac_add_mmio(&kac, cur_mmio);
-                    cur_mmio = NULL;
+                cur_mmio = calloc(1, sizeof(kac_mmio_t));
+                cur_mmio->address = (desc & 0xFFFFFF) << 12;
+                cur_mmio->is_ro = desc >> 24;
+                if (i == num_descriptors - 1) {
+                    fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
+                    exit(EXIT_FAILURE);
                 }
+                desc = descriptors[++i];
+                if ((desc & 0x7F) != 0x3F) {
+                    fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
+                    exit(EXIT_FAILURE);
+                }
+                desc >>= 7;
+                cur_mmio->size = (desc & 0xFFFFFF) << 12;
+                cur_mmio->is_norm = desc >> 24;
+                kac_add_mmio(&kac, cur_mmio);
                 break;
             case 7: /* Map Normal Page. */
                 page_mmio = calloc(1, sizeof(kac_mmio_t));
@@ -435,6 +438,10 @@ void kac_print(uint32_t *descriptors, uint32_t num_descriptors) {
     if (kac.has_handle_table_size) {
         printf("        Handle Table Size:          %"PRId32"\n", kac.handle_table_size);
     }
+    
+    if (kac.has_kern_ver) {
+        printf("        Minimum Kernel Version:     %"PRIx8"\n", kac.kernel_release_version);
+    }
 
     if (kac.has_debug_flags) {
         printf("        Allow Debug:                %s\n", kac.allow_debug ? "YES" : "NO");
@@ -466,30 +473,33 @@ int sac_matches(sac_entry_t *lst, char *service) {
     return 0;
 }
 
-void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0_size) {
-    /* Parse the ACID sac. */
-    sac_entry_t *acid_accesses = NULL;
-    sac_entry_t *acid_hosts = NULL;
+void sac_parse(char *sac, uint32_t sac_size, sac_entry_t *r_host, sac_entry_t *r_accesses, sac_entry_t **out_hosts, sac_entry_t **out_accesses) {
+    sac_entry_t *accesses = NULL;
+    sac_entry_t *hosts = NULL;
     sac_entry_t *cur_entry = NULL;
     sac_entry_t *temp = NULL;
     uint32_t ofs = 0;
     uint32_t service_len;
     char ctrl;
-    while (ofs < acid_size) {
-        ctrl = acid_sac[ofs++];
+    while (ofs < sac_size) {
+        ctrl = sac[ofs++];
         service_len = (ctrl & 0xF) + 1;
         cur_entry = calloc(1, sizeof(sac_entry_t));
-        cur_entry->valid = 1;
-        strncpy(cur_entry->service, &acid_sac[ofs], service_len);
-        if (ctrl & 0x80 && acid_hosts == NULL) {
-            acid_hosts = cur_entry;
-        } else if (!(ctrl & 0x80) && acid_accesses == NULL) {
-            acid_accesses = cur_entry;
+        if (ctrl & 0x80) {
+            cur_entry->valid = r_host != NULL ? sac_matches(r_host, cur_entry->service) : 1;
+        } else {
+            cur_entry->valid = r_host != NULL ? sac_matches(r_accesses, cur_entry->service) : 1;
+        }
+        strncpy(cur_entry->service, &sac[ofs], service_len);
+        if (ctrl & 0x80 && hosts == NULL) {
+            hosts = cur_entry;
+        } else if (!(ctrl & 0x80) && accesses == NULL) {
+            accesses = cur_entry;
         } else {
             if (ctrl & 0x80) {
-                temp = acid_hosts;
+                temp = hosts;
             } else {
-                temp = acid_accesses;
+                temp = accesses;
             }
             while (temp->next != NULL) {
                 temp = temp->next;
@@ -499,39 +509,21 @@ void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0
         cur_entry = NULL;
         ofs += service_len;
     }
+    *out_hosts = hosts;
+    *out_accesses = accesses;
+}
+
+void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0_size) {
+    /* Parse the ACID sac. */
+    sac_entry_t *acid_accesses = NULL;
+    sac_entry_t *acid_hosts = NULL;
+    sac_entry_t *temp = NULL;
+    sac_parse(acid_sac, acid_size, NULL, NULL, &acid_hosts, &acid_accesses);
 
     /* The ACID sac restricts the ACI0 sac... */
     sac_entry_t *aci0_accesses = NULL;
     sac_entry_t *aci0_hosts = NULL;
-    ofs = 0;
-    while (ofs < aci0_size) {
-        ctrl = aci0_sac[ofs++];
-        service_len = (ctrl & 0xF) + 1;
-        cur_entry = calloc(1, sizeof(sac_entry_t));
-        strncpy(cur_entry->service, &aci0_sac[ofs], service_len);
-        if (ctrl & 0x80) {
-            cur_entry->valid = sac_matches(acid_hosts, cur_entry->service);
-        } else {
-            cur_entry->valid = sac_matches(acid_accesses, cur_entry->service);
-        }
-        if (ctrl & 0x80 && aci0_hosts == NULL) {
-            aci0_hosts = cur_entry;
-        } else if (!(ctrl & 0x80) && aci0_accesses == NULL) {
-            aci0_accesses = cur_entry;
-        } else {
-            if (ctrl & 0x80) {
-                temp = aci0_hosts;
-            } else {
-                temp = aci0_accesses;
-            }
-            while (temp->next != NULL) {
-                temp = temp->next;
-            }
-            temp->next = cur_entry;
-        }
-        cur_entry = NULL;
-        ofs += service_len;
-    }
+    sac_parse(aci0_sac, aci0_size, acid_hosts, acid_accesses, &aci0_hosts, &aci0_accesses);
 
     int first = 1;
     while (aci0_hosts != NULL) {
@@ -599,6 +591,15 @@ void fac_print(fac_t *fac, fah_t *fah) {
     printf("\n");
 }
 
+void npdm_process(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
+    if (tool_ctx->action & ACTION_INFO) {
+        npdm_print(npdm, tool_ctx);
+    }
+    
+    if (tool_ctx->action & ACTION_EXTRACT) {
+        npdm_save(npdm, tool_ctx);
+    }
+}
 
 void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     printf("NPDM:\n");
@@ -623,7 +624,8 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
         memdump(stdout, "        Signature:                  ", &acid->signature, 0x100);
     }
     memdump(stdout, "        Header Modulus:             ", &acid->modulus, 0x100);
-    printf("        Is Retail:                  %"PRId32"\n", acid->is_retail);
+    printf("        Is Retail:                  %"PRId32"\n", acid->flags & 1);
+    printf("        Pool Partition:             %"PRId32"\n", (acid->flags >> 2) & 3);
     printf("        Title ID Range:             %016"PRIx64"-%016"PRIx64"\n", acid->title_id_range_min, acid->title_id_range_max);
     printf("    ACI0:\n");
     print_magic("        Magic:                      ", aci0->magic);
@@ -655,4 +657,210 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     fah_t *fah = (fah_t *)((char *)aci0 + aci0->fah_offset);
     printf("    Filesystem Access Control:\n");
     fac_print(fac, fah);
+}
+
+
+void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
+    filepath_t *json_path = &tool_ctx->settings.npdm_json_path;
+    if (json_path->valid == VALIDITY_VALID) {
+        FILE *f_json = os_fopen(json_path->os_path, OS_MODE_WRITE);
+        if (f_json == NULL) {
+            fprintf(stderr, "Failed to open %s!\n", json_path->char_path);
+            return;
+        }
+        const char *json = npdm_get_json(npdm);
+        if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
+            fprintf(stderr, "Failed to write JSON file!\n");
+            exit(EXIT_FAILURE);
+        }
+        fclose(f_json);
+    }
+}
+
+void cJSON_AddU8ToObject(cJSON *obj, char *name, unsigned int val) {
+    char buf[0x20] = {0};
+    snprintf(buf, sizeof(buf), "0x%02x", val);
+    cJSON_AddStringToObject(obj, name, buf);
+}
+
+void cJSON_AddU16ToObject(cJSON *obj, char *name, uint16_t val) {
+    char buf[0x20] = {0};
+    snprintf(buf, sizeof(buf), "0x%04x", val & 0xFFFF);
+    cJSON_AddStringToObject(obj, name, buf);
+}
+
+void cJSON_AddU64ToObject(cJSON *obj, char *name, uint64_t val) {
+    char buf[0x20] = {0};
+    snprintf(buf, sizeof(buf), "0x%016llx", val);
+    cJSON_AddStringToObject(obj, name, buf);
+}
+
+cJSON *sac_get_json(char *sac, uint32_t sac_size) {
+    cJSON *sac_json = cJSON_CreateObject();
+    char service[9] = {0};
+    uint32_t ofs = 0;
+    uint32_t service_len;
+    char ctrl;
+    while (ofs < sac_size) {
+        memset(service, 0, sizeof(service));
+        ctrl = sac[ofs++];
+        service_len = (ctrl & 0x7) + 1;
+        memcpy(service, &sac[ofs], service_len);
+        cJSON_AddBoolToObject(sac_json, service, (ctrl & 0x80) != 0);
+        ofs += service_len;
+    }
+    
+    return sac_json;
+}
+
+cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors) {
+    cJSON *kac_json = cJSON_CreateObject();
+    cJSON *temp = NULL;
+    bool first_syscall = false;
+    unsigned int syscall_base;
+    for (uint32_t i = 0; i < num_descriptors; i++) {
+        uint32_t desc = descriptors[i];
+        if (desc == 0xFFFFFFFF) {
+            continue;
+        }
+        unsigned int low_bits = 0;
+        while (desc & 1) {
+            desc >>= 1;
+            low_bits++;
+        }
+        desc >>= 1;
+        switch (low_bits) {
+            case 3: /* Kernel flags. */
+                temp = cJSON_CreateObject();
+                cJSON_AddNumberToObject(temp, "highest_thread_priority", desc & 0x3F);
+                desc >>= 6;
+                cJSON_AddNumberToObject(temp, "lowest_thread_priority", desc & 0x3F);
+                desc >>= 6;
+                cJSON_AddNumberToObject(temp, "lowest_cpu_id", desc & 0xFF);
+                desc >>= 8;
+                cJSON_AddNumberToObject(temp, "highest_cpu_id", desc & 0xFF);
+                cJSON_AddItemToObject(kac_json, "kernel_flags", temp);
+                break;
+            case 4: /* Syscall mask. */
+                temp = cJSON_GetObjectItemCaseSensitive(kac_json, "syscalls");
+                if (temp == NULL) {
+                    first_syscall = true;
+                    temp = cJSON_CreateObject();
+                } else {    
+                    first_syscall = false;
+                }
+                syscall_base = (desc >> 24) * 0x18;
+                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0x80; sc++) {
+                    if (desc & 1) {
+                        cJSON_AddU8ToObject(temp, strdup(svc_names[sc + syscall_base]), sc + syscall_base);
+                    }
+                    desc >>= 1;
+                }
+                if (first_syscall) {
+                    cJSON_AddItemToObject(kac_json, "syscalls", temp);
+                }
+                break;
+            case 6: /* Map IO/Normal. */
+                temp = cJSON_CreateObject();
+                
+                cJSON_AddU64ToObject(temp, "address", (desc & 0xFFFFFF) << 12);
+                cJSON_AddBoolToObject(temp, "is_ro", (desc >> 24) & 1);
+                if (i == num_descriptors - 1) {
+                    fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
+                    exit(EXIT_FAILURE);
+                }
+                desc = descriptors[++i];
+                if ((desc & 0x7F) != 0x3F) {
+                    fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
+                    exit(EXIT_FAILURE);
+                }
+                desc >>= 7;
+                cJSON_AddU64ToObject(temp, "size", (desc & 0xFFFFFF) << 12);
+                cJSON_AddBoolToObject(temp, "is_io", ((desc >> 24) & 1) == 0);
+                cJSON_AddItemToObject(kac_json, "map", temp);
+                break;
+            case 7: /* Map Normal Page. */                
+                cJSON_AddU64ToObject(kac_json, "map_page", desc << 12);
+                break;
+            case 11: /* IRQ Pair. */
+                temp = cJSON_CreateArray();
+                if ((desc & 0x3FF) == 0x3FF) {
+                    cJSON_AddItemToArray(temp, cJSON_CreateNull());
+                } else {
+                    cJSON_AddItemToArray(temp, cJSON_CreateNumber(desc & 0x3FF));
+                }
+                desc >>= 10;
+                if ((desc & 0x3FF) == 0x3FF) {
+                    cJSON_AddItemToArray(temp, cJSON_CreateNull());
+                } else {
+                    cJSON_AddItemToArray(temp, cJSON_CreateNumber(desc & 0x3FF));
+                }
+                cJSON_AddItemToObject(kac_json, "irq_pair", temp);
+                break;
+            case 13: /* App Type. */
+                cJSON_AddNumberToObject(kac_json, "application_type", desc & 7);
+                break;
+            case 14: /* Kernel Release Version. */
+                cJSON_AddU16ToObject(kac_json, "min_kernel_version", desc & 0xFFFF);
+                break;
+            case 15: /* Handle Table Size. */
+                cJSON_AddNumberToObject(kac_json, "handle_table_size", desc);
+                break;
+            case 16: /* Debug Flags. */
+                temp = cJSON_CreateObject();
+                cJSON_AddBoolToObject(temp, "allow_debug", (desc >> 0) & 1);
+                cJSON_AddBoolToObject(temp, "force_debug", (desc >> 1) & 1);
+                cJSON_AddItemToObject(kac_json, "debug_flags", temp);
+
+               // kac.has_debug_flags = 1;
+               // kac.allow_debug = desc & 1;
+               // kac.force_debug = (desc >> 1) & 1;
+                break;
+        }
+        temp = NULL;
+    }
+    return kac_json;
+}
+
+const char *npdm_get_json(npdm_t *npdm) {
+    npdm_acid_t *acid = npdm_get_acid(npdm);
+    npdm_aci0_t *aci0 = npdm_get_aci0(npdm);
+    cJSON *npdm_json = cJSON_CreateObject();
+    const char *output_str = NULL;
+    char work_buffer[0x300] = {0};
+    
+    /* Add NPDM header fields. */
+    strcpy(work_buffer, npdm->title_name);
+    cJSON_AddStringToObject(npdm_json, "name", work_buffer);
+    cJSON_AddU64ToObject(npdm_json, "title_id", aci0->title_id);
+    cJSON_AddU64ToObject(npdm_json, "title_id_range_min", acid->title_id_range_min);
+    cJSON_AddU64ToObject(npdm_json, "title_id_range_max", acid->title_id_range_max);
+    cJSON_AddU64ToObject(npdm_json, "main_thread_stack_size", npdm->main_stack_size);
+    cJSON_AddNumberToObject(npdm_json, "main_thread_priority", npdm->main_thread_prio);
+    cJSON_AddNumberToObject(npdm_json, "default_cpu_id", npdm->default_cpuid);
+    cJSON_AddNumberToObject(npdm_json, "process_category", npdm->process_category);
+    cJSON_AddBoolToObject(npdm_json, "is_retail", acid->flags & 1);
+    cJSON_AddNumberToObject(npdm_json, "pool_partition", (acid->flags >> 2) & 3);
+    cJSON_AddBoolToObject(npdm_json, "is_64_bit", npdm->mmu_flags & 1);
+    cJSON_AddNumberToObject(npdm_json, "address_space_type", (npdm->mmu_flags >> 1) & 7);
+    
+    /* Add FAC. */
+    fac_t *fac = (fac_t *)((char *)acid + acid->fac_offset);
+    fah_t *fah = (fah_t *)((char *)aci0 + aci0->fah_offset);
+    cJSON *fac_json = cJSON_CreateObject();
+    cJSON_AddU64ToObject(fac_json, "permissions", fac->perms & fah->perms);
+    cJSON_AddItemToObject(npdm_json, "filesystem_access", fac_json);
+    
+    /* Add SAC. */
+    cJSON *sac_json = sac_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
+    cJSON_AddItemToObject(npdm_json, "service_access", sac_json);
+    
+    /* Add KAC. */
+    cJSON *kac_json = kac_get_json((uint32_t *)((char *)aci0 + aci0->kac_offset), aci0->kac_size / sizeof(uint32_t));
+    cJSON_AddItemToObject(npdm_json, "kernel_capabilities", kac_json);
+    
+    output_str = cJSON_Print(npdm_json);
+    
+    cJSON_Delete(npdm_json);
+    return output_str;
 }

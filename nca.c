@@ -691,7 +691,7 @@ void nca_print(nca_ctx_t *ctx) {
     }
 
     if (ctx->npdm) {
-        npdm_print(ctx->npdm, ctx->tool_ctx);
+        npdm_process(ctx->npdm, ctx->tool_ctx);
     }
 
     nca_print_sections(ctx);

@@ -130,6 +130,6 @@ void pfs0_print(pfs0_ctx_t *ctx) {
         }
     }
     if (ctx->is_exefs) {
-        npdm_print(ctx->npdm, ctx->tool_ctx);
+        npdm_process(ctx->npdm, ctx->tool_ctx);
     }
 }

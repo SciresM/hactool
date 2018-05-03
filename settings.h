@@ -84,6 +84,7 @@ typedef struct {
     filepath_t header_path;
     filepath_t nax0_path;
     filepath_t nax0_sd_path;
+    filepath_t npdm_json_path;
 } hactool_settings_t;
 
 enum hactool_file_type

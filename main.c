@@ -54,6 +54,8 @@ static void usage(void) {
         "  --basenca          Set Base NCA to use with update partitions.\n"
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
         "  --onlyupdated      Ignore non-updated files in update partitions.\n" 
+        "NPDM options:\n"
+        "  --json=file        Specify file path for saving JSON representation of NPDM to.\n"
         "PFS0 options:\n"
         "  --pfs0dir=dir      Specify PFS0 directory path.\n"
         "  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.\n"
@@ -163,6 +165,7 @@ int main(int argc, char **argv) {
             {"sdpath", 1, NULL, 33},
             {"sbk", 1, NULL, 34},
             {"tseckey", 1, NULL, 35},
+            {"json", 1, NULL, 36},
             {NULL, 0, NULL, 0},
         };
 
@@ -353,6 +356,9 @@ int main(int argc, char **argv) {
             case 35:
                 parse_hex_key(nca_ctx.tool_ctx->settings.keygen_tsec, optarg, 16);
                 break;
+            case 36:
+                filepath_set(&tool_ctx.settings.npdm_json_path, optarg); 
+                break;
             default:
                 usage();
                 return EXIT_FAILURE;
@@ -536,7 +542,7 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Failed to read NPDM!\n");
                 exit(EXIT_FAILURE);
             }
-            npdm_print(npdm, &tool_ctx);
+            npdm_process(npdm, &tool_ctx);
             break;
         }
         case FILETYPE_HFS0: {

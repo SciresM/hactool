@@ -13,7 +13,7 @@ all:
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
-hactool: sha.o aes.o extkeys.o rsa.o npdm.o bktr.o kip.o packages.o pki.o pfs0.o hfs0.o romfs.o utils.o nax0.o nca.o xci.o main.o filepath.o ConvertUTF.o
+hactool: sha.o aes.o extkeys.o rsa.o npdm.o bktr.o kip.o packages.o pki.o pfs0.o hfs0.o romfs.o utils.o nax0.o nca.o xci.o main.o filepath.o ConvertUTF.o cJSON.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
 
 aes.o: aes.h types.h
@@ -40,7 +40,7 @@ nax0.o: nax0.h aes.h sha.h types.h
 
 nca.o: nca.h aes.h sha.h rsa.h bktr.h filepath.h types.h
 
-npdm.o: npdm.c types.h
+npdm.o: npdm.c cJSON.h types.h
 
 romfs.o: ivfc.h types.h
 
@@ -53,6 +53,8 @@ utils.o: utils.h types.h
 xci.o: xci.h types.h hfs0.h
 
 ConvertUTF.o: ConvertUTF.h
+
+cJSON.o: cJSON.h
 
 clean:
 	rm -f *.o hactool hactool.exe

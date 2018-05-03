@@ -94,7 +94,7 @@ typedef struct {
     uint32_t magic;
     uint32_t size;
     uint32_t _0x208;
-    uint32_t is_retail;
+    uint32_t flags;
     uint64_t title_id_range_min;
     uint64_t title_id_range_max;
     uint32_t fac_offset;
@@ -132,9 +132,12 @@ static inline npdm_aci0_t *npdm_get_aci0(npdm_t *npdm) {
     return (npdm_aci0_t *)((char *)npdm + npdm->aci0_offset);
 }
 
+void npdm_process(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx);
+void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
 char *npdm_get_proc_category(int process_category);
 void kac_print(uint32_t *descriptors, uint32_t num_descriptors);
+const char *npdm_get_json(npdm_t *npdm);
 
 #endif
