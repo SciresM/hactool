@@ -769,7 +769,7 @@ cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors) {
             case 6: /* Map IO/Normal. */
                 temp = cJSON_CreateObject();
                 
-                cJSON_AddU64ToObject(temp, "address", (desc & 0xFFFFFF) << 12);
+                cJSON_AddU32ToObject(temp, "address", (desc & 0xFFFFFF) << 12);
                 cJSON_AddBoolToObject(temp, "is_ro", (desc >> 24) & 1);
                 if (i == num_descriptors - 1) {
                     fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
@@ -781,12 +781,12 @@ cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors) {
                     exit(EXIT_FAILURE);
                 }
                 desc >>= 7;
-                cJSON_AddU64ToObject(temp, "size", (desc & 0xFFFFFF) << 12);
+                cJSON_AddU32ToObject(temp, "size", (desc & 0xFFFFFF) << 12);
                 cJSON_AddBoolToObject(temp, "is_io", ((desc >> 24) & 1) == 0);
                 cJSON_AddItemToObject(kac_json, "map", temp);
                 break;
             case 7: /* Map Normal Page. */                
-                cJSON_AddU64ToObject(kac_json, "map_page", desc << 12);
+                cJSON_AddU32ToObject(kac_json, "map_page", desc << 12);
                 break;
             case 11: /* IRQ Pair. */
                 temp = cJSON_CreateArray();
