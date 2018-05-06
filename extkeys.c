@@ -182,11 +182,29 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                 continue;
             }
             int matched_key = 0;
-            if (strcmp(key, "aes_kek_generation_source") == 0) {
+            if (strcmp(key, "secure_boot_key") == 0) {
+                parse_hex_key(keyset->secure_boot_key, value, sizeof(keyset->secure_boot_key));
+                matched_key = 1;
+            } else if (strcmp(key, "tsec_key") == 0) {
+                parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
+                matched_key = 1;
+            } else if (strcmp(key, "keyblob_mac_key_source") == 0) {
+                parse_hex_key(keyset->keyblob_mac_key_source, value, sizeof(keyset->keyblob_mac_key_source));
+                matched_key = 1;
+            } else if (strcmp(key, "master_key_source") == 0) {
+                parse_hex_key(keyset->master_key_source, value, sizeof(keyset->master_key_source));
+                matched_key = 1;
+            } else if (strcmp(key, "package2_key_source") == 0) {
+                parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));
+                matched_key = 1;            
+            } else if (strcmp(key, "aes_kek_generation_source") == 0) {
                 parse_hex_key(keyset->aes_kek_generation_source, value, sizeof(keyset->aes_kek_generation_source));
                 matched_key = 1;
             } else if (strcmp(key, "aes_key_generation_source") == 0) {
                 parse_hex_key(keyset->aes_key_generation_source, value, sizeof(keyset->aes_key_generation_source));            
+                matched_key = 1;
+            } else if (strcmp(key, "titlekek_source") == 0) {
+                parse_hex_key(keyset->titlekek_source, value, sizeof(keyset->titlekek_source));
                 matched_key = 1;
             } else if (strcmp(key, "key_area_key_application_source") == 0) {
                 parse_hex_key(keyset->key_area_key_application_source, value, sizeof(keyset->key_area_key_application_source));
@@ -197,24 +215,6 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "key_area_key_system_source") == 0) {
                 parse_hex_key(keyset->key_area_key_system_source, value, sizeof(keyset->key_area_key_system_source));
                 matched_key = 1;
-            } else if (strcmp(key, "titlekek_source") == 0) {
-                parse_hex_key(keyset->titlekek_source, value, sizeof(keyset->titlekek_source));
-                matched_key = 1;
-            } else if (strcmp(key, "header_kek_source") == 0) {
-                parse_hex_key(keyset->header_kek_source, value, sizeof(keyset->header_kek_source));
-                matched_key = 1;
-            } else if (strcmp(key, "header_key_source") == 0) {
-                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
-                matched_key = 1;
-            } else if (strcmp(key, "header_key") == 0) {
-                parse_hex_key(keyset->header_key, value, sizeof(keyset->header_key));
-                matched_key = 1;
-            } else if (strcmp(key, "encrypted_header_key") == 0) {
-                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
-                matched_key = 1;
-            } else if (strcmp(key, "package2_key_source") == 0) {
-                parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));
-                matched_key = 1;
             } else if (strcmp(key, "sd_card_kek_source") == 0) {
                 parse_hex_key(keyset->sd_card_kek_source, value, sizeof(keyset->sd_card_kek_source));
                 matched_key = 1;
@@ -224,17 +224,17 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "sd_card_save_key_source") == 0) {
                 parse_hex_key(keyset->sd_card_key_sources[0], value, sizeof(keyset->sd_card_key_sources[0]));
                 matched_key = 1;
-            } else if (strcmp(key, "master_key_source") == 0) {
-                parse_hex_key(keyset->master_key_source, value, sizeof(keyset->master_key_source));
+            } else if (strcmp(key, "header_kek_source") == 0) {
+                parse_hex_key(keyset->header_kek_source, value, sizeof(keyset->header_kek_source));
                 matched_key = 1;
-            } else if (strcmp(key, "keyblob_mac_key_source") == 0) {
-                parse_hex_key(keyset->keyblob_mac_key_source, value, sizeof(keyset->keyblob_mac_key_source));
+            } else if (strcmp(key, "header_key_source") == 0) {
+                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
                 matched_key = 1;
-            } else if (strcmp(key, "secure_boot_key") == 0) {
-                parse_hex_key(keyset->secure_boot_key, value, sizeof(keyset->secure_boot_key));
+            } else if (strcmp(key, "encrypted_header_key") == 0) {
+                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
                 matched_key = 1;
-            } else if (strcmp(key, "tsec_key") == 0) {
-                parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
+            } else if (strcmp(key, "header_key") == 0) {
+                parse_hex_key(keyset->header_key, value, sizeof(keyset->header_key));
                 matched_key = 1;
             } else {
                 char test_name[0x100];

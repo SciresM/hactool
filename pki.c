@@ -6,40 +6,7 @@
 const nca_keyset_t nca_keys_retail = {
     ZEROES_KEY, /* Secure Boot Key (CONSOLE UNIQUE) */
     ZEROES_KEY, /* TSEC Key (CONSOLE UNIQUE) */
-    {
-        ZEROES_KEY, /* Keyblob Key 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key 31 (CONSOLE UNIQUE) */
-    },
+    ZEROES_KEY, /* Keyblob Mac Key Source */
     {
         ZEROES_KEY, /* Keyblob Mac Key 00 (CONSOLE UNIQUE) */
         ZEROES_KEY, /* Keyblob Mac Key 01 (CONSOLE UNIQUE) */
@@ -73,6 +40,74 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEY, /* Keyblob Mac Key 29 (CONSOLE UNIQUE) */
         ZEROES_KEY, /* Keyblob Mac Key 30 (CONSOLE UNIQUE) */
         ZEROES_KEY  /* Keyblob Mac Key 31 (CONSOLE UNIQUE) */
+    },
+    {
+        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
+        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
+    },
+    {
+        ZEROES_KEY, /* Keyblob Key 00 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 01 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 02 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 03 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 04 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 05 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 06 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 07 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 08 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 09 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 10 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 11 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 12 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 13 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 14 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 15 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 16 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 17 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 18 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 19 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 20 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 21 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 22 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 23 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 24 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 25 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 26 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 27 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 28 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 29 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 30 (CONSOLE UNIQUE) */
+        ZEROES_KEY  /* Keyblob Key 31 (CONSOLE UNIQUE) */
     },
     {
         ZEROES_ENC_KEYBLOB, /* Encrypted Keyblob 00 (CONSOLE UNIQUE) */
@@ -141,42 +176,7 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEYBLOB, /* Keyblob 29 */
         ZEROES_KEYBLOB, /* Keyblob 30 */
         ZEROES_KEYBLOB  /* Keyblob 31 */
-    },
-    {
-        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
-    },
-    ZEROES_KEY, /* Keyblob Mac Key Source */
+    }, 
     ZEROES_KEY, /* Master Key Source */
     {
         ZEROES_KEY, /* Master Key 00 */
@@ -246,6 +246,7 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEY, /* Package1 Key 30 */
         ZEROES_KEY  /* Package1 Key 31 */
     },
+    ZEROES_KEY, /* Package2 Key Source */
     {
         ZEROES_KEY, /* Package2 Key 00 */
         ZEROES_KEY, /* Package2 Key 01 */
@@ -280,21 +281,9 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEY, /* Package2 Key 30 */
         ZEROES_KEY  /* Package2 Key 31 */
     },
-    ZEROES_KEY, /* Package2 Key Source */
     ZEROES_KEY, /* Generate Aes Kek Source */
     ZEROES_KEY, /* Generate Aes Key Source */
-    ZEROES_KEY, /* Key Area Encryption Key Source Application */
-    ZEROES_KEY, /* Key Area Encryption Key Source Ocean */
-    ZEROES_KEY, /* Key Area Encryption Key Source System */
     ZEROES_KEY, /* Titlekek Source */
-    ZEROES_KEY, /* Headerkek Source */
-    ZEROES_KEY, /* SD Card kek Source. */
-    {
-        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
-        ZEROES_XTS_KEY, /* SD Card Key Source, for saves. */
-    },
-    ZEROES_XTS_KEY, /* Encrypted Header Key */
-    ZEROES_XTS_KEY, /* Header key */
     {
         ZEROES_KEY, /* Titlekek 00 */
         ZEROES_KEY, /* Titlekek 01 */
@@ -329,6 +318,9 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEY, /* Titlekek 30 */
         ZEROES_KEY  /* Titlekek 31 */
     },
+    ZEROES_KEY, /* Key Area Encryption Key Source Application */
+    ZEROES_KEY, /* Key Area Encryption Key Source Ocean */
+    ZEROES_KEY, /* Key Area Encryption Key Source System */
     {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 00 */
         ZEROES_KAEKS, /* Key Area Encryption Keyset 01 */
@@ -363,10 +355,18 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 30 */
         ZEROES_KAEKS  /* Key Area Encryption Keyset 31 */
     },
+    ZEROES_KEY, /* SD Card Kek Source. */
+    {
+        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
+        ZEROES_XTS_KEY /* SD Card Key Source, for saves. */
+    },
     {
         ZEROES_XTS_KEY, /* SD Card Key, for NCAs. */
-        ZEROES_XTS_KEY, /* SD Card Key, for saves. */
+        ZEROES_XTS_KEY /* SD Card Key, for saves. */
     },
+    ZEROES_KEY, /* Header Kek Source */
+    ZEROES_XTS_KEY, /* Encrypted Header Key */
+    ZEROES_XTS_KEY, /* Header Key */
     { /* Fixed RSA key used to validate NCA signature 0. */
         0xBF, 0xBE, 0x40, 0x6C, 0xF4, 0xA7, 0x80, 0xE9, 0xF0, 0x7D, 0x0C, 0x99, 0x61, 0x1D, 0x77, 0x2F,
         0x96, 0xBC, 0x4B, 0x9E, 0x58, 0x38, 0x1B, 0x03, 0xAB, 0xB1, 0x75, 0x49, 0x9F, 0x2B, 0x4D, 0x58,
@@ -424,42 +424,9 @@ const nca_keyset_t nca_keys_retail = {
 };
 
 const nca_keyset_t nca_keys_dev = {
-        ZEROES_KEY, /* Secure Boot Key (CONSOLE UNIQUE) */
+    ZEROES_KEY, /* Secure Boot Key (CONSOLE UNIQUE) */
     ZEROES_KEY, /* TSEC Key (CONSOLE UNIQUE) */
-    {
-        ZEROES_KEY, /* Keyblob Key 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key 31 (CONSOLE UNIQUE) */
-    },
+    ZEROES_KEY, /* Keyblob Mac Key Source */
     {
         ZEROES_KEY, /* Keyblob Mac Key 00 (CONSOLE UNIQUE) */
         ZEROES_KEY, /* Keyblob Mac Key 01 (CONSOLE UNIQUE) */
@@ -493,6 +460,74 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEY, /* Keyblob Mac Key 29 (CONSOLE UNIQUE) */
         ZEROES_KEY, /* Keyblob Mac Key 30 (CONSOLE UNIQUE) */
         ZEROES_KEY  /* Keyblob Mac Key 31 (CONSOLE UNIQUE) */
+    },
+    {
+        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
+        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
+    },
+    {
+        ZEROES_KEY, /* Keyblob Key 00 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 01 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 02 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 03 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 04 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 05 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 06 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 07 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 08 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 09 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 10 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 11 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 12 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 13 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 14 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 15 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 16 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 17 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 18 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 19 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 20 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 21 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 22 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 23 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 24 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 25 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 26 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 27 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 28 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 29 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key 30 (CONSOLE UNIQUE) */
+        ZEROES_KEY  /* Keyblob Key 31 (CONSOLE UNIQUE) */
     },
     {
         ZEROES_ENC_KEYBLOB, /* Encrypted Keyblob 00 (CONSOLE UNIQUE) */
@@ -561,42 +596,7 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEYBLOB, /* Keyblob 29 */
         ZEROES_KEYBLOB, /* Keyblob 30 */
         ZEROES_KEYBLOB  /* Keyblob 31 */
-    },
-    {
-        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
-    },
-    ZEROES_KEY, /* Keyblob Mac Key Source */
+    }, 
     ZEROES_KEY, /* Master Key Source */
     {
         ZEROES_KEY, /* Master Key 00 */
@@ -666,6 +666,7 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEY, /* Package1 Key 30 */
         ZEROES_KEY  /* Package1 Key 31 */
     },
+    ZEROES_KEY, /* Package2 Key Source */
     {
         ZEROES_KEY, /* Package2 Key 00 */
         ZEROES_KEY, /* Package2 Key 01 */
@@ -700,21 +701,9 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEY, /* Package2 Key 30 */
         ZEROES_KEY  /* Package2 Key 31 */
     },
-    ZEROES_KEY, /* Package2 Key Source */
     ZEROES_KEY, /* Generate Aes Kek Source */
     ZEROES_KEY, /* Generate Aes Key Source */
-    ZEROES_KEY, /* Key Area Encryption Key Source Application */
-    ZEROES_KEY, /* Key Area Encryption Key Source Ocean */
-    ZEROES_KEY, /* Key Area Encryption Key Source System */
     ZEROES_KEY, /* Titlekek Source */
-    ZEROES_KEY, /* Headerkek Source */
-    ZEROES_KEY, /* SD Card kek Source. */
-    {
-        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
-        ZEROES_XTS_KEY, /* SD Card Key Source, for saves. */
-    },
-    ZEROES_XTS_KEY, /* Encrypted Header Key */
-    ZEROES_XTS_KEY, /* Header key */
     {
         ZEROES_KEY, /* Titlekek 00 */
         ZEROES_KEY, /* Titlekek 01 */
@@ -749,6 +738,9 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEY, /* Titlekek 30 */
         ZEROES_KEY  /* Titlekek 31 */
     },
+    ZEROES_KEY, /* Key Area Encryption Key Source Application */
+    ZEROES_KEY, /* Key Area Encryption Key Source Ocean */
+    ZEROES_KEY, /* Key Area Encryption Key Source System */
     {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 00 */
         ZEROES_KAEKS, /* Key Area Encryption Keyset 01 */
@@ -783,11 +775,19 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KAEKS, /* Key Area Encryption Keyset 30 */
         ZEROES_KAEKS  /* Key Area Encryption Keyset 31 */
     },
+    ZEROES_KEY, /* SD Card kek Source. */
     {
-        ZEROES_XTS_KEY, /* SD Card Key, for NCAs. */
-        ZEROES_XTS_KEY, /* SD Card Key, for saves. */
+        ZEROES_XTS_KEY, /* SD Card Key Source, for NCAs. */
+        ZEROES_XTS_KEY /* SD Card Key Source, for saves. */
     },
     {
+        ZEROES_XTS_KEY, /* SD Card Key, for NCAs. */
+        ZEROES_XTS_KEY /* SD Card Key, for saves. */
+    },
+    ZEROES_KEY, /* Header Kek Source */
+    ZEROES_XTS_KEY, /* Encrypted Header Key */
+    ZEROES_XTS_KEY, /* Header Key */
+    { /* Fixed RSA key used to validate NCA signature 0. */
         0xD8, 0xF1, 0x18, 0xEF, 0x32, 0x72, 0x4C, 0xA7, 0x47, 0x4C, 0xB9, 0xEA, 0xB3, 0x04, 0xA8, 0xA4,
         0xAC, 0x99, 0x08, 0x08, 0x04, 0xBF, 0x68, 0x57, 0xB8, 0x43, 0x94, 0x2B, 0xC7, 0xB9, 0x66, 0x49,
         0x85, 0xE5, 0x8A, 0x9B, 0xC1, 0x00, 0x9A, 0x6A, 0x8D, 0xD0, 0xEF, 0xCE, 0xFF, 0x86, 0xC8, 0x5C,
@@ -999,27 +999,26 @@ void pki_print_keys(nca_keyset_t *keyset) {
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->keyblob_mac_key_source, keyblob_mac_key_source);
     for (unsigned int i = 0; i < 0x20; i++) {
-        PRINT_KEY_WITH_NAME_IDX(keyset->keyblob_key_sources[i], keyblob_key_source, i);
+        PRINT_KEY_WITH_NAME_IDX(keyset->keyblob_mac_keys[i], keyblob_mac_key, i);
     }
     printf("\n");
+    for (unsigned int i = 0; i < 0x20; i++) {
+        PRINT_KEY_WITH_NAME_IDX(keyset->keyblob_key_sources[i], keyblob_key_source, i);
+    }
+	printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->keyblob_keys[i], keyblob_key, i);
     }
     printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
-        PRINT_KEY_WITH_NAME_IDX(keyset->keyblob_mac_keys[i], keyblob_mac_key, i);
-    }
-    printf("\n");
-    for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->encrypted_keyblobs[i], encrypted_keyblob, i);
     }
-    printf("\n");
+	printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->keyblobs[i], keyblob, i);
     }
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->master_key_source, master_key_source);
-    printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->master_keys[i], master_key, i);
     }
@@ -1029,41 +1028,42 @@ void pki_print_keys(nca_keyset_t *keyset) {
     }
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->package2_key_source, package2_key_source);
-    printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->package2_keys[i], package2_key, i);
     }
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->aes_kek_generation_source, aes_kek_generation_source);
+	printf("\n");
     PRINT_KEY_WITH_NAME(keyset->aes_key_generation_source, aes_key_generation_source);
+	printf("\n");
     PRINT_KEY_WITH_NAME(keyset->titlekek_source, titlekek_source);
-    printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->titlekeks[i], titlekek, i);
     }
     printf("\n");
-    PRINT_KEY_WITH_NAME(keyset->key_area_key_application_source, key_area_key_application_source);
-    PRINT_KEY_WITH_NAME(keyset->key_area_key_ocean_source, key_area_key_ocean_source);
-    PRINT_KEY_WITH_NAME(keyset->key_area_key_system_source, key_area_key_system_source);
-    PRINT_KEY_WITH_NAME(keyset->sd_card_kek_source, sd_card_kek_source);
-    PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[0], sd_card_save_key_source);
-    PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[1], sd_card_nca_key_source);
-    printf("\n");
-    PRINT_KEY_WITH_NAME(keyset->encrypted_header_key, encrypted_header_key);
-    PRINT_KEY_WITH_NAME(keyset->header_key, header_key);
-    printf("\n");
+	PRINT_KEY_WITH_NAME(keyset->key_area_key_application_source, key_area_key_application_source);
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->key_area_keys[i][0], key_area_key_application, i);
     }
     printf("\n");
+	PRINT_KEY_WITH_NAME(keyset->key_area_key_ocean_source, key_area_key_ocean_source);
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->key_area_keys[i][1], key_area_key_ocean, i);
     }
     printf("\n");
+	PRINT_KEY_WITH_NAME(keyset->key_area_key_system_source, key_area_key_system_source);
     for (unsigned int i = 0; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->key_area_keys[i][2], key_area_key_system, i);
     }
     printf("\n");
+    PRINT_KEY_WITH_NAME(keyset->sd_card_kek_source, sd_card_kek_source);
+    PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[0], sd_card_save_key_source);
+    PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[1], sd_card_nca_key_source);
+    printf("\n");
+    PRINT_KEY_WITH_NAME(keyset->header_kek_source, header_kek_source);
+    PRINT_KEY_WITH_NAME(keyset->encrypted_header_key, encrypted_header_key);
+    PRINT_KEY_WITH_NAME(keyset->header_key, header_key);
+	printf("\n");
     
     #undef PRINT_KEY_WITH_NAME_IDX
     #undef PRINT_KEY_WITH_NAME
