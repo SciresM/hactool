@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
     if (optind == argc - 1) {
         /* Copy input file. */
         strncpy(input_name, argv[optind], sizeof(input_name));
-    } else if ((optind < argc) || (argc == 1)) {
+    } else if (tool_ctx.file_type != FILETYPE_BOOT0 && ((optind < argc) || (argc == 1))) {
         usage();
     }
     
@@ -440,7 +440,7 @@ int main(int argc, char **argv) {
     } 
     
     
-    if ((tool_ctx.file = fopen(input_name, "rb")) == NULL) {
+    if ((tool_ctx.file = fopen(input_name, "rb")) == NULL && tool_ctx.file_type != FILETYPE_BOOT0) {
         fprintf(stderr, "unable to open %s: %s\n", input_name, strerror(errno));
         return EXIT_FAILURE;
     }
@@ -615,7 +615,7 @@ int main(int argc, char **argv) {
                     memcpy(new_keyset.tsec_key, tool_ctx.settings.keygen_tsec, 0x10);
                 }
             }
-            for (unsigned int i = 0; i < 0x20; i++) {
+            for (unsigned int i = 0; tool_ctx.file != NULL && i < 0x20; i++) {
                 fseek(tool_ctx.file, 0x180000 + 0x200 * i, SEEK_SET);
                 if (fread(&new_keyset.encrypted_keyblobs[i], sizeof(new_keyset.encrypted_keyblobs[i]), 1, tool_ctx.file) != 1) {
                     fprintf(stderr, "Error: Failed to read encrypted_keyblob_%02x from boot0!\n", i);
