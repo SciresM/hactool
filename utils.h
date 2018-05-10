@@ -55,7 +55,7 @@ inline int fseeko64(FILE *__stream, long long __off, int __whence)
     // OS X file I/O is 64bit
     #define fseeko64 fseek
 #elif __linux__ || __WIN32
-    extern int fseeko64 (FILE *__stream, _off64_t __off, int __whence);
+    extern int fseeko64 (FILE *__stream, __off64_t __off, int __whence);
 #else
     /* fseeko is guaranteed by POSIX, hopefully the OS made their off_t definition 64-bit;
      * known sane on FreeBSD and OpenBSD.
