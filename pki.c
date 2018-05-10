@@ -914,6 +914,13 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         aes_setiv(keyblob_ctx, &keyset->encrypted_keyblobs[i][0x10], 0x10);
         aes_decrypt(keyblob_ctx, &keyset->keyblobs[i], &keyset->encrypted_keyblobs[i][0x20], sizeof(keyset->keyblobs[i]));
         free_aes_ctx(keyblob_ctx);
+    }
+    for (unsigned int i = 0; i < 0x20; i++) {
+        /* We only need 0x70:0x80 in the blob. */
+        if (memcmp(keyset->keyblobs[i] + 0x70, zeroes, 0x10) == 0) {
+            continue;
+        }
+
         /* Package1 key is at the end of the keyblob. */
         memcpy(&keyset->package1_keys[i], &keyset->keyblobs[i][0x80], 0x10);
     }
