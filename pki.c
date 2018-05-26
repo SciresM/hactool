@@ -143,38 +143,38 @@ const nca_keyset_t nca_keys_retail = {
         ZEROES_KEYBLOB  /* Keyblob 31 */
     },
     {
-        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 00 */
+        ZEROES_KEY, /* Keyblob Key Source 01 */
+        ZEROES_KEY, /* Keyblob Key Source 02 */
+        ZEROES_KEY, /* Keyblob Key Source 03 */
+        ZEROES_KEY, /* Keyblob Key Source 04 */
+        ZEROES_KEY, /* Keyblob Key Source 05 */
+        ZEROES_KEY, /* Keyblob Key Source 06 */
+        ZEROES_KEY, /* Keyblob Key Source 07 */
+        ZEROES_KEY, /* Keyblob Key Source 08 */
+        ZEROES_KEY, /* Keyblob Key Source 09 */
+        ZEROES_KEY, /* Keyblob Key Source 10 */
+        ZEROES_KEY, /* Keyblob Key Source 11 */
+        ZEROES_KEY, /* Keyblob Key Source 12 */
+        ZEROES_KEY, /* Keyblob Key Source 13 */
+        ZEROES_KEY, /* Keyblob Key Source 14 */
+        ZEROES_KEY, /* Keyblob Key Source 15 */
+        ZEROES_KEY, /* Keyblob Key Source 16 */
+        ZEROES_KEY, /* Keyblob Key Source 17 */
+        ZEROES_KEY, /* Keyblob Key Source 18 */
+        ZEROES_KEY, /* Keyblob Key Source 19 */
+        ZEROES_KEY, /* Keyblob Key Source 20 */
+        ZEROES_KEY, /* Keyblob Key Source 21 */
+        ZEROES_KEY, /* Keyblob Key Source 22 */
+        ZEROES_KEY, /* Keyblob Key Source 23 */
+        ZEROES_KEY, /* Keyblob Key Source 24 */
+        ZEROES_KEY, /* Keyblob Key Source 25 */
+        ZEROES_KEY, /* Keyblob Key Source 26 */
+        ZEROES_KEY, /* Keyblob Key Source 27 */
+        ZEROES_KEY, /* Keyblob Key Source 28 */
+        ZEROES_KEY, /* Keyblob Key Source 29 */
+        ZEROES_KEY, /* Keyblob Key Source 30 */
+        ZEROES_KEY  /* Keyblob Key Source 31 */
     },
     ZEROES_KEY, /* Keyblob Mac Key Source */
     ZEROES_KEY, /* Master Key Source */
@@ -563,38 +563,38 @@ const nca_keyset_t nca_keys_dev = {
         ZEROES_KEYBLOB  /* Keyblob 31 */
     },
     {
-        ZEROES_KEY, /* Keyblob Key Source 00 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 01 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 02 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 03 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 04 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 05 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 06 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 07 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 08 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 09 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 10 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 11 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 12 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 13 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 14 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 15 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 16 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 17 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 18 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 19 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 20 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 21 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 22 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 23 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 24 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 25 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 26 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 27 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 28 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 29 (CONSOLE UNIQUE) */
-        ZEROES_KEY, /* Keyblob Key Source 30 (CONSOLE UNIQUE) */
-        ZEROES_KEY  /* Keyblob Key Source 31 (CONSOLE UNIQUE) */
+        ZEROES_KEY, /* Keyblob Key Source 00 */
+        ZEROES_KEY, /* Keyblob Key Source 01 */
+        ZEROES_KEY, /* Keyblob Key Source 02 */
+        ZEROES_KEY, /* Keyblob Key Source 03 */
+        ZEROES_KEY, /* Keyblob Key Source 04 */
+        ZEROES_KEY, /* Keyblob Key Source 05 */
+        ZEROES_KEY, /* Keyblob Key Source 06 */
+        ZEROES_KEY, /* Keyblob Key Source 07 */
+        ZEROES_KEY, /* Keyblob Key Source 08 */
+        ZEROES_KEY, /* Keyblob Key Source 09 */
+        ZEROES_KEY, /* Keyblob Key Source 10 */
+        ZEROES_KEY, /* Keyblob Key Source 11 */
+        ZEROES_KEY, /* Keyblob Key Source 12 */
+        ZEROES_KEY, /* Keyblob Key Source 13 */
+        ZEROES_KEY, /* Keyblob Key Source 14 */
+        ZEROES_KEY, /* Keyblob Key Source 15 */
+        ZEROES_KEY, /* Keyblob Key Source 16 */
+        ZEROES_KEY, /* Keyblob Key Source 17 */
+        ZEROES_KEY, /* Keyblob Key Source 18 */
+        ZEROES_KEY, /* Keyblob Key Source 19 */
+        ZEROES_KEY, /* Keyblob Key Source 20 */
+        ZEROES_KEY, /* Keyblob Key Source 21 */
+        ZEROES_KEY, /* Keyblob Key Source 22 */
+        ZEROES_KEY, /* Keyblob Key Source 23 */
+        ZEROES_KEY, /* Keyblob Key Source 24 */
+        ZEROES_KEY, /* Keyblob Key Source 25 */
+        ZEROES_KEY, /* Keyblob Key Source 26 */
+        ZEROES_KEY, /* Keyblob Key Source 27 */
+        ZEROES_KEY, /* Keyblob Key Source 28 */
+        ZEROES_KEY, /* Keyblob Key Source 29 */
+        ZEROES_KEY, /* Keyblob Key Source 30 */
+        ZEROES_KEY  /* Keyblob Key Source 31 */
     },
     ZEROES_KEY, /* Keyblob Mac Key Source */
     ZEROES_KEY, /* Master Key Source */
