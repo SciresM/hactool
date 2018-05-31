@@ -10,11 +10,12 @@
 #define MAGIC_HEAD 0x44414548 /* "HEAD" */
 
 typedef enum {
+    CARTSIZE_1GB = 0xFA,
     CARTSIZE_2GB = 0xF8,
     CARTSIZE_4GB = 0xF0,
     CARTSIZE_8GB = 0xE0,
     CARTSIZE_16GB = 0xE1,
-    /* CARTSIZE_32GB = 0xE2? */
+    CARTSIZE_32GB = 0xE2
 } cartridge_type_t;
 
 typedef struct {
@@ -49,6 +50,7 @@ typedef struct {
     hfs0_ctx_t normal_ctx;
     hfs0_ctx_t update_ctx;
     hfs0_ctx_t secure_ctx;
+    hfs0_ctx_t logo_ctx;
     hactool_ctx_t *tool_ctx;
     unsigned char iv[0x10];
     /* TODO: Header decryption. */
@@ -59,6 +61,5 @@ typedef struct {
 void xci_process(xci_ctx_t *ctx);
 void xci_save(xci_ctx_t *ctx);
 void xci_print(xci_ctx_t *ctx);
-
 
 #endif

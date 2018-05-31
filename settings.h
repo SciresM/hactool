@@ -81,6 +81,7 @@ typedef struct {
     filepath_t update_dir_path;
     filepath_t normal_dir_path;
     filepath_t secure_dir_path;
+    filepath_t logo_dir_path;
     filepath_t header_path;
     filepath_t nax0_path;
     filepath_t nax0_sd_path;
@@ -124,6 +125,5 @@ typedef struct {
     hactool_settings_t settings;
     uint32_t action;
 } hactool_ctx_t;
-
 
 #endif

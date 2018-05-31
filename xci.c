@@ -60,12 +60,12 @@ void xci_process(xci_ctx_t *ctx) {
     ctx->partition_ctx.name = "rootpt";
     hfs0_process(&ctx->partition_ctx);
     
-    if (ctx->partition_ctx.header->num_files != 3) {
+    if (ctx->partition_ctx.header->num_files > 4) {
         fprintf(stderr, "Error: Invalid XCI partition!\n");
         exit(EXIT_FAILURE);    
     }
     
-    for (unsigned int i = 0; i < 3; i++)  {
+    for (unsigned int i = 0; i < ctx->partition_ctx.header->num_files; i++)  {
         hfs0_ctx_t *cur_ctx = NULL;
         
         hfs0_file_entry_t *cur_file = hfs0_get_file_entry(ctx->partition_ctx.header, i);
@@ -76,6 +76,8 @@ void xci_process(xci_ctx_t *ctx) {
             cur_ctx = &ctx->normal_ctx;
         } else if (!strcmp(cur_name, "secure") && ctx->secure_ctx.file == NULL) {
             cur_ctx = &ctx->secure_ctx;
+        } else if (!strcmp(cur_name, "logo") && ctx->logo_ctx.file == NULL) {
+            cur_ctx = &ctx->logo_ctx;
         } 
         
         if (cur_ctx == NULL) {
@@ -109,7 +111,7 @@ void xci_save(xci_ctx_t *ctx) {
         printf("Extracting XCI...\n");
         filepath_t *dirpath = &ctx->tool_ctx->settings.out_dir_path.path;
         os_makedir(dirpath->os_path);
-        for (unsigned int i = 0; i < 3; i++) {
+        for (unsigned int i = 0; i < ctx->partition_ctx.header->num_files; i++) {
             hfs0_ctx_t *cur_ctx = NULL;
             
             char *cur_name = hfs0_get_file_name(ctx->partition_ctx.header, i);
@@ -119,9 +121,11 @@ void xci_save(xci_ctx_t *ctx) {
                 cur_ctx = &ctx->normal_ctx;
             } else if (!strcmp(cur_name, "secure")) {
                 cur_ctx = &ctx->secure_ctx;
+            } else if (!strcmp(cur_name, "logo")) {
+                cur_ctx = &ctx->logo_ctx;
             }
             if (cur_ctx == NULL) {
-                fprintf(stderr, "Unkown XCI partition found in extraction: %s\n", cur_name);
+                fprintf(stderr, "Unknown XCI partition found in extraction: %s\n", cur_name);
                 exit(EXIT_FAILURE);
             }
             filepath_t partition_dirpath;
@@ -163,13 +167,22 @@ void xci_save(xci_ctx_t *ctx) {
         }
         /* Save Secure Partition. */
         if (ctx->tool_ctx->settings.secure_dir_path.valid == VALIDITY_VALID) {
-             printf("Saving Secure Partition...\n");
+            printf("Saving Secure Partition...\n");
             os_makedir(ctx->tool_ctx->settings.secure_dir_path.os_path);
             for (uint32_t i = 0; i < ctx->secure_ctx.header->num_files; i++) {
                 hfs0_save_file(&ctx->secure_ctx, i, &ctx->tool_ctx->settings.secure_dir_path);
             }
             printf("\n");
-        }        
+        }
+        /* Save Logo Partition. */
+        if (ctx->tool_ctx->settings.logo_dir_path.valid == VALIDITY_VALID) {
+            printf("Saving Logo Partition...\n");
+            os_makedir(ctx->tool_ctx->settings.logo_dir_path.os_path);
+            for (uint32_t i = 0; i < ctx->logo_ctx.header->num_files; i++) {
+                hfs0_save_file(&ctx->logo_ctx, i, &ctx->tool_ctx->settings.logo_dir_path);
+            }
+            printf("\n");
+        }  
     }
 }
 
@@ -238,4 +251,10 @@ void xci_print(xci_ctx_t *ctx) {
     
     printf("Secure Partition:\n");
     xci_print_hfs0(&ctx->secure_ctx);
+    
+    /* Ensure that Logo partition exists. */
+    if (ctx->partition_ctx.header->num_files == 4) {
+        printf("Logo Partition:\n");
+        xci_print_hfs0(&ctx->logo_ctx);
+    }
 }

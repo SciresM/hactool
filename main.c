@@ -73,6 +73,7 @@ static void usage(void) {
         "  --updatedir=dir    Specify XCI update HFS0 directory path.\n"
         "  --normaldir=dir    Specify XCI normal HFS0 directory path.\n"
         "  --securedir=dir    Specify XCI secure HFS0 directory path.\n"
+        "  --logodir=dir      Specify XCI logo HFS0 directory path.\n"
         "  --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.\n"
         "Package1 options:\n"
         "  --package1dir=dir  Specify Package1 directory path.\n"
@@ -156,18 +157,19 @@ int main(int argc, char **argv) {
             {"updatedir", 1, NULL, 23},
             {"normaldir", 1, NULL, 24},
             {"securedir", 1, NULL, 25},
-            {"package1dir", 1, NULL, 26},
-            {"package2dir", 1, NULL, 27},
-            {"ini1dir", 1, NULL, 28},
-            {"extractini1", 0, NULL, 29},
-            {"basefake", 0, NULL, 30},
-            {"onlyupdated", 0, NULL, 31},
-            {"sdseed", 1, NULL, 32},
-            {"sdpath", 1, NULL, 33},
-            {"sbk", 1, NULL, 34},
-            {"tseckey", 1, NULL, 35},
-            {"json", 1, NULL, 36},
-            {"saveini1json", 0, NULL, 37},
+            {"logodir", 1, NULL, 26},
+            {"package1dir", 1, NULL, 27},
+            {"package2dir", 1, NULL, 28},
+            {"ini1dir", 1, NULL, 29},
+            {"extractini1", 0, NULL, 30},
+            {"basefake", 0, NULL, 31},
+            {"onlyupdated", 0, NULL, 32},
+            {"sdseed", 1, NULL, 33},
+            {"sdpath", 1, NULL, 34},
+            {"sbk", 1, NULL, 35},
+            {"tseckey", 1, NULL, 36},
+            {"json", 1, NULL, 37},
+            {"saveini1json", 0, NULL, 38},
             {NULL, 0, NULL, 0},
         };
 
@@ -317,18 +319,21 @@ int main(int argc, char **argv) {
                 filepath_set(&tool_ctx.settings.secure_dir_path, optarg); 
                 break;
             case 26:
-                filepath_set(&tool_ctx.settings.pk11_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.logo_dir_path, optarg); 
                 break;
             case 27:
-                filepath_set(&tool_ctx.settings.pk21_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.pk11_dir_path, optarg); 
                 break;
             case 28:
-                filepath_set(&tool_ctx.settings.ini1_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.pk21_dir_path, optarg); 
                 break;
             case 29:
-                tool_ctx.action |= ACTION_EXTRACTINI1;
+                filepath_set(&tool_ctx.settings.ini1_dir_path, optarg); 
                 break;
             case 30:
+                tool_ctx.action |= ACTION_EXTRACTINI1;
+                break;
+            case 31:
                 if (nca_ctx.tool_ctx->base_file != NULL) {
                     usage();
                     return EXIT_FAILURE;
@@ -336,10 +341,10 @@ int main(int argc, char **argv) {
                 nca_ctx.tool_ctx->base_file_type = BASEFILE_FAKE;
                 nca_ctx.tool_ctx->base_file++; /* Guarantees base_file != NULL. I'm so sorry. */
                 break;
-            case 31:
+            case 32:
                 tool_ctx.action |= ACTION_ONLYUPDATEDROMFS;
                 break;
-            case 32:
+            case 33:
                 parse_hex_key(nca_ctx.tool_ctx->settings.sdseed, optarg, 16);
                 nca_ctx.tool_ctx->settings.has_sdseed = 1;
                 for (unsigned int key = 0; key < 2; key++) {
@@ -349,19 +354,19 @@ int main(int argc, char **argv) {
                 }
                 pki_derive_keys(&tool_ctx.settings.keyset);
                 break;
-            case 33:
+            case 34:
                 filepath_set(&tool_ctx.settings.nax0_sd_path, optarg);
                 break;
-            case 34:
+            case 35:
                 parse_hex_key(nca_ctx.tool_ctx->settings.keygen_sbk, optarg, 16);
                 break;
-            case 35:
+            case 36:
                 parse_hex_key(nca_ctx.tool_ctx->settings.keygen_tsec, optarg, 16);
                 break;
-            case 36:
+            case 37:
                 filepath_set(&tool_ctx.settings.npdm_json_path, optarg); 
                 break;
-            case 37:
+            case 38:
                 tool_ctx.action |= ACTION_SAVEINIJSON;
                 break;
             default:
@@ -449,14 +454,11 @@ int main(int argc, char **argv) {
         printf("Done!\n");
         return EXIT_SUCCESS;
     } 
-    
-    
+      
     if ((tool_ctx.file = fopen(input_name, "rb")) == NULL && tool_ctx.file_type != FILETYPE_BOOT0) {
         fprintf(stderr, "unable to open %s: %s\n", input_name, strerror(errno));
         return EXIT_FAILURE;
     }
-
-
     
     switch (tool_ctx.file_type) {
         case FILETYPE_NCA: {
