@@ -59,6 +59,7 @@ XCI options:
   --updatedir=dir    Specify XCI update HFS0 directory path.
   --normaldir=dir    Specify XCI normal HFS0 directory path.
   --securedir=dir    Specify XCI secure HFS0 directory path.
+  --logodir=dir      Specify XCI logo HFS0 directory path.
   --outdir=dir       Specify XCI directory path. Overrides previous paths, if present.
 Package1 options:
   --package1dir=dir  Specify Package1 directory path.
