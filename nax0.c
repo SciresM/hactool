@@ -129,8 +129,9 @@ void nax0_save(nax0_ctx_t *ctx) {
                     fprintf(stderr, "Failed to read file!\n");
                     exit(EXIT_FAILURE);
                 }
-                
-                aes_xts_decrypt(ctx->aes_ctx, buf, buf, read_size, (ofs - 0x4000) >> 14, 0x4000);
+
+                uint64_t dec_size = (read_size + 0x3FFF) & ~0x3FFF;
+                aes_xts_decrypt(ctx->aes_ctx, buf, buf, dec_size, (ofs - 0x4000) >> 14, 0x4000);
                 
                 if (fwrite(buf, 1, read_size, f_dec) != read_size) {
                     fprintf(stderr, "Failed to write file!\n");
