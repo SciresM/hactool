@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         int option_index;
-        char c;
+        int c;
         static struct option long_options[] = 
         {
             {"extract", 0, NULL, 'x'},
