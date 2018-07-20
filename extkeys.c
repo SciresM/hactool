@@ -205,13 +205,10 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                 parse_hex_key(keyset->header_kek_source, value, sizeof(keyset->header_kek_source));
                 matched_key = 1;
             } else if (strcmp(key, "header_key_source") == 0) {
-                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
+                parse_hex_key(keyset->header_key_source, value, sizeof(keyset->header_key_source));
                 matched_key = 1;
             } else if (strcmp(key, "header_key") == 0) {
                 parse_hex_key(keyset->header_key, value, sizeof(keyset->header_key));
-                matched_key = 1;
-            } else if (strcmp(key, "encrypted_header_key") == 0) {
-                parse_hex_key(keyset->encrypted_header_key, value, sizeof(keyset->encrypted_header_key));
                 matched_key = 1;
             } else if (strcmp(key, "package2_key_source") == 0) {
                 parse_hex_key(keyset->package2_key_source, value, sizeof(keyset->package2_key_source));

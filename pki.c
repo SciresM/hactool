@@ -1031,11 +1031,11 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         }
         
         /* Derive Header Key */
-        if (i == 0 && memcmp(keyset->header_kek_source, zeroes, 0x10) != 0 && memcmp(keyset->encrypted_header_key, zeroes, 0x20) != 0) {
+        if (i == 0 && memcmp(keyset->header_kek_source, zeroes, 0x10) != 0 && memcmp(keyset->header_key_source, zeroes, 0x20) != 0) {
             unsigned char header_kek[0x10];
             generate_kek(header_kek, keyset->header_kek_source, keyset->master_keys[i], keyset->aes_kek_generation_source, keyset->aes_key_generation_source);
             aes_ctx_t *header_ctx = new_aes_ctx(header_kek, 0x10, AES_MODE_ECB);
-            aes_decrypt(header_ctx, keyset->header_key, keyset->encrypted_header_key, 0x20);
+            aes_decrypt(header_ctx, keyset->header_key, keyset->header_key_source, 0x20);
             free_aes_ctx(header_ctx);
         }
         
@@ -1119,7 +1119,7 @@ void pki_print_keys(nca_keyset_t *keyset) {
     PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[0], sd_card_save_key_source);
     PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[1], sd_card_nca_key_source);
     printf("\n");
-    PRINT_KEY_WITH_NAME(keyset->encrypted_header_key, encrypted_header_key);
+    PRINT_KEY_WITH_NAME(keyset->header_key_source, header_key_source);
     PRINT_KEY_WITH_NAME(keyset->header_key, header_key);
     printf("\n");
     for (unsigned int i = 0; i < 0x20; i++) {

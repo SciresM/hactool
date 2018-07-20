@@ -38,7 +38,7 @@ typedef struct {
     unsigned char header_kek_source[0x10];               /* Seed for header kek. */
     unsigned char sd_card_kek_source[0x10];              /* Seed for SD card kek. */
     unsigned char sd_card_key_sources[2][0x20];          /* Seed for SD card encryption keys. */
-    unsigned char encrypted_header_key[0x20];            /* Actual encrypted header key. */
+    unsigned char header_key_source[0x20];               /* Seed for NCA header key. */
     unsigned char header_key[0x20];                      /* NCA header key. */
     unsigned char titlekeks[0x20][0x10];                 /* Title key encryption keys. */
     unsigned char key_area_keys[0x20][3][0x10];          /* Key area encryption keys. */
