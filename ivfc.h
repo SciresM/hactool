@@ -54,6 +54,7 @@ typedef struct {
 } romfs_hdr_t;
 
 typedef struct {
+    uint32_t parent;
     uint32_t sibling;
     uint32_t child;
     uint32_t file;

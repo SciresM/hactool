@@ -9,10 +9,12 @@
 #include "npdm.h"
 #include "pfs0.h"
 #include "ivfc.h"
+#include "nca0_romfs.h"
 #include "bktr.h"
 
 #define MAGIC_NCA3 0x3341434E /* "NCA3" */
 #define MAGIC_NCA2 0x3241434E /* "NCA2" */
+#define MAGIC_NCA0 0x3041434E /* "NCA0" */
 
 typedef struct {
     uint32_t media_start_offset;
@@ -57,7 +59,8 @@ typedef enum {
     CRYPT_NONE = 1,
     CRYPT_XTS = 2,
     CRYPT_CTR = 3,
-    CRYPT_BKTR = 4
+    CRYPT_BKTR = 4,
+    CRYPT_NCA0 = MAGIC_NCA0
 } section_crypt_type_t;
 
 /* NCA FS header. */
@@ -71,6 +74,7 @@ typedef struct {
     union { /* FS-specific superblock. Size = 0x138. */
         pfs0_superblock_t pfs0_superblock;
         romfs_superblock_t romfs_superblock;
+        nca0_romfs_superblock_t nca0_romfs_superblock;
         bktr_superblock_t bktr_superblock;
     };
     union {
@@ -118,7 +122,17 @@ enum nca_section_type {
     PFS0,
     ROMFS,
     BKTR,
+    NCA0_ROMFS,
     INVALID
+};
+
+enum nca_version {
+    NCAVERSION_UNKNOWN = 0,
+    NCAVERSION_NCA0_BETA,
+    NCAVERSION_NCA0,
+    /* NCAVERSION_NCA1, // Does this exist? */
+    NCAVERSION_NCA2,
+    NCAVERSION_NCA3
 };
 
 typedef struct {
@@ -130,11 +144,14 @@ typedef struct {
     uint32_t section_num;
     nca_fs_header_t *header;
     int is_decrypted;
+    uint64_t sector_size;
+    uint64_t sector_mask;
     aes_ctx_t *aes; /* AES context for the section. */
     hactool_ctx_t *tool_ctx;
     union {
         pfs0_ctx_t pfs0_ctx;
         romfs_ctx_t romfs_ctx;
+        nca0_romfs_ctx_t nca0_romfs_ctx;
         bktr_section_ctx_t bktr_ctx;
     };
     validity_t superblock_hash_validity;
@@ -143,6 +160,7 @@ typedef struct {
     size_t sector_num;
     uint32_t sector_ofs;
     int physical_reads; /* Should reads be forced physical? */
+    section_crypt_type_t crypt_type;
 } nca_section_ctx_t;
 
 typedef struct nca_ctx {
@@ -151,6 +169,7 @@ typedef struct nca_ctx {
     unsigned char crypto_type;
     int has_rights_id;
     int is_decrypted;
+    enum nca_version format_version;
     validity_t fixed_sig_validity;
     validity_t npdm_sig_validity;
     hactool_ctx_t *tool_ctx;
@@ -177,15 +196,18 @@ void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_
 /* These have to be in nca.c, sadly... */
 void nca_process_pfs0_section(nca_section_ctx_t *ctx);
 void nca_process_ivfc_section(nca_section_ctx_t *ctx);
+void nca_process_nca0_romfs_section(nca_section_ctx_t *ctx);
 void nca_process_bktr_section(nca_section_ctx_t *ctx);
 void nca_print_pfs0_section(nca_section_ctx_t *ctx);
 void nca_print_ivfc_section(nca_section_ctx_t *ctx);
+void nca_print_nca0_romfs_section(nca_section_ctx_t *ctx);
 void nca_print_bktr_section(nca_section_ctx_t *ctx);
 
 
 void nca_save_section(nca_section_ctx_t *ctx);
 void nca_save_pfs0_section(nca_section_ctx_t *ctx);
 void nca_save_ivfc_section(nca_section_ctx_t *ctx);
+void nca_save_nca0_romfs_section(nca_section_ctx_t *ctx);
 void nca_save_bktr_section(nca_section_ctx_t *ctx);
 
 #endif

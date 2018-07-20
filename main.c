@@ -205,6 +205,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PFS0;
                 } else if (!strcmp(optarg, "romfs")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS; 
+                } else if (!strcmp(optarg, "nca0_romfs") || !strcmp(optarg, "nca0romfs") || !strcmp(optarg, "betaromfs") || !strcmp(optarg, "beta_romfs")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_NCA0_ROMFS; 
                 } else if (!strcmp(optarg, "hfs0")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
                 } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
@@ -516,6 +518,20 @@ int main(int argc, char **argv) {
             romfs_ctx.file = tool_ctx.file;
             romfs_ctx.tool_ctx = &tool_ctx;
             romfs_process(&romfs_ctx);
+            if (romfs_ctx.files) {
+                free(romfs_ctx.files);
+            }
+            if (romfs_ctx.directories) {
+                free(romfs_ctx.directories);
+            }
+            break;
+        }
+        case FILETYPE_NCA0_ROMFS: {
+            nca0_romfs_ctx_t romfs_ctx;
+            memset(&romfs_ctx, 0, sizeof(romfs_ctx));
+            romfs_ctx.file = tool_ctx.file;
+            romfs_ctx.tool_ctx = &tool_ctx;
+            nca0_romfs_process(&romfs_ctx);
             if (romfs_ctx.files) {
                 free(romfs_ctx.files);
             }
