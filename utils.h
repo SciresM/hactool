@@ -42,6 +42,7 @@ void save_buffer_to_directory_file(void *buf, uint64_t size, struct filepath *di
 
 const char *get_key_revision_summary(uint8_t key_rev);
 
+FILE *open_key_file(const char *prefix);
 
 validity_t check_memory_hash_table(FILE *f_in, unsigned char *hash_table, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, int full_block);
 validity_t check_file_hash_table(FILE *f_in, uint64_t hash_ofs, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, int full_block);
@@ -51,6 +52,9 @@ inline int fseeko64(FILE *__stream, long long __off, int __whence)
 {
     return _fseeki64(__stream, __off, __whence);
 }
+#elif __MINGW32__
+    /* MINGW32 does not have 64-bit offsets even with large file support. */
+    extern int fseeko64 (FILE *__stream, _off64_t __off, int __whence);
 #else
     /* off_t is 64-bit with large file support */
     #define fseeko64 fseek

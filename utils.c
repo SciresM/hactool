@@ -193,7 +193,49 @@ const char *get_key_revision_summary(uint8_t key_rev) {
             return "3.0.1-3.0.2";
         case 3:
             return "4.0.0-4.1.0";
+        case 4:
+            return "5.0.0-5.1.0";
         default:
             return "Unknown";
     }
+}
+
+FILE *open_key_file(const char *prefix) {
+    filepath_t keypath;
+    filepath_init(&keypath);
+    /* Use $HOME/.switch/prod.keys if it exists */
+    char *home = getenv("HOME");
+    if (home == NULL)
+        home = getenv("USERPROFILE");
+    if (home != NULL) {
+        filepath_set(&keypath, home);
+        filepath_append(&keypath, ".switch");
+        filepath_append(&keypath, "%s.keys", prefix);
+    }
+
+    /* Load external keys, if relevant. */
+    FILE *keyfile = NULL;
+    if (keypath.valid == VALIDITY_VALID) {
+        keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
+    }
+
+    /* If $HOME/.switch/prod.keys don't exist, try using $XDG_CONFIG_HOME */
+    if (keyfile == NULL) {
+        char *xdgconfig = getenv("XDG_CONFIG_HOME");
+        if (xdgconfig != NULL)
+            filepath_set(&keypath, xdgconfig);
+        else if (home != NULL) {
+            filepath_set(&keypath, home);
+            filepath_append(&keypath, ".config");
+        }
+        /* Keypath contains xdg config. Add switch/%s.keys */
+        filepath_append(&keypath, "switch");
+        filepath_append(&keypath, "%s.keys", prefix);
+    }
+
+    if (keyfile == NULL && keypath.valid == VALIDITY_VALID) {
+        keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
+    }
+    
+    return keyfile;
 }

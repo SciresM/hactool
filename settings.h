@@ -54,12 +54,24 @@ typedef struct {
 } override_filepath_t;
 
 typedef struct {
-    nca_keyset_t keyset;
-    int has_titlekey;
+    unsigned char rights_id[0x10];
     unsigned char titlekey[0x10];
     unsigned char dec_titlekey[0x10];
-    int has_contentkey;
-    unsigned char contentkey[0x10];
+} titlekey_entry_t;
+
+typedef struct {
+    unsigned int count;
+    titlekey_entry_t *titlekeys;
+} known_titlekeys_t;
+
+typedef struct {
+    nca_keyset_t keyset;
+    int has_cli_titlekey;
+    unsigned char cli_titlekey[0x10];
+    unsigned char dec_cli_titlekey[0x10];
+    known_titlekeys_t known_titlekeys;
+    int has_cli_contentkey;
+    unsigned char cli_contentkey[0x10];
     int has_sdseed;
     unsigned char sdseed[0x10];
     unsigned char keygen_sbk[0x10];

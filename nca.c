@@ -5,6 +5,7 @@
 #include "sha.h"
 #include "rsa.h"
 #include "utils.h"
+#include "extkeys.h"
 #include "filepath.h"
 
 /* Initialize the context. */
@@ -207,7 +208,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
             }
             if ((read = fread(buffer, 1, count, ctx->file)) != count) {
                 return 0;
-            }                  
+            }
             aes_setiv(ctx->aes, ctx->ctr, 16);
             aes_decrypt(ctx->aes, buffer, buffer, count);
             nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + count);
@@ -423,11 +424,14 @@ void nca_process(nca_ctx_t *ctx) {
         nca_decrypt_key_area(ctx);
     } else {
         /* Decrypt title key. */
-        if (ctx->tool_ctx->settings.has_titlekey) {
-            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, AES_MODE_ECB);
-            aes_decrypt(aes_ctx, ctx->tool_ctx->settings.dec_titlekey, ctx->tool_ctx->settings.titlekey, 0x10);
-            free_aes_ctx(aes_ctx);
+        aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.titlekeks[ctx->crypto_type], 16, AES_MODE_ECB);
+        if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_titlekey) {
+            aes_decrypt(aes_ctx, ctx->tool_ctx->settings.dec_cli_titlekey, ctx->tool_ctx->settings.cli_titlekey, 0x10);
+        } else if (settings_has_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id)) {
+            titlekey_entry_t *entry = settings_get_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id);
+            aes_decrypt(aes_ctx, entry->dec_titlekey, entry->titlekey, 0x10);
         }
+        free_aes_ctx(aes_ctx);
     }
 
     /* Parse sections. */
@@ -475,11 +479,22 @@ void nca_process(nca_ctx_t *ctx) {
                 ctx->section_contexts[i].is_decrypted = 1;
             }
 
-            if (ctx->tool_ctx->settings.has_contentkey) {
-                ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.contentkey, 16, AES_MODE_CTR);
+            if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_contentkey) {
+                ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.cli_contentkey, 16, AES_MODE_CTR);
             } else {
                 if (ctx->has_rights_id) {
-                    ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.dec_titlekey, 16, AES_MODE_CTR);
+                    if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_titlekey) {
+                        ctx->section_contexts[i].aes = new_aes_ctx(ctx->tool_ctx->settings.dec_cli_titlekey, 16, AES_MODE_CTR);
+                    } else if (settings_has_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id)) {
+                        titlekey_entry_t *entry = settings_get_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id);
+                        ctx->section_contexts[i].aes = new_aes_ctx(entry->dec_titlekey, 16, AES_MODE_CTR);
+                    } else {
+                        if (i == 0) {
+                            printf("[WARN] Unable to match rights id to titlekey. Update title.keys?\n");
+                        }
+                        unsigned char fallback[0x10] = {0};
+                        ctx->section_contexts[i].aes = new_aes_ctx(fallback, 16, AES_MODE_CTR);
+                    }
                 } else {
                     if (ctx->section_contexts[i].crypt_type == CRYPT_CTR || ctx->section_contexts[i].crypt_type == CRYPT_BKTR) {
                         ctx->section_contexts[i].aes = new_aes_ctx(ctx->decrypted_keys[2], 16, AES_MODE_CTR);
@@ -721,6 +736,7 @@ void nca_print_sections(nca_ctx_t *ctx) {
             printf("        Size:                       0x%012"PRIx64"\n", ctx->section_contexts[i].size);
             printf("        Partition Type:             %s\n", nca_get_section_type(&ctx->section_contexts[i]));
             if (!(ctx->format_version == NCAVERSION_NCA0 || ctx->format_version == NCAVERSION_NCA0_BETA)) {
+                nca_update_ctr(ctx->section_contexts[i].ctr, ctx->section_contexts[i].offset);
                 memdump(stdout, "        Section CTR:                ", &ctx->section_contexts[i].ctr, 16);
             }
             switch (ctx->section_contexts[i].type) {
@@ -783,9 +799,15 @@ void nca_print(nca_ctx_t *ctx) {
 
     if (ctx->has_rights_id) {        
         memdump(stdout, "Rights ID:                          ", &ctx->header.rights_id, 0x10);
-        if (ctx->tool_ctx->settings.has_titlekey) {
-            memdump(stdout, "Titlekey (Encrypted)                ", ctx->tool_ctx->settings.titlekey, 0x10);
-            memdump(stdout, "Titlekey (Decrypted)                ", ctx->tool_ctx->settings.dec_titlekey, 0x10);
+        if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_titlekey) {
+            memdump(stdout, "Titlekey (Encrypted) (From CLI)     ", ctx->tool_ctx->settings.cli_titlekey, 0x10);
+            memdump(stdout, "Titlekey (Decrypted) (From CLI)     ", ctx->tool_ctx->settings.dec_cli_titlekey, 0x10);
+        } else if (settings_has_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id)) {
+            titlekey_entry_t *entry = settings_get_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id);
+            memdump(stdout, "Titlekey (Encrypted)                ", entry->titlekey, 0x10);
+            memdump(stdout, "Titlekey (Decrypted)                ", entry->dec_titlekey, 0x10);
+        } else {
+            printf("Titlekey:                           Unknown\n");
         }
     } else {
         printf("Key Area Encryption Key:            %"PRIx8"\n", ctx->header.kaek_ind);

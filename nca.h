@@ -169,6 +169,7 @@ typedef struct nca_ctx {
     unsigned char crypto_type;
     int has_rights_id;
     int is_decrypted;
+    int is_cli_target;
     enum nca_version format_version;
     validity_t fixed_sig_validity;
     validity_t npdm_sig_validity;
