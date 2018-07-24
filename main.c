@@ -92,7 +92,7 @@ static void usage(void) {
         "INI1 options:\n"
         "  --ini1dir=dir      Specify INI1 directory path.\n"
         "  --outdir=dir       Specify INI1 directory path. Overrides previous path, if present.\n"
-        "  --saveini1json      Enable generation of JSON descriptors for all INI1 members.\n"
+        "  --saveini1json     Enable generation of JSON descriptors for all INI1 members.\n"
         "NAX0 options:\n"
         "  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.\n"
         "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"

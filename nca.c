@@ -418,6 +418,14 @@ void nca_process(nca_ctx_t *ctx) {
             break;
         }
     }
+    
+    if (ctx->is_cli_target && ctx->tool_ctx->base_nca_ctx != NULL) {
+        uint64_t base_tid = ctx->tool_ctx->base_nca_ctx->header.title_id;
+        uint64_t expectation = ctx->header.title_id & 0xFFFFFFFFFFFFF7FFULL;
+        if (base_tid != expectation) {
+            printf("[WARN] Base NCA Title ID doesn't match expectation (%016"PRIx64" != %016"PRIx64")\n", base_tid, expectation);
+        }
+    }
 
     /* Decrypt key area if required. */
     if (!ctx->has_rights_id) {
