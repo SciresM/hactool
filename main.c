@@ -12,6 +12,7 @@
 #include "nax0.h"
 #include "extkeys.h"
 #include "packages.h"
+#include "nso.h"
 
 static char *prog_name = "hactool";
 
@@ -616,6 +617,20 @@ int main(int argc, char **argv) {
             kip1_process(&kip1_ctx);
             if (kip1_ctx.header) {
                 free(kip1_ctx.header);
+            }
+            break;
+        }
+        case FILETYPE_NSO0: {
+            nso0_ctx_t nso0_ctx;
+            memset(&nso0_ctx, 0, sizeof(nso0_ctx));
+            nso0_ctx.file = tool_ctx.file;
+            nso0_ctx.tool_ctx = &tool_ctx;
+            nso0_process(&nso0_ctx);
+            if (nso0_ctx.header) {
+                free(nso0_ctx.header);
+            }
+            if (nso0_ctx.uncompressed_header) {
+                free(nso0_ctx.uncompressed_header);
             }
             break;
         }
