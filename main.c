@@ -384,8 +384,13 @@ int main(int argc, char **argv) {
     if (keypath.valid == VALIDITY_VALID) {
         keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
     }
-    if (keyfile == NULL) {
-        keyfile = open_key_file((tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
+    FILE *homekeyfile = open_key_file((tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
+    if (homekeyfile == NULL) {
+        printf("[WARN] prod.keys/dev.keys does not exist.\n");
+    } else if (keyfile == NULL) {
+        keyfile = homekeyfile;
+    } else {
+        fclose(homekeyfile);
     }
 
     if (keyfile != NULL) {
