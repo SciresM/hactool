@@ -89,6 +89,7 @@ typedef struct {
     filepath_t pk21_dir_path;
     filepath_t ini1_dir_path;
     filepath_t plaintext_path;
+    filepath_t uncompressed_path;
     filepath_t rootpt_dir_path;
     filepath_t update_dir_path;
     filepath_t normal_dir_path;
@@ -113,6 +114,7 @@ enum hactool_file_type
     FILETYPE_PACKAGE2,
     FILETYPE_INI1,
     FILETYPE_KIP1,
+    FILETYPE_NSO0,
     FILETYPE_NAX0,
     FILETYPE_BOOT0
 };
@@ -125,7 +127,7 @@ enum hactool_file_type
 #define ACTION_DEV (1<<5)
 #define ACTION_EXTRACTINI1 (1<<6)
 #define ACTION_ONLYUPDATEDROMFS (1<<7)
-#define ACTION_SAVEINIJSON (1<<0)
+#define ACTION_SAVEINIJSON (1<<8)
 
 struct nca_ctx; /* This will get re-defined by nca.h. */
 

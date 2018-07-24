@@ -54,8 +54,13 @@ static void usage(void) {
         "  --basenca          Set Base NCA to use with update partitions.\n"
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
         "  --onlyupdated      Ignore non-updated files in update partitions.\n" 
-        "NPDM/KIP1 options:\n"
+        "NPDM options:\n"
         "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
+        "KIP1 options:\n"
+        "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
+        "  --uncompressed=f   Specify file path for saving uncompressed KIP1.\n"
+        "NSO0 options:\n"
+        "  --uncompressed=f   Specify file path for saving uncompressed NSO0.\n"
         "PFS0 options:\n"
         "  --pfs0dir=dir      Specify PFS0 directory path.\n"
         "  --outdir=dir       Specify PFS0 directory path. Overrides previous path, if present.\n"
@@ -171,6 +176,7 @@ int main(int argc, char **argv) {
             {"tseckey", 1, NULL, 36},
             {"json", 1, NULL, 37},
             {"saveini1json", 0, NULL, 38},
+            {"uncompressed", 1, NULL, 39},
             {NULL, 0, NULL, 0},
         };
 
@@ -222,6 +228,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_INI1;
                 } else if (!strcmp(optarg, "kip1") || !strcmp(optarg, "kip")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_KIP1;
+                } else if (!strcmp(optarg, "nso0") || !strcmp(optarg, "nso")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_NSO0;
                 } else if (!strcmp(optarg, "nax0") || !strcmp(optarg, "nax")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NAX0;
                 } else if (!strcmp(optarg, "keygen") || !strcmp(optarg, "keys") || !strcmp(optarg, "boot0") || !strcmp(optarg, "boot")) {
@@ -372,6 +380,9 @@ int main(int argc, char **argv) {
                 break;
             case 38:
                 tool_ctx.action |= ACTION_SAVEINIJSON;
+                break;
+            case 39:
+                filepath_set(&nca_ctx.tool_ctx->settings.uncompressed_path, optarg); 
                 break;
             default:
                 usage();

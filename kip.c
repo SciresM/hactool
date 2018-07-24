@@ -129,6 +129,81 @@ const char *kip1_get_json(kip1_ctx_t *ctx) {
     return output_str;
 }
 
+void kip1_blz_uncompress(void *hdr_end) {
+    uint32_t addl_size = ((uint32_t *)hdr_end)[-1];
+    uint32_t header_size = ((uint32_t *)hdr_end)[-2];
+    uint32_t cmp_and_hdr_size = ((uint32_t *)hdr_end)[-3];
+    
+    unsigned char *cmp_start = (unsigned char *)(((uintptr_t)hdr_end) - cmp_and_hdr_size);
+    uint32_t cmp_ofs = cmp_and_hdr_size - header_size;
+    uint32_t out_ofs = cmp_and_hdr_size + addl_size;
+    
+    while (out_ofs) {
+        unsigned char control = cmp_start[--cmp_ofs];
+        for (unsigned int i = 0; i < 8; i++) {
+            if (control & 0x80) {
+                if (cmp_ofs < 2) {
+                    fprintf(stderr, "KIP1 decompression out of bounds!\n");
+                    exit(EXIT_FAILURE);
+                }
+                cmp_ofs -= 2;
+                uint16_t seg_val = ((unsigned int)cmp_start[cmp_ofs+1] << 8) | cmp_start[cmp_ofs];
+                uint32_t seg_size = ((seg_val >> 12) & 0xF) + 3;
+                uint32_t seg_ofs = (seg_val & 0x0FFF) + 3;
+                if (out_ofs < seg_size) {
+                    /* Kernel restricts segment copy to stay in bounds. */
+                    seg_size = out_ofs;
+                }
+                out_ofs -= seg_size;
+                
+                for (unsigned int j = 0; j < seg_size; j++) {
+                    cmp_start[out_ofs + j] = cmp_start[out_ofs + j + seg_ofs];
+                }
+            } else {
+                /* Copy directly. */
+                if (cmp_ofs < 1) {
+                    fprintf(stderr, "KIP1 decompression out of bounds!\n");
+                    exit(EXIT_FAILURE);
+                }
+                cmp_start[--out_ofs] = cmp_start[--cmp_ofs];
+            }
+            control <<= 1;
+            if (out_ofs == 0) {
+                return;
+            }
+        }
+    }
+}
+
+void *kip1_uncompress(kip1_ctx_t *ctx, uint64_t *size) {
+    /* Make new header with correct sizes, fixed flags. */
+    kip1_header_t new_header = *ctx->header;
+    for (unsigned int i = 0; i < 3; i++) {
+        new_header.section_headers[i].compressed_size = new_header.section_headers[i].out_size;
+    }
+    new_header.flags &= 0xF8;
+    
+    *size = kip1_get_size_from_header(&new_header);
+    unsigned char *new_kip = calloc(1, *size);
+    if (new_kip == NULL) {
+        fprintf(stderr, "Failed to allocate uncompressed KIP1!\n");
+        exit(EXIT_FAILURE);
+    }
+    *((kip1_header_t *)new_kip) = new_header;
+    
+    uint64_t new_offset = 0x100;
+    uint64_t old_offset = 0x100;
+    for (unsigned int i = 0; i < 3; i++) {
+        // Copy in section data */
+        memcpy(new_kip + new_offset, (unsigned char *)ctx->header + old_offset, ctx->header->section_headers[i].compressed_size);
+        kip1_blz_uncompress(new_kip + new_offset + ctx->header->section_headers[i].compressed_size);
+        new_offset += ctx->header->section_headers[i].out_size;
+        old_offset += ctx->header->section_headers[i].compressed_size;
+    }
+    
+    return new_kip;
+}
+
 void kip1_process(kip1_ctx_t *ctx) {
     /* Read *just* safe amount. */
     kip1_header_t raw_header; 
@@ -146,7 +221,7 @@ void kip1_process(kip1_ctx_t *ctx) {
     uint64_t size = kip1_get_size_from_header(&raw_header);
     ctx->header = malloc(size);
     if (ctx->header == NULL) {
-        fprintf(stderr, "Failed to allocate KIP1 header!\n");
+        fprintf(stderr, "Failed to allocate KIP1!\n");
         exit(EXIT_FAILURE);
     }
     
@@ -188,19 +263,34 @@ void kip1_print(kip1_ctx_t *ctx, int suppress) {
 }
 
 void kip1_save(kip1_ctx_t *ctx) {
-    /* Do nothing. */
     filepath_t *json_path = &ctx->tool_ctx->settings.npdm_json_path;
-    if (ctx->tool_ctx->file_type == FILETYPE_KIP1 && json_path->valid == VALIDITY_VALID) {
-        FILE *f_json = os_fopen(json_path->os_path, OS_MODE_WRITE);
-        if (f_json == NULL) {
-            fprintf(stderr, "Failed to open %s!\n", json_path->char_path);
-            return;
+    filepath_t *uncmp_path = &ctx->tool_ctx->settings.uncompressed_path;
+    if (ctx->tool_ctx->file_type == FILETYPE_KIP1) {
+        if (json_path->valid == VALIDITY_VALID) {
+            FILE *f_json = os_fopen(json_path->os_path, OS_MODE_WRITE);
+            if (f_json == NULL) {
+                fprintf(stderr, "Failed to open %s!\n", json_path->char_path);
+                return;
+            }
+            const char *json = kip1_get_json(ctx);
+            if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
+                fprintf(stderr, "Failed to write JSON file!\n");
+                exit(EXIT_FAILURE);
+            }
+            fclose(f_json);
+        } else if (uncmp_path->valid == VALIDITY_VALID) {
+            FILE *f_uncmp = os_fopen(uncmp_path->os_path, OS_MODE_WRITE);
+            if (f_uncmp == NULL) {
+                fprintf(stderr, "Failed to open %s!\n", uncmp_path->char_path);
+                return;
+            }
+            uint64_t sz = 0;
+            void *uncmp = kip1_uncompress(ctx, &sz);
+            if (fwrite(uncmp, 1, sz, f_uncmp) != sz) {
+                fprintf(stderr, "Failed to write uncompressed kip!\n");
+                exit(EXIT_FAILURE);
+            }
+            fclose(f_uncmp);
         }
-        const char *json = kip1_get_json(ctx);
-        if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
-            fprintf(stderr, "Failed to write JSON file!\n");
-            exit(EXIT_FAILURE);
-        }
-        fclose(f_json);
     }
 }
