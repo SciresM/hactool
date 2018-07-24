@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
     }
     FILE *homekeyfile = open_key_file((tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
     if (homekeyfile == NULL) {
-        printf("[WARN] prod.keys/dev.keys does not exist.\n");
+        printf("[WARN] %s.keys does not exist.\n", (tool_ctx.action & ACTION_DEV) ? "dev" : "prod");
     } else if (keyfile == NULL) {
         keyfile = homekeyfile;
     } else {
