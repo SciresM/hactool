@@ -612,10 +612,18 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
                 ctx->format_version = NCAVERSION_NCA0_BETA;
             }         
         } else {
-            ctx->format_version = NCAVERSION_NCA0;
-            aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.key_area_keys[ctx->crypto_type][dec_header.kaek_ind], 16, AES_MODE_ECB);
-            aes_decrypt(aes_ctx, ctx->decrypted_keys, dec_header.encrypted_keys, 0x20);
-            free_aes_ctx(aes_ctx);
+            unsigned char calc_hash[0x20];
+            static const unsigned char expected_hash[0x20] = {0x9A, 0xBB, 0xD2, 0x11, 0x86, 0x00, 0x21, 0x9D, 0x7A, 0xDC, 0x5B, 0x43, 0x95, 0xF8, 0x4E, 0xFD, 0xFF, 0x6B, 0x25, 0xEF, 0x9F, 0x96, 0x85, 0x28, 0x18, 0x9E, 0x76, 0xB0, 0x92, 0xF0, 0x6A, 0xCB};
+            sha256_hash_buffer(calc_hash, dec_header.encrypted_keys, 0x20);
+            if (memcmp(calc_hash, expected_hash, sizeof(calc_hash)) == 0) {
+                ctx->format_version = NCAVERSION_NCA0;
+                memcpy(ctx->decrypted_keys, dec_header.encrypted_keys, 0x40);
+            } else {
+                ctx->format_version = NCAVERSION_NCA0;
+                aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.key_area_keys[ctx->crypto_type][dec_header.kaek_ind], 16, AES_MODE_ECB);
+                aes_decrypt(aes_ctx, ctx->decrypted_keys, dec_header.encrypted_keys, 0x20);
+                free_aes_ctx(aes_ctx);
+            }
         }
         if (ctx->format_version != NCAVERSION_UNKNOWN) {
             memset(dec_header.fs_headers, 0, sizeof(dec_header.fs_headers));
@@ -1191,8 +1199,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
                     exit(EXIT_FAILURE);
                 }
 
-                /* Switch RomFS has actual entries at table offset + 4 for no good reason. */
-                nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.dir_meta_table_offset + 4);
+                nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.dir_meta_table_offset);
                 if (nca_section_fread(ctx, ctx->bktr_ctx.directories, ctx->bktr_ctx.header.dir_meta_table_size) != ctx->bktr_ctx.header.dir_meta_table_size) {
                     fprintf(stderr, "Failed to read RomFS directory cache!\n");
                     exit(EXIT_FAILURE);
@@ -1545,7 +1552,7 @@ int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t 
         fprintf(stderr, "Failed to allocate filepath!\n");
         exit(EXIT_FAILURE);
     }
-
+    
     filepath_copy(cur_path, parent_path);
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);

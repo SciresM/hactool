@@ -48,7 +48,7 @@ static int get_kv(FILE *f, char **key, char **value) {
     for (; *p == ' ' || *p == '\t'; ++p)\
         ;\
 } while(0);
-    static char line[512];
+    static char line[1024];
     char *k, *v, *p, *end;
 
     *key = *value = NULL;
