@@ -11,7 +11,7 @@ void pk11_process(pk11_ctx_t *ctx) {
         fprintf(stderr, "Failed to read PK11 Stage 1!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     /* Check if PK11 was built in 2016. */
     /* This is a heuristic to detect an older layout for the PK11 binary. */
     if (ctx->stage1.build_date[0] == '2' && ctx->stage1.build_date[1] == '0' && ctx->stage1.build_date[2] == '1' && ctx->stage1.build_date[3] == '6') {
@@ -19,51 +19,49 @@ void pk11_process(pk11_ctx_t *ctx) {
     } else {
         ctx->is_pilot = 0;
     }
-    
+
     ctx->pk11 = malloc(ctx->stage1.pk11_size);
     if (ctx->pk11 == NULL) {
         fprintf(stderr, "Failed to allocate PK11!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     if (fread(ctx->pk11, 1, ctx->stage1.pk11_size, ctx->file) != ctx->stage1.pk11_size) {
         fprintf(stderr, "Failed to read PK11!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     aes_ctx_t *crypt_ctx = NULL;
-    pk11_t dec_header;
+    pk11_t pk11_temp;
     for (unsigned int i = 0; i < 0x20; i++) {
         ctx->key_rev = i;
         crypt_ctx = new_aes_ctx(&ctx->tool_ctx->settings.keyset.package1_keys[i], 0x10, AES_MODE_CTR);
         aes_setiv(crypt_ctx, ctx->stage1.ctr, 0x10);
-        aes_decrypt(crypt_ctx, &dec_header, ctx->pk11, sizeof(dec_header));
+        aes_decrypt(crypt_ctx, &pk11_temp, ctx->pk11, sizeof(dec_header));
         if (dec_header.magic == MAGIC_PK11) {
+            ctx->pk11 = pk11_temp;
             break;
         }
         free_aes_ctx(crypt_ctx);
         crypt_ctx = NULL;
     }
-    
+
     if (crypt_ctx == NULL) {
         fprintf(stderr, "Failed to decrypt PK11! Is correct key present?\n");
         exit(EXIT_FAILURE);
     }
-    
-    aes_setiv(crypt_ctx, ctx->stage1.ctr, 0x10);
-    aes_decrypt(crypt_ctx, ctx->pk11, ctx->pk11, ctx->stage1.pk11_size);
-    
+
     uint64_t pk11_size = 0x20 + ctx->pk11->warmboot_size + ctx->pk11->nx_bootloader_size + ctx->pk11->secmon_size;
     pk11_size = align64(pk11_size, 0x10);
     if (pk11_size != ctx->stage1.pk11_size) {
         fprintf(stderr, "PK11 seems corrupt!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_INFO) {
         pk11_print(ctx);
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_EXTRACT) {
         pk11_save(ctx);
     }
@@ -92,7 +90,7 @@ void pk11_save(pk11_ctx_t *ctx) {
     }
     if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
         os_makedir(dirpath->os_path);
-        
+
         /* Save Decrypted.bin */
         printf("Saving decrypted binary to %s/Decrypted.bin\n", dirpath->char_path);
         char *decrypted_bin = malloc(sizeof(ctx->stage1) + ctx->stage1.pk11_size);
@@ -104,28 +102,28 @@ void pk11_save(pk11_ctx_t *ctx) {
         memcpy(decrypted_bin + sizeof(ctx->stage1), ctx->pk11, ctx->stage1.pk11_size);
         save_buffer_to_directory_file(decrypted_bin, sizeof(ctx->stage1) + ctx->stage1.pk11_size, dirpath, "Decrypted.bin");
         free(decrypted_bin);
-        
+
         /* Save Warmboot.bin */
         printf("Saving Warmboot.bin to %s/Warmboot.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(pk11_get_warmboot_bin(ctx), ctx->pk11->warmboot_size, dirpath, "Warmboot.bin");
-        
+
         /* Save NX_Bootloader.bin */
         printf("Saving NX_Bootloader.bin to %s/NX_Bootloader.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(pk11_get_nx_bootloader(ctx), ctx->pk11->nx_bootloader_size, dirpath, "NX_Bootloader.bin");
-        
+
         /* Save Secure_Monitor.bin */
         printf("Saving Secure_Monitor.bin to %s/Secure_Monitor.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(pk11_get_secmon(ctx), ctx->pk11->secmon_size, dirpath, "Secure_Monitor.bin");
     }
 }
 
-void pk21_process(pk21_ctx_t *ctx) {    
+void pk21_process(pk21_ctx_t *ctx) {
     fseeko64(ctx->file, 0, SEEK_SET);
     if (fread(&ctx->header, 1, sizeof(ctx->header), ctx->file) != sizeof(ctx->header)) {
         fprintf(stderr, "Failed to read PK21 Header!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     bool is_encrypted = false;
     for (unsigned int i = 0; i < 0x100; i++) {
         if (ctx->header.signature[i] != 0) {
@@ -133,7 +131,7 @@ void pk21_process(pk21_ctx_t *ctx) {
         }
     }
     is_encrypted &= ctx->header.magic != MAGIC_PK21;
-    
+
     if (is_encrypted) {
         if (rsa2048_pss_verify(&ctx->header.ctr, 0x100, ctx->header.signature, ctx->tool_ctx->settings.keyset.package2_fixed_key_modulus)) {
             ctx->signature_validity = VALIDITY_VALID;
@@ -143,21 +141,21 @@ void pk21_process(pk21_ctx_t *ctx) {
     } else {
         ctx->signature_validity = VALIDITY_UNCHECKED;
     }
-    
-    
+
+
     /* Nintendo, what the fuck? */
     ctx->package_size = ctx->header.ctr_dwords[0] ^ ctx->header.ctr_dwords[2] ^ ctx->header.ctr_dwords[3];
     if (ctx->package_size > 0x7FC000) {
         fprintf(stderr, "Error: Package2 Header is corrupt!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     aes_ctx_t *crypt_ctx = NULL;
     if (is_encrypted) {
         unsigned char ctr[0x10];
         pk21_header_t temp_header;
         memcpy(ctr, ctx->header.ctr, sizeof(ctr));
-        
+
         for (unsigned int i = 0; i < 0x20; i++) {
             ctx->key_rev = i;
             memcpy(&temp_header, &ctx->header, sizeof(temp_header));
@@ -172,29 +170,29 @@ void pk21_process(pk21_ctx_t *ctx) {
             free_aes_ctx(crypt_ctx);
             crypt_ctx = NULL;
         }
-        
+
         if (crypt_ctx == NULL) {
             fprintf(stderr, "Failed to decrypt PK21! Is correct key present?\n");
             exit(EXIT_FAILURE);
         }
     }
-    
+
     if (ctx->package_size != 0x200 + ctx->header.section_sizes[0] + ctx->header.section_sizes[1] + ctx->header.section_sizes[2]) {
         fprintf(stderr, "Error: Package2 Header is corrupt!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     ctx->sections = malloc(ctx->package_size);
     if (ctx->sections == NULL) {
         fprintf(stderr, "Failed to allocate sections!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     if (fread(ctx->sections, 1, ctx->package_size - 0x200, ctx->file) != ctx->package_size - 0x200) {
         fprintf(stderr, "Failed to read PK21 Sections!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     uint64_t offset = 0;
     for (unsigned int i = 0; i < 3; i++) {
         unsigned char calc_hash[0x20];
@@ -206,11 +204,11 @@ void pk21_process(pk21_ctx_t *ctx) {
         }
         if (is_encrypted) {
             aes_setiv(crypt_ctx, ctx->header.section_ctrs[i], 0x10);
-            aes_decrypt(crypt_ctx, ctx->sections + offset, ctx->sections + offset, ctx->header.section_sizes[i]);   
+            aes_decrypt(crypt_ctx, ctx->sections + offset, ctx->sections + offset, ctx->header.section_sizes[i]);
         }
         offset += ctx->header.section_sizes[i];
     }
-    
+
     ctx->ini1_ctx.tool_ctx = ctx->tool_ctx;
     ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
     if (ctx->ini1_ctx.header->magic == MAGIC_INI1 && ctx->ini1_ctx.header->num_processes <= INI1_MAX_KIPS) {
@@ -225,11 +223,11 @@ void pk21_process(pk21_ctx_t *ctx) {
             offset += kip1_get_size(&ctx->ini1_ctx.kips[i]);
         }
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_INFO) {
         pk21_print(ctx);
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_EXTRACT) {
         pk21_save(ctx);
     }
@@ -255,10 +253,10 @@ void pk21_print(pk21_ctx_t *ctx) {
     } else {
         memdump(stdout, "    Signature:                      ", &ctx->header.signature, 0x100);
     }
-    
+
     /* What the fuck? */
     printf("    Header Version:                 %02"PRIx32"\n", (ctx->header.ctr_dwords[1] ^ (ctx->header.ctr_dwords[1] >> 16) ^ (ctx->header.ctr_dwords[1] >> 24)) & 0xFF);
-    
+
     for (unsigned int i = 0; i < 3; i++) {
         printf("    Section %"PRId32" (%s):\n", i, pk21_get_section_name(i));
         if (ctx->tool_ctx->action & ACTION_VERIFY) {
@@ -274,7 +272,7 @@ void pk21_print(pk21_ctx_t *ctx) {
         printf("        Load Address:               %08"PRIx32"\n", ctx->header.section_offsets[i] + 0x80000000);
         printf("        Size:                       %08"PRIx32"\n", ctx->header.section_sizes[i]);
     }
-    
+
     printf("\n");
     ini1_print(&ctx->ini1_ctx);
 }
@@ -290,7 +288,7 @@ void pk21_save(pk21_ctx_t *ctx) {
     }
     if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
         os_makedir(dirpath->os_path);
-        
+
         /* Save Decrypted.bin */
         printf("Saving decrypted binary to %s/Decrypted.bin\n", dirpath->char_path);
         char *decrypted_bin = malloc(ctx->package_size);
@@ -302,11 +300,11 @@ void pk21_save(pk21_ctx_t *ctx) {
         memcpy(decrypted_bin + sizeof(ctx->header), ctx->sections, ctx->package_size - 0x200);
         save_buffer_to_directory_file(decrypted_bin, ctx->package_size, dirpath, "Decrypted.bin");
         free(decrypted_bin);
-        
+
         /* Save Kernel.bin */
         printf("Saving Kernel.bin to %s/Kernel.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(ctx->sections, ctx->header.section_sizes[0], dirpath, "Kernel.bin");
-        
+
         /* Save INI1.bin */
         printf("Saving INI1.bin to %s/INI1.bin...\n", dirpath->char_path);
         save_buffer_to_directory_file(ctx->sections +  ctx->header.section_sizes[0], ctx->header.section_sizes[1], dirpath, "INI1.bin");
