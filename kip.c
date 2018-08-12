@@ -273,10 +273,15 @@ void kip1_save(kip1_ctx_t *ctx) {
                 return;
             }
             const char *json = kip1_get_json(ctx);
+            if (json == NULL) {
+                fprintf(stderr, "Failed to allocate KIP1 JSON\n");
+                exit(EXIT_FAILURE);
+            }
             if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
                 fprintf(stderr, "Failed to write JSON file!\n");
                 exit(EXIT_FAILURE);
             }
+            cJSON_free(json);
             fclose(f_json);
         } else if (uncmp_path->valid == VALIDITY_VALID) {
             FILE *f_uncmp = os_fopen(uncmp_path->os_path, OS_MODE_WRITE);
@@ -290,6 +295,7 @@ void kip1_save(kip1_ctx_t *ctx) {
                 fprintf(stderr, "Failed to write uncompressed kip!\n");
                 exit(EXIT_FAILURE);
             }
+            free(uncmp);
             fclose(f_uncmp);
         }
     }
