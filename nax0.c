@@ -109,7 +109,7 @@ void nax0_save(nax0_ctx_t *ctx) {
     filepath_t *dec_path = &ctx->tool_ctx->settings.plaintext_path;
 
     if (dec_path->valid != VALIDITY_VALID) {
-        return
+        return;
     }
 
     printf("Saving Decrypted NAX0 Content to %s...\n", dec_path->char_path);
