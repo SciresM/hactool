@@ -54,7 +54,7 @@ void ini1_process(ini1_ctx_t *ctx);
 void ini1_print(ini1_ctx_t *ctx);
 void ini1_save(ini1_ctx_t *ctx);
 
-const char *kip1_get_json(kip1_ctx_t *ctx);
+char *kip1_get_json(kip1_ctx_t *ctx);
 void kip1_process(kip1_ctx_t *ctx);
 void kip1_print(kip1_ctx_t *ctx, int suppress);
 void kip1_save(kip1_ctx_t *ctx);

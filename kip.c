@@ -105,9 +105,9 @@ void ini1_save(ini1_ctx_t *ctx) {
     }
 }
 
-const char *kip1_get_json(kip1_ctx_t *ctx) {
+char *kip1_get_json(kip1_ctx_t *ctx) {
     cJSON *kip_json = cJSON_CreateObject();
-    const char *output_str = NULL;
+    char *output_str = NULL;
     char work_buffer[0x300] = {0};
     
     /* Add KIP1 header fields. */
@@ -272,7 +272,7 @@ void kip1_save(kip1_ctx_t *ctx) {
                 fprintf(stderr, "Failed to open %s!\n", json_path->char_path);
                 return;
             }
-            const char *json = kip1_get_json(ctx);
+            char *json = kip1_get_json(ctx);
             if (json == NULL) {
                 fprintf(stderr, "Failed to allocate KIP1 JSON\n");
                 exit(EXIT_FAILURE);
