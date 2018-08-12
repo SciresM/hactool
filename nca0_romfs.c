@@ -4,7 +4,7 @@
 #include "nca0_romfs.h"
 
 /* NCA0 RomFS functions... */
-void nca0_romfs_visit_file(nca0_romfs_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
+static void nca0_romfs_visit_file(nca0_romfs_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
     romfs_fentry_t *entry = romfs_get_fentry(ctx->files, file_offset);
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
@@ -32,7 +32,7 @@ void nca0_romfs_visit_file(nca0_romfs_ctx_t *ctx, uint32_t file_offset, filepath
     }
 }
 
-void nca0_romfs_visit_dir(nca0_romfs_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
+static void nca0_romfs_visit_dir(nca0_romfs_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
     romfs_direntry_t *entry = romfs_get_direntry(ctx->directories, dir_offset);
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {

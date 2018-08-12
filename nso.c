@@ -3,7 +3,7 @@
 #include "lz4.h"
 #include "sha.h"
 
-void *nso_uncompress(nso0_ctx_t *ctx) {
+static void *nso_uncompress(nso0_ctx_t *ctx) {
     /* Make new header with correct sizes, fixed flags. */
     nso0_header_t new_header = *ctx->header;
     for (unsigned int i = 0; i < 3; i++) {

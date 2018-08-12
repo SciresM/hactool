@@ -3,7 +3,7 @@
 #include "sha.h"
 #include "nax0.h"
 
-size_t nax0_read(nax0_ctx_t *ctx, uint64_t offset, void *dst, size_t size) {
+static size_t nax0_read(nax0_ctx_t *ctx, uint64_t offset, void *dst, size_t size) {
     if (ctx->num_files == 1) {
         fseeko64(ctx->files[0], offset, SEEK_SET);
         return fread(dst, 1, size, ctx->files[0]);
@@ -151,7 +151,7 @@ void nax0_save(nax0_ctx_t *ctx) {
     free(buf);
 }
 
-const char *nax0_get_key_summary(unsigned int k) {
+static const char *nax0_get_key_summary(unsigned int k) {
     switch (k) {
         case 0:
             return "Save";
