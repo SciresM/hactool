@@ -266,7 +266,7 @@ void kac_add_mmio(kac_t *kac, kac_mmio_t *mmio) {
     }
 }
 
-void kac_print(uint32_t *descriptors, uint32_t num_descriptors) {
+void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
     kac_t kac;
     kac_mmio_t *cur_mmio = NULL;
     kac_mmio_t *page_mmio = NULL;
@@ -681,25 +681,25 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     fclose(f_json);
 }
 
-void cJSON_AddU8ToObject(cJSON *obj, char *name, uint8_t val) {
+void cJSON_AddU8ToObject(cJSON *obj, const char *name, uint8_t val) {
     char buf[0x20] = {0};
     snprintf(buf, sizeof(buf), "0x%02"PRIx8, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-void cJSON_AddU16ToObject(cJSON *obj, char *name, uint16_t val) {
+void cJSON_AddU16ToObject(cJSON *obj, const char *name, uint16_t val) {
     char buf[0x20] = {0};
     snprintf(buf, sizeof(buf), "0x%04"PRIx16, val & 0xFFFF);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-void cJSON_AddU32ToObject(cJSON *obj, char *name, uint32_t val) {
+void cJSON_AddU32ToObject(cJSON *obj, const char *name, uint32_t val) {
     char buf[0x20] = {0};
     snprintf(buf, sizeof(buf), "0x%08"PRIx16, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-void cJSON_AddU64ToObject(cJSON *obj, char *name, uint64_t val) {
+void cJSON_AddU64ToObject(cJSON *obj, const char *name, uint64_t val) {
     char buf[0x20] = {0};
     snprintf(buf, sizeof(buf), "0x%016"PRIx64, val);
     cJSON_AddStringToObject(obj, name, buf);
@@ -723,7 +723,7 @@ cJSON *sac_get_json(char *sac, uint32_t sac_size) {
     return sac_json;
 }
 
-cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors) {
+cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
     cJSON *kac_json = cJSON_CreateObject();
     cJSON *temp = NULL;
     bool first_syscall = false;

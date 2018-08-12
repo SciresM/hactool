@@ -71,7 +71,7 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-    char *name;
+    const char *name;
     uint64_t mask;
 } fs_perm_t;
 
@@ -138,14 +138,14 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
 char *npdm_get_proc_category(int process_category);
-void kac_print(uint32_t *descriptors, uint32_t num_descriptors);
+void kac_print(const uint32_t *descriptors, uint32_t num_descriptors);
 char *npdm_get_json(npdm_t *npdm);
 
-void cJSON_AddU8ToObject(cJSON *obj, char *name, uint8_t val);
-void cJSON_AddU16ToObject(cJSON *obj, char *name, uint16_t val);
-void cJSON_AddU32ToObject(cJSON *obj, char *name, uint32_t val);
-void cJSON_AddU64ToObject(cJSON *obj, char *name, uint64_t val);
-cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors);
+void cJSON_AddU8ToObject(cJSON *obj, const char *name, uint8_t val);
+void cJSON_AddU16ToObject(cJSON *obj, const char *name, uint16_t val);
+void cJSON_AddU32ToObject(cJSON *obj, const char *name, uint32_t val);
+void cJSON_AddU64ToObject(cJSON *obj, const char *name, uint64_t val);
+cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors);
 
 
 #endif
