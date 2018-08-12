@@ -132,7 +132,7 @@ void aes_xts_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_
         /* Workaround for Nintendo's custom sector...manually generate the tweak. */
         get_tweak(tweak, sector++);
         aes_setiv(ctx, tweak, 16);
-        aes_encrypt(ctx, (char *)dst + i, (char *)src + i, sector_size);
+        aes_encrypt(ctx, (char *)dst + i, (const char *)src + i, sector_size);
     }
 }
 
@@ -148,6 +148,6 @@ void aes_xts_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l, size_
         /* Workaround for Nintendo's custom sector...manually generate the tweak. */
         get_tweak(tweak, sector++);
         aes_setiv(ctx, tweak, 16);
-        aes_decrypt(ctx, (char *)dst + i, (char *)src + i, sector_size);
+        aes_decrypt(ctx, (char *)dst + i, (const char *)src + i, sector_size);
     }
 }
