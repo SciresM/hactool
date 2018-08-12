@@ -259,8 +259,7 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                 pki_set_beta_nca0_exponent(exponent);
                 matched_key = 1;
             } else {
-                char test_name[0x100];
-                memset(test_name, 0, sizeof(100));
+                char test_name[0x100] = {0};
                 for (unsigned int i = 0; i < 0x20 && !matched_key; i++) {
                     snprintf(test_name, sizeof(test_name), "keyblob_key_source_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
