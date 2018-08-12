@@ -672,7 +672,7 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
         return;
     }
 
-    const char *json = npdm_get_json(npdm);
+    char *json = npdm_get_json(npdm);
     if (fwrite(json, 1, strlen(json), f_json) != strlen(json)) {
         fprintf(stderr, "Failed to write JSON file!\n");
         exit(EXIT_FAILURE);
@@ -832,11 +832,11 @@ cJSON *kac_get_json(uint32_t *descriptors, uint32_t num_descriptors) {
     return kac_json;
 }
 
-const char *npdm_get_json(npdm_t *npdm) {
+char *npdm_get_json(npdm_t *npdm) {
     npdm_acid_t *acid = npdm_get_acid(npdm);
     npdm_aci0_t *aci0 = npdm_get_aci0(npdm);
     cJSON *npdm_json = cJSON_CreateObject();
-    const char *output_str = NULL;
+    char *output_str = NULL;
     char work_buffer[0x300] = {0};
     
     /* Add NPDM header fields. */

@@ -139,7 +139,7 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
 char *npdm_get_proc_category(int process_category);
 void kac_print(uint32_t *descriptors, uint32_t num_descriptors);
-const char *npdm_get_json(npdm_t *npdm);
+char *npdm_get_json(npdm_t *npdm);
 
 void cJSON_AddU8ToObject(cJSON *obj, char *name, uint8_t val);
 void cJSON_AddU16ToObject(cJSON *obj, char *name, uint16_t val);
