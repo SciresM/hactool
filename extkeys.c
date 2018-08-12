@@ -94,9 +94,10 @@ static int get_kv(FILE *f, char **key, char **value) {
         }
 
         if (*p != '_' &&
-                (*p < '0' && *p > '9') &&
-                (*p < 'a' && *p > 'z'))
+                (*p < '0' || *p > '9') &&
+                (*p < 'a' || *p > 'z')) {
             return -1;
+        }
     }
 
     /* Bail if the final ++p put us at the end of string */
