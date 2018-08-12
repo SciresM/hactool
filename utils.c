@@ -28,7 +28,7 @@ void print_magic(const char *prefix, uint32_t magic) {
 
 /* Taken mostly from ctrtool. */
 void memdump(FILE *f, const char *prefix, const void *data, size_t size) {
-    uint8_t *p = (uint8_t *)data;
+    const uint8_t *p = (const uint8_t *)data;
 
     unsigned int prefix_len = strlen(prefix);
     size_t offset = 0;
