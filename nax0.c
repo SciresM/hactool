@@ -147,6 +147,7 @@ void nax0_save(nax0_ctx_t *ctx) {
         ofs += read_size;
     }
 
+    fclose(f_dec);
     free(buf);
 }
 
