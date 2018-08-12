@@ -677,6 +677,7 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
         fprintf(stderr, "Failed to write JSON file!\n");
         exit(EXIT_FAILURE);
     }
+    cJSON_free(json);
     fclose(f_json);
 }
 
