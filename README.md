@@ -86,6 +86,7 @@ NAX0 options:
 Key Derivation options:
   --sbk=key          Set console unique Secure Boot Key for key derivation.
   --tseckey=key      Set console unique TSEC Key for key derivation.```
+```
 
 ## Building
 
