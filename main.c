@@ -14,7 +14,7 @@
 #include "packages.h"
 #include "nso.h"
 
-static char *prog_name = "hactool";
+static const char *prog_name = "hactool";
 
 /* Print usage. Taken largely from ctrtool. */
 static void usage(void) {
