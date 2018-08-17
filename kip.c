@@ -129,7 +129,7 @@ char *kip1_get_json(kip1_ctx_t *ctx) {
     return output_str;
 }
 
-void kip1_blz_uncompress(void *hdr_end) {
+static void kip1_blz_uncompress(void *hdr_end) {
     uint32_t addl_size = ((uint32_t *)hdr_end)[-1];
     uint32_t header_size = ((uint32_t *)hdr_end)[-2];
     uint32_t cmp_and_hdr_size = ((uint32_t *)hdr_end)[-3];
@@ -175,7 +175,7 @@ void kip1_blz_uncompress(void *hdr_end) {
     }
 }
 
-void *kip1_uncompress(kip1_ctx_t *ctx, uint64_t *size) {
+static void *kip1_uncompress(kip1_ctx_t *ctx, uint64_t *size) {
     /* Make new header with correct sizes, fixed flags. */
     kip1_header_t new_header = *ctx->header;
     for (unsigned int i = 0; i < 3; i++) {

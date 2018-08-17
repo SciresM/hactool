@@ -235,7 +235,7 @@ void pk21_process(pk21_ctx_t *ctx) {
     }
 }
 
-const char *pk21_get_section_name(int section) {
+static const char *pk21_get_section_name(int section) {
     switch (section) {
         case 0: return "Kernel";
         case 1: return "INI1";

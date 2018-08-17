@@ -113,7 +113,7 @@ void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     mbedtls_cipher_finish(&ctx->cipher_dec, NULL, NULL);
 }
 
-void get_tweak(unsigned char *tweak, size_t sector) {
+static void get_tweak(unsigned char *tweak, size_t sector) {
     for (int i = 0xF; i >= 0; i--) { /* Nintendo LE custom tweak... */
         tweak[i] = (unsigned char)(sector & 0xFF);
         sector >>= 8;

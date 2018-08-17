@@ -5,7 +5,7 @@
 /* This RSA-PKCS1 public key is only accessible to the gamecard controller. */
 /* However, it (and other XCI keys) can be dumped with a GCD attack on two signatures. */
 /* Contact SciresM for details, if curious. */
-const unsigned char xci_header_pubk[0x100] = {
+static const unsigned char xci_header_pubk[0x100] = {
     0x98, 0xC7, 0x26, 0xB6, 0x0D, 0x0A, 0x50, 0xA7, 0x39, 0x21, 0x0A, 0xE3, 0x2F, 0xE4, 0x3E, 0x2E, 
     0x5B, 0xA2, 0x86, 0x75, 0xAA, 0x5C, 0xEE, 0x34, 0xF1, 0xA3, 0x3A, 0x7E, 0xBD, 0x90, 0x4E, 0xF7, 
     0x8D, 0xFA, 0x17, 0xAA, 0x6B, 0xC6, 0x36, 0x6D, 0x4C, 0x9A, 0x6D, 0x57, 0x2F, 0x80, 0xA2, 0xBC, 
@@ -186,7 +186,7 @@ void xci_save(xci_ctx_t *ctx) {
     }
 }
 
-char *xci_get_cartridge_type(xci_ctx_t *ctx) {
+static const char *xci_get_cartridge_type(xci_ctx_t *ctx) {
     cartridge_type_t cart_type = (cartridge_type_t)ctx->header.cart_type;
     switch (cart_type) {
         case CARTSIZE_2GB: return "2GB";
@@ -198,7 +198,7 @@ char *xci_get_cartridge_type(xci_ctx_t *ctx) {
     }
 }
 
-void xci_print_hfs0(hfs0_ctx_t *ctx) {
+static void xci_print_hfs0(hfs0_ctx_t *ctx) {
     print_magic("    Magic:                          ", ctx->header->magic);
     printf("    Offset:                         %012"PRIx64"\n", ctx->offset);
     printf("    Number of files:                %"PRId32"\n", ctx->header->num_files);

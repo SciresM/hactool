@@ -73,7 +73,7 @@ void pfs0_process(pfs0_ctx_t *ctx) {
 
 }
 
-void pfs0_save_file(pfs0_ctx_t *ctx, uint32_t i, filepath_t *dirpath) {
+static void pfs0_save_file(pfs0_ctx_t *ctx, uint32_t i, filepath_t *dirpath) {
     if (i >= ctx->header->num_files) {
         fprintf(stderr, "Could not save file %"PRId32"!\n", i);
         exit(EXIT_FAILURE);

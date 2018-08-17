@@ -6,7 +6,7 @@
 #include "rsa.h"
 #include "cJSON.h"
 
-const char *svc_names[0x80] = {
+static const char * const svc_names[0x80] = {
     "svcUnknown",
     "svcSetHeapSize",
     "svcSetMemoryPermission",
@@ -141,7 +141,7 @@ const char *svc_names[0x80] = {
 #define MAX_FS_PERM_BOOL 0x1B
 #define FS_PERM_MASK_NODEBUG 0xBFFFFFFFFFFFFFFFULL
 
-const fs_perm_t fs_permissions_rw[MAX_FS_PERM_RW] = {
+static const fs_perm_t fs_permissions_rw[MAX_FS_PERM_RW] = {
     {"MountContentType2", 0x8000000000000801},
     {"MountContentType5", 0x8000000000000801},
     {"MountContentType3", 0x8000000000000801},
@@ -183,7 +183,7 @@ const fs_perm_t fs_permissions_rw[MAX_FS_PERM_RW] = {
     {"HostAccess", 0xC000000000400000}
 };
 
-const fs_perm_t fs_permissions_bool[MAX_FS_PERM_BOOL] = {
+static const fs_perm_t fs_permissions_bool[MAX_FS_PERM_BOOL] = {
     {"BisCache", 0x8000000000000080},
     {"EraseMmc", 0x8000000000000080},
     {"GameCardCertificate", 0x8000000000000010},
@@ -224,7 +224,7 @@ char *npdm_get_proc_category(int process_category) {
     }
 }
 
-char *kac_get_app_type(uint32_t app_type) {
+static char *kac_get_app_type(uint32_t app_type) {
     switch (app_type) {
         case 0:
             return "System Module";
@@ -237,7 +237,7 @@ char *kac_get_app_type(uint32_t app_type) {
     }
 }
 
-void kac_add_mmio(kac_t *kac, kac_mmio_t *mmio) {
+static void kac_add_mmio(kac_t *kac, kac_mmio_t *mmio) {
     /* Perform an ordered insertion. */
     if (kac->mmio == NULL || mmio->address < kac->mmio->address) {
         mmio->next = kac->mmio;
@@ -450,7 +450,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
 }
 
 /* Modified from https://stackoverflow.com/questions/23457305/compare-strings-with-wildcard */
-int match(const char *pattern, const char *candidate, int p, int c) {
+static int match(const char *pattern, const char *candidate, int p, int c) {
     if (pattern[p] == '\0') {
         return candidate[c] == '\0';
     } else if (pattern[p] == '*') {
@@ -464,7 +464,7 @@ int match(const char *pattern, const char *candidate, int p, int c) {
     }
 }
 
-int sac_matches(sac_entry_t *lst, char *service) {
+static int sac_matches(sac_entry_t *lst, char *service) {
     sac_entry_t *cur = lst;
     while (cur != NULL) {
         if (match(cur->service, service, 0, 0)) return 1;
@@ -473,7 +473,7 @@ int sac_matches(sac_entry_t *lst, char *service) {
     return 0;
 }
 
-void sac_parse(char *sac, uint32_t sac_size, sac_entry_t *r_host, sac_entry_t *r_accesses, sac_entry_t **out_hosts, sac_entry_t **out_accesses) {
+static void sac_parse(char *sac, uint32_t sac_size, sac_entry_t *r_host, sac_entry_t *r_accesses, sac_entry_t **out_hosts, sac_entry_t **out_accesses) {
     sac_entry_t *accesses = NULL;
     sac_entry_t *hosts = NULL;
     sac_entry_t *cur_entry = NULL;
@@ -513,7 +513,7 @@ void sac_parse(char *sac, uint32_t sac_size, sac_entry_t *r_host, sac_entry_t *r
     *out_accesses = accesses;
 }
 
-void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0_size) {
+static void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0_size) {
     /* Parse the ACID sac. */
     sac_entry_t *acid_accesses = NULL;
     sac_entry_t *acid_hosts = NULL;
@@ -558,7 +558,7 @@ void sac_print(char *acid_sac, uint32_t acid_size, char *aci0_sac, uint32_t aci0
 
 
 
-void fac_print(fac_t *fac, fah_t *fah) {
+static void fac_print(fac_t *fac, fah_t *fah) {
     if (fac->version == fah->version) {
         printf("        Version:                    %"PRId32"\n", fac->version);
     } else {
@@ -705,7 +705,7 @@ void cJSON_AddU64ToObject(cJSON *obj, const char *name, uint64_t val) {
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-cJSON *sac_get_json(char *sac, uint32_t sac_size) {
+static cJSON *sac_get_json(char *sac, uint32_t sac_size) {
     cJSON *sac_json = cJSON_CreateObject();
     char service[9] = {0};
     uint32_t ofs = 0;

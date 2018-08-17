@@ -50,7 +50,7 @@ int os_rmdir(const oschar_t *dir) {
 #endif
 }
 
-void filepath_update(filepath_t *fpath) {
+static void filepath_update(filepath_t *fpath) {
     memset(fpath->os_path, 0, MAX_PATH * sizeof(oschar_t));
     os_strcpy(fpath->os_path, fpath->char_path);
 }
