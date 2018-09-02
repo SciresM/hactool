@@ -137,7 +137,7 @@ void npdm_process(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx);
 
-char *npdm_get_proc_category(int process_category);
+const char *npdm_get_proc_category(int process_category);
 void kac_print(const uint32_t *descriptors, uint32_t num_descriptors);
 char *npdm_get_json(npdm_t *npdm);
 

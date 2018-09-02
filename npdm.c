@@ -213,7 +213,7 @@ static const fs_perm_t fs_permissions_bool[MAX_FS_PERM_BOOL] = {
     {"Unknown (0x1A)", 0x8000000000004020}
 };
 
-char *npdm_get_proc_category(int process_category) {
+const char *npdm_get_proc_category(int process_category) {
     switch (process_category) {
         case 0:
             return "Regular Title";
@@ -224,7 +224,7 @@ char *npdm_get_proc_category(int process_category) {
     }
 }
 
-static char *kac_get_app_type(uint32_t app_type) {
+static const char *kac_get_app_type(uint32_t app_type) {
     switch (app_type) {
         case 0:
             return "System Module";
