@@ -716,7 +716,7 @@ void cJSON_AddU16ToObject(cJSON *obj, const char *name, uint16_t val) {
 
 void cJSON_AddU32ToObject(cJSON *obj, const char *name, uint32_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%08"PRIx16, val);
+    snprintf(buf, sizeof(buf), "0x%08"PRIx32, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
