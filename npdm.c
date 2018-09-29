@@ -726,21 +726,43 @@ void cJSON_AddU64ToObject(cJSON *obj, const char *name, uint64_t val) {
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-static cJSON *sac_get_json(char *sac, uint32_t sac_size) {
-    cJSON *sac_json = cJSON_CreateObject();
+static cJSON *sac_access_get_json(char *sac, uint32_t sac_size) {
+  cJSON *sac_json = cJSON_CreateArray();
+  char service[9] = {0};
+  uint32_t ofs = 0;
+  uint32_t service_len;
+  char ctrl;
+  while (ofs < sac_size) {
+    ctrl = sac[ofs++];
+    service_len = (ctrl & 0x7) + 1;
+    if (!(ctrl & 0x80)) {
+      memset(service, 0, sizeof(service));
+      memcpy(service, &sac[ofs], service_len);
+      cJSON_AddItemToArray(sac_json, cJSON_CreateString(service));
+    }
+    ofs += service_len;
+  }
+
+  return sac_json;
+}
+
+static cJSON *sac_host_get_json(char *sac, uint32_t sac_size) {
+    cJSON *sac_json = cJSON_CreateArray();
     char service[9] = {0};
     uint32_t ofs = 0;
     uint32_t service_len;
     char ctrl;
     while (ofs < sac_size) {
-        memset(service, 0, sizeof(service));
         ctrl = sac[ofs++];
         service_len = (ctrl & 0x7) + 1;
-        memcpy(service, &sac[ofs], service_len);
-        cJSON_AddBoolToObject(sac_json, service, (ctrl & 0x80) != 0);
+        if (ctrl & 0x80) {
+          memset(service, 0, sizeof(service));
+          memcpy(service, &sac[ofs], service_len);
+          cJSON_AddItemToArray(sac_json, cJSON_CreateString(service));
+        }
         ofs += service_len;
     }
-    
+
     return sac_json;
 }
 
@@ -879,8 +901,10 @@ char *npdm_get_json(npdm_t *npdm) {
     cJSON_AddItemToObject(npdm_json, "filesystem_access", fac_json);
     
     /* Add SAC. */
-    cJSON *sac_json = sac_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
-    cJSON_AddItemToObject(npdm_json, "service_access", sac_json);
+    cJSON *sac_access_json = sac_access_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
+    cJSON *sac_host_json = sac_host_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
+    cJSON_AddItemToObject(npdm_json, "service_access", sac_access_json);
+    cJSON_AddItemToObject(npdm_json, "service_host", sac_host_json);
     
     /* Add KAC. */
     cJSON *kac_json = kac_get_json((uint32_t *)((char *)aci0 + aci0->kac_offset), aci0->kac_size / sizeof(uint32_t));
