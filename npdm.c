@@ -681,6 +681,27 @@ void npdm_save(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     fclose(f_json);
 }
 
+static cJSON *kac_create_obj(const char *type, cJSON *val) {
+  cJSON *tempobj = NULL;
+
+  tempobj = cJSON_CreateObject();
+  cJSON_AddStringToObject(tempobj, "type", type);
+  cJSON_AddItemToObject(tempobj, "value", val);
+  return tempobj;
+}
+
+void cJSON_AddU16ToKacArray(cJSON *obj, const char *name, uint16_t val) {
+  char buf[0x20] = {0};
+  snprintf(buf, sizeof(buf), "0x%04"PRIx16, val);
+  cJSON_AddItemToArray(obj, kac_create_obj(name, cJSON_CreateString(buf)));
+}
+
+void cJSON_AddU32ToKacArray(cJSON *obj, const char *name, uint32_t val) {
+    char buf[0x20] = {0};
+    snprintf(buf, sizeof(buf), "0x%08"PRIx32, val);
+    cJSON_AddItemToArray(obj, kac_create_obj(name, cJSON_CreateString(buf)));
+}
+
 void cJSON_AddU8ToObject(cJSON *obj, const char *name, uint8_t val) {
     char buf[0x20] = {0};
     snprintf(buf, sizeof(buf), "0x%02"PRIx8, val);
@@ -695,7 +716,7 @@ void cJSON_AddU16ToObject(cJSON *obj, const char *name, uint16_t val) {
 
 void cJSON_AddU32ToObject(cJSON *obj, const char *name, uint32_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%08"PRIx16, val);
+    snprintf(buf, sizeof(buf), "0x%08"PRIx32, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
@@ -705,28 +726,50 @@ void cJSON_AddU64ToObject(cJSON *obj, const char *name, uint64_t val) {
     cJSON_AddStringToObject(obj, name, buf);
 }
 
-static cJSON *sac_get_json(char *sac, uint32_t sac_size) {
-    cJSON *sac_json = cJSON_CreateObject();
+static cJSON *sac_access_get_json(char *sac, uint32_t sac_size) {
+  cJSON *sac_json = cJSON_CreateArray();
+  char service[9] = {0};
+  uint32_t ofs = 0;
+  uint32_t service_len;
+  char ctrl;
+  while (ofs < sac_size) {
+    ctrl = sac[ofs++];
+    service_len = (ctrl & 0x7) + 1;
+    if (!(ctrl & 0x80)) {
+      memset(service, 0, sizeof(service));
+      memcpy(service, &sac[ofs], service_len);
+      cJSON_AddItemToArray(sac_json, cJSON_CreateString(service));
+    }
+    ofs += service_len;
+  }
+
+  return sac_json;
+}
+
+static cJSON *sac_host_get_json(char *sac, uint32_t sac_size) {
+    cJSON *sac_json = cJSON_CreateArray();
     char service[9] = {0};
     uint32_t ofs = 0;
     uint32_t service_len;
     char ctrl;
     while (ofs < sac_size) {
-        memset(service, 0, sizeof(service));
         ctrl = sac[ofs++];
         service_len = (ctrl & 0x7) + 1;
-        memcpy(service, &sac[ofs], service_len);
-        cJSON_AddBoolToObject(sac_json, service, (ctrl & 0x80) != 0);
+        if (ctrl & 0x80) {
+          memset(service, 0, sizeof(service));
+          memcpy(service, &sac[ofs], service_len);
+          cJSON_AddItemToArray(sac_json, cJSON_CreateString(service));
+        }
         ofs += service_len;
     }
-    
+
     return sac_json;
 }
 
 cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
-    cJSON *kac_json = cJSON_CreateObject();
+    cJSON *kac_json = cJSON_CreateArray();
+    cJSON *syscall_memory = NULL;
     cJSON *temp = NULL;
-    bool first_syscall = false;
     unsigned int syscall_base;
     for (uint32_t i = 0; i < num_descriptors; i++) {
         uint32_t desc = descriptors[i];
@@ -749,15 +792,15 @@ cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
                 cJSON_AddNumberToObject(temp, "lowest_cpu_id", desc & 0xFF);
                 desc >>= 8;
                 cJSON_AddNumberToObject(temp, "highest_cpu_id", desc & 0xFF);
-                cJSON_AddItemToObject(kac_json, "kernel_flags", temp);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("kernel_flags", temp));
                 break;
             case 4: /* Syscall mask. */
-                temp = cJSON_GetObjectItemCaseSensitive(kac_json, "syscalls");
-                if (temp == NULL) {
-                    first_syscall = true;
+                if (syscall_memory == NULL) {
                     temp = cJSON_CreateObject();
-                } else {    
-                    first_syscall = false;
+                    cJSON_AddItemToArray(kac_json, kac_create_obj("syscalls", temp));
+                    syscall_memory = temp;
+                } else {
+                    temp = syscall_memory;
                 }
                 syscall_base = (desc >> 24) * 0x18;
                 for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0x80; sc++) {
@@ -766,13 +809,9 @@ cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
                     }
                     desc >>= 1;
                 }
-                if (first_syscall) {
-                    cJSON_AddItemToObject(kac_json, "syscalls", temp);
-                }
                 break;
             case 6: /* Map IO/Normal. */
                 temp = cJSON_CreateObject();
-                
                 cJSON_AddU32ToObject(temp, "address", (desc & 0xFFFFFF) << 12);
                 cJSON_AddBoolToObject(temp, "is_ro", (desc >> 24) & 1);
                 if (i == num_descriptors - 1) {
@@ -787,10 +826,10 @@ cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
                 desc >>= 7;
                 cJSON_AddU32ToObject(temp, "size", (desc & 0xFFFFFF) << 12);
                 cJSON_AddBoolToObject(temp, "is_io", ((desc >> 24) & 1) == 0);
-                cJSON_AddItemToObject(kac_json, "map", temp);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("map", temp));
                 break;
-            case 7: /* Map Normal Page. */                
-                cJSON_AddU32ToObject(kac_json, "map_page", desc << 12);
+            case 7: /* Map Normal Page. */
+                cJSON_AddU32ToKacArray(kac_json, "map_page", desc << 12);
                 break;
             case 11: /* IRQ Pair. */
                 temp = cJSON_CreateArray();
@@ -805,22 +844,22 @@ cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
                 } else {
                     cJSON_AddItemToArray(temp, cJSON_CreateNumber(desc & 0x3FF));
                 }
-                cJSON_AddItemToObject(kac_json, "irq_pair", temp);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("irq_pair", temp));
                 break;
             case 13: /* App Type. */
-                cJSON_AddNumberToObject(kac_json, "application_type", desc & 7);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("application_type", cJSON_CreateNumber(desc & 7)));
                 break;
             case 14: /* Kernel Release Version. */
-                cJSON_AddU16ToObject(kac_json, "min_kernel_version", desc & 0xFFFF);
+                cJSON_AddU16ToKacArray(kac_json, "min_kernel_version", desc & 0xFFFF);
                 break;
             case 15: /* Handle Table Size. */
-                cJSON_AddNumberToObject(kac_json, "handle_table_size", desc);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("handle_table_size", cJSON_CreateNumber(desc)));
                 break;
             case 16: /* Debug Flags. */
                 temp = cJSON_CreateObject();
                 cJSON_AddBoolToObject(temp, "allow_debug", (desc >> 0) & 1);
                 cJSON_AddBoolToObject(temp, "force_debug", (desc >> 1) & 1);
-                cJSON_AddItemToObject(kac_json, "debug_flags", temp);
+                cJSON_AddItemToArray(kac_json, kac_create_obj("debug_flags", temp));
 
                // kac.has_debug_flags = 1;
                // kac.allow_debug = desc & 1;
@@ -862,8 +901,10 @@ char *npdm_get_json(npdm_t *npdm) {
     cJSON_AddItemToObject(npdm_json, "filesystem_access", fac_json);
     
     /* Add SAC. */
-    cJSON *sac_json = sac_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
-    cJSON_AddItemToObject(npdm_json, "service_access", sac_json);
+    cJSON *sac_access_json = sac_access_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
+    cJSON *sac_host_json = sac_host_get_json((char *)aci0 + aci0->sac_offset, aci0->sac_size);
+    cJSON_AddItemToObject(npdm_json, "service_access", sac_access_json);
+    cJSON_AddItemToObject(npdm_json, "service_host", sac_host_json);
     
     /* Add KAC. */
     cJSON *kac_json = kac_get_json((uint32_t *)((char *)aci0 + aci0->kac_offset), aci0->kac_size / sizeof(uint32_t));
