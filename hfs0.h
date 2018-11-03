@@ -29,7 +29,7 @@ typedef struct {
     uint64_t size;
     hactool_ctx_t *tool_ctx;
     hfs0_header_t *header;
-    char *name;
+    const char *name;
 } hfs0_ctx_t;
 
 static inline hfs0_file_entry_t *hfs0_get_file_entry(hfs0_header_t *hdr, uint32_t i) {

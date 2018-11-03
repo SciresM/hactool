@@ -657,7 +657,7 @@ void nca_decrypt_key_area(nca_ctx_t *ctx) {
 }
 
 
-static char *nca_get_distribution_type(nca_ctx_t *ctx) {
+static const char *nca_get_distribution_type(nca_ctx_t *ctx) {
     switch (ctx->header.distribution) {
         case 0:
             return "Download";
@@ -668,7 +668,7 @@ static char *nca_get_distribution_type(nca_ctx_t *ctx) {
     }
 }
 
-static char *nca_get_content_type(nca_ctx_t *ctx) {
+static const char *nca_get_content_type(nca_ctx_t *ctx) {
     switch (ctx->header.content_type) {
         case 0:
             return "Program";
@@ -685,7 +685,7 @@ static char *nca_get_content_type(nca_ctx_t *ctx) {
     }
 }
 
-static char *nca_get_encryption_type(nca_ctx_t *ctx) {
+static const char *nca_get_encryption_type(nca_ctx_t *ctx) {
     if (ctx->has_rights_id) {
         return "Titlekey crypto";
     } else {
@@ -727,7 +727,7 @@ static void nca_print_key_area(nca_ctx_t *ctx) {
     }
 }
 
-static char *nca_get_section_type(nca_section_ctx_t *meta) {
+static const char *nca_get_section_type(nca_section_ctx_t *meta) {
     switch (meta->type) {
         case PFS0: {
             if (meta->pfs0_ctx.is_exefs) return "ExeFS";
