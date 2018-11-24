@@ -242,7 +242,13 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "sd_card_save_key_source") == 0) {
                 parse_hex_key(keyset->sd_card_key_sources[0], value, sizeof(keyset->sd_card_key_sources[0]));
                 matched_key = 1;
-            } else if (strcmp(key, "master_key_source") == 0) {
+            } else if (strcmp(key, "save_mac_kek_source") == 0) {
+                parse_hex_key(keyset->save_mac_kek_source, value, sizeof(keyset->save_mac_kek_source));
+                matched_key = 1;
+            }  else if (strcmp(key, "save_mac_key_source") == 0) {
+                parse_hex_key(keyset->save_mac_key_source, value, sizeof(keyset->save_mac_key_source));
+                matched_key = 1;
+            }  else if (strcmp(key, "master_key_source") == 0) {
                 parse_hex_key(keyset->master_key_source, value, sizeof(keyset->master_key_source));
                 matched_key = 1;
             } else if (strcmp(key, "keyblob_mac_key_source") == 0) {
@@ -254,14 +260,17 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "tsec_key") == 0) {
                 parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
                 matched_key = 1;
-            }  else if (strcmp(key, "beta_nca0_exponent") == 0) {
+            } else if (strcmp(key, "tsec_root_key") == 0) {
+                parse_hex_key(keyset->tsec_root_key, value, sizeof(keyset->tsec_root_key));
+                matched_key = 1;
+            } else if (strcmp(key, "beta_nca0_exponent") == 0) {
                 unsigned char exponent[0x100] = {0};
                 parse_hex_key(exponent, value, sizeof(exponent));
                 pki_set_beta_nca0_exponent(exponent);
                 matched_key = 1;
             } else {
                 char test_name[0x100] = {0};
-                for (unsigned int i = 0; i < 0x20 && !matched_key; i++) {
+                for (unsigned int i = 0; i < 0x6 && !matched_key; i++) {
                     snprintf(test_name, sizeof(test_name), "keyblob_key_source_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblob_key_sources[i], value, sizeof(keyset->keyblob_key_sources[i]));
@@ -293,6 +302,22 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                     snprintf(test_name, sizeof(test_name), "keyblob_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblobs[i], value, sizeof(keyset->keyblobs[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                }
+                for (unsigned int i = 0x6; i < 0x20 && !matched_key; i++) {
+                    snprintf(test_name, sizeof(test_name), "master_kek_source_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->master_kek_sources[i], value, sizeof(keyset->master_kek_sources[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                }
+                for (unsigned int i = 0; i < 0x20 && !matched_key; i++) { 
+                    snprintf(test_name, sizeof(test_name), "master_kek_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->master_keks[i], value, sizeof(keyset->master_keks[i]));
                         matched_key = 1;
                         break;
                     }

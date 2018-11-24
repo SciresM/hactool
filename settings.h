@@ -24,6 +24,9 @@ typedef struct {
     unsigned char keyblobs[0x20][0x90];                  /* Actual decrypted keyblobs (EKS). */ 
     unsigned char keyblob_key_sources[0x20][0x10];       /* Seeds for keyblob keys. */
     unsigned char keyblob_mac_key_source[0x10];          /* Seed for keyblob MAC key derivation. */
+    unsigned char tsec_root_key[0x10];                   /* Seed for master kek decryption, from TSEC firmware on 6.2.0+. */
+    unsigned char master_kek_sources[0x20][0x10];        /* Seeds for firmware master keks. */
+    unsigned char master_keks[0x20][0x10];               /* Firmware master keks, stored in keyblob prior to 6.2.0. */
     unsigned char master_key_source[0x10];               /* Seed for master key derivation. */
     unsigned char master_keys[0x20][0x10];               /* Firmware master keys. */
     unsigned char package1_keys[0x20][0x10];             /* Package1 keys. */
@@ -38,6 +41,8 @@ typedef struct {
     unsigned char header_kek_source[0x10];               /* Seed for header kek. */
     unsigned char sd_card_kek_source[0x10];              /* Seed for SD card kek. */
     unsigned char sd_card_key_sources[2][0x20];          /* Seed for SD card encryption keys. */
+    unsigned char save_mac_kek_source[0x10];             /* Seed for save kek. */
+    unsigned char save_mac_key_source[0x10];             /* Seed for save key. */
     unsigned char header_key_source[0x20];               /* Seed for NCA header key. */
     unsigned char header_key[0x20];                      /* NCA header key. */
     unsigned char titlekeks[0x20][0x10];                 /* Title key encryption keys. */

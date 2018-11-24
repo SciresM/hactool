@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "aes.h"
 #include "types.h"
 #include "utils.h"
