@@ -88,7 +88,21 @@ void aes_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
 }
 
 /* Decrypt with context. */
-void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
+void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) 
+{
+    bool src_equals_dst = false; 
+
+    if (src == dst)
+    {
+        src_equals_dst = true;
+
+        dst = malloc(l);
+        if (dst == NULL) {
+            fprintf(stderr, "Error: AES buffer allocation failure!\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     size_t out_len = 0;
     
     /* Prepare context */
@@ -111,7 +125,14 @@ void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     
     /* Flush all data */
     mbedtls_cipher_finish(&ctx->cipher_dec, NULL, NULL);
+
+    if (src_equals_dst)
+    {
+        memcpy((void*)src, dst, l);
+        free(dst);
+    }
 }
+
 
 static void get_tweak(unsigned char *tweak, size_t sector) {
     for (int i = 0xF; i >= 0; i--) { /* Nintendo LE custom tweak... */
