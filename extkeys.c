@@ -260,7 +260,7 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
             } else if (strcmp(key, "tsec_key") == 0) {
                 parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
                 matched_key = 1;
-            } else if (strcmp(key, "tsec_root_key") == 0) {
+            } else if (strcmp(key, "tsec_root_key") == 0 || strcmp(key, "tsec_root_key_00") == 0) {
                 parse_hex_key(keyset->tsec_root_key, value, sizeof(keyset->tsec_root_key));
                 matched_key = 1;
             } else if (strcmp(key, "beta_nca0_exponent") == 0) {

@@ -196,7 +196,9 @@ const char *get_key_revision_summary(uint8_t key_rev) {
         case 4:
             return "5.0.0-5.1.0";
         case 5:
-            return "6.0.0-6.0.1";
+            return "6.0.0-6.1.0";
+        case 6:
+            return "6.2.0-";
         default:
             return "Unknown";
     }
