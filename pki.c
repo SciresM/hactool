@@ -1118,6 +1118,9 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         aes_ctx_t *keyblob_ctx = new_aes_ctx(&keyset->keyblob_keys[i], 0x10, AES_MODE_CTR);
         aes_setiv(keyblob_ctx, &keyset->encrypted_keyblobs[i][0x10], 0x10);
         aes_decrypt(keyblob_ctx, &keyset->keyblobs[i], &keyset->encrypted_keyblobs[i][0x20], sizeof(keyset->keyblobs[i]));
+        free_aes_ctx(keyblob_ctx);
+	}
+    for (unsigned int i = 0; i < 0x6; i++) {
         /* Set package1 key as relevant. */
         if (memcmp(keyset->keyblobs[i] + 0x80, zeroes, 0x10) != 0) {
             memcpy(&keyset->package1_keys[i], &keyset->keyblobs[i][0x80], 0x10);
@@ -1126,7 +1129,6 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         if (memcmp(keyset->keyblobs[i] + 0x00, zeroes, 0x10) != 0) {
             memcpy(&keyset->master_keks[i], &keyset->keyblobs[i][0x00], 0x10);
         }
-        free_aes_ctx(keyblob_ctx);
     }
     for (unsigned int i = 0x6; i < 0x20; i++) {
         /* Do new keygen for 6.2.0+. */
