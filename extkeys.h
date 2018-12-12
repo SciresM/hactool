@@ -7,7 +7,7 @@
 #include "settings.h"
 
 void parse_hex_key(unsigned char *key, const char *hex, unsigned int len);
-void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f);
+void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f);
 
 void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f);
 

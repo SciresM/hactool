@@ -198,7 +198,9 @@ void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f) {
                 }
             }
             if (should_ignore_key) {
-                fprintf(stderr, "[WARN]: Invalid title.keys content: \"%s\", (value \"%s\")\n", key, value);
+                if (!settings->skip_key_warnings) {
+                    fprintf(stderr, "[WARN]: Invalid title.keys content: \"%s\", (value \"%s\")\n", key, value);
+                }
             } else {
                 parse_hex_key(rights_id, key, sizeof(rights_id));
                 parse_hex_key(titlekey, value, sizeof(titlekey));
@@ -208,9 +210,10 @@ void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f) {
     }
 }
 
-void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
+void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
     char *key, *value;
     int ret;
+    nca_keyset_t *keyset = &settings->keyset;
     
     while ((ret = get_kv(f, &key, &value)) != 1 && ret != -2) {
         if (ret == 0) {
@@ -387,7 +390,7 @@ void extkeys_initialize_keyset(nca_keyset_t *keyset, FILE *f) {
                     }
                 }
             }
-            if (!matched_key) {
+            if (!matched_key && !settings->skip_key_warnings) {
                 fprintf(stderr, "[WARN]: Failed to match key \"%s\", (value \"%s\")\n", key, value);
             }
         }

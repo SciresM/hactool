@@ -35,6 +35,7 @@ static void usage(void) {
         "  -t, --intype=type  Specify input file type [nca, xci, pfs0, romfs, hfs0, npdm, pk11, pk21, ini1, kip1, nax0, keygen]\n"
         "  --titlekey=key     Set title key for Rights ID crypto titles.\n"
         "  --contentkey=key   Set raw key for NCA body decryption.\n"
+        "  --disablekeywarns  Disables warning output when loading external keys.\n"
         "NCA options:\n"
         "  --plaintext=file   Specify file path for saving a decrypted copy of the NCA.\n"
         "  --header=file      Specify Header file path.\n"
@@ -178,6 +179,7 @@ int main(int argc, char **argv) {
             {"json", 1, NULL, 37},
             {"saveini1json", 0, NULL, 38},
             {"uncompressed", 1, NULL, 39},
+            {"disablekeywarns", 0, NULL, 40},
             {NULL, 0, NULL, 0},
         };
 
@@ -385,6 +387,9 @@ int main(int argc, char **argv) {
             case 39:
                 filepath_set(&nca_ctx.tool_ctx->settings.uncompressed_path, optarg); 
                 break;
+            case 40:
+                nca_ctx.tool_ctx->settings.skip_key_warnings = 1;
+                break;
             default:
                 usage();
                 return EXIT_FAILURE;
@@ -406,7 +411,7 @@ int main(int argc, char **argv) {
     }
 
     if (keyfile != NULL) {
-        extkeys_initialize_keyset(&tool_ctx.settings.keyset, keyfile);
+        extkeys_initialize_settings(&tool_ctx.settings, keyfile);
         if (tool_ctx.settings.has_sdseed) {
             for (unsigned int key = 0; key < 2; key++) {
                 for (unsigned int i = 0; i < 0x20; i++) {
