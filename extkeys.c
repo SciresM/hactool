@@ -186,9 +186,24 @@ void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f) {
             }
             unsigned char rights_id[0x10];
             unsigned char titlekey[0x10];
-            parse_hex_key(rights_id, key, sizeof(rights_id));
-            parse_hex_key(titlekey, value, sizeof(titlekey));
-            settings_add_titlekey(settings, rights_id, titlekey);
+            
+            bool should_ignore_key = false;
+            if (strlen(key) != 0x20) {
+                should_ignore_key = true;
+            } else {
+                for (unsigned int i = 0; i < 0x20; i++) {
+                    if (!ishex(key[i])) {
+                        should_ignore_key = true;
+                    }
+                }
+            }
+            if (should_ignore_key) {
+                fprintf(stderr, "[WARN]: Invalid title.keys content: \"%s\", (value \"%s\")\n", key, value);
+            } else {
+                parse_hex_key(rights_id, key, sizeof(rights_id));
+                parse_hex_key(titlekey, value, sizeof(titlekey));
+                settings_add_titlekey(settings, rights_id, titlekey);
+            }
         }
     }
 }
