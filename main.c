@@ -430,8 +430,8 @@ int main(int argc, char **argv) {
     }
 
     if (optind == argc - 1) {
-        /* Copy input file. */
-        strncpy(input_name, argv[optind], sizeof(input_name));
+        /* Copy input filename. */
+        strncpy(input_name, argv[optind], sizeof(input_name) - 1);
     } else if (tool_ctx.file_type != FILETYPE_BOOT0 && ((optind < argc) || (argc == 1))) {
         usage();
     }
