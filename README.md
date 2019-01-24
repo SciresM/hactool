@@ -96,14 +96,34 @@ If your `make` is not GNU make (e.g. on BSD variants), you need to call `gmake` 
 
 If on Windows, I recommend using MinGW.
 
-## External Keys
+## Supported File Formats
 
-External keys can be provided by the -k/--keyset argument to the a keyset filename.
-Keyset files are text files containing one key per line, in the form "key_name = HEXADECIMALKEY".
+The following Switch file formats are supported:
+ - NCA
+ - XCI
+ - HFS0
+ - PFS0
+ - RomFS
+ - NPDM
+ - Package1 (PK11)
+ - Package2 (PK21)
+ - INI1
+ - KIP1
+ - NAX0
+ - NSO0
+
+## Key Usage
+
+Keydata can be baked in at compile-time, or loaded from an external key file.  See `KEYS.md` for key list and source details.
+
+In addition, a secure boot key + TSEC key + boot0 file pair can be passed in with an external key file to derive all keys it is possible to know given the information one has.
+
+External keys can be provided by the `-k`/`--keyset` argument to the a keyset filename.
+Keyset files are text files containing one key per line, in the form `key_name = HEXADECIMALKEY`.
 Case shouldn't matter, nor should whitespace.
 
-In addition, if -k/--keyset is not set, hactool will check for the presence of a keyset file
-in $HOME/.switch/prod.keys (or $HOME/.switch/dev.keys if -d/--dev is set). If present, this file
+In addition, if `-k`/`--keyset` is not set, hactool will check for the presence of a keyset file
+in `$HOME/.switch/prod.keys` (or `$HOME/.switch/dev.keys` if `-d`/`--dev` is set). If present, this file
 will automatically be loaded.
 
 ## Licensing
