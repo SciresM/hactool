@@ -278,8 +278,14 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
             } else if (strcmp(key, "tsec_key") == 0) {
                 parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
                 matched_key = 1;
-            } else if (strcmp(key, "tsec_root_key") == 0 || strcmp(key, "tsec_root_key_00") == 0) {
-                parse_hex_key(keyset->tsec_root_key, value, sizeof(keyset->tsec_root_key));
+            } else if (strcmp(key, "tsec_root_kek") == 0) {
+                parse_hex_key(keyset->tsec_root_kek, value, sizeof(keyset->tsec_root_kek));
+                matched_key = 1;
+            } else if (strcmp(key, "package1_mac_kek") == 0) {
+                parse_hex_key(keyset->package1_mac_kek, value, sizeof(keyset->package1_mac_kek));
+                matched_key = 1;
+            } else if (strcmp(key, "package1_kek") == 0) {
+                parse_hex_key(keyset->package1_kek, value, sizeof(keyset->package1_kek));
                 matched_key = 1;
             } else if (strcmp(key, "beta_nca0_exponent") == 0) {
                 unsigned char exponent[0x100] = {0};
@@ -325,9 +331,30 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                     }
                 }
                 for (unsigned int i = 0x6; i < 0x20 && !matched_key; i++) {
+                    snprintf(test_name, sizeof(test_name), "tsec_auth_signature_%02"PRIx32, i - 6);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->tsec_auth_signatures[i - 6], value, sizeof(keyset->tsec_auth_signatures[i - 6]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "tsec_root_key_%02"PRIx32, i - 6);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->tsec_root_keys[i - 6], value, sizeof(keyset->tsec_root_keys[i - 6]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
                     snprintf(test_name, sizeof(test_name), "master_kek_source_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_kek_sources[i], value, sizeof(keyset->master_kek_sources[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                    
+                    snprintf(test_name, sizeof(test_name), "package1_mac_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->package1_mac_keys[i], value, sizeof(keyset->package1_mac_keys[i]));
                         matched_key = 1;
                         break;
                     }
