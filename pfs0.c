@@ -34,10 +34,6 @@ void pfs0_process(pfs0_ctx_t *ctx) {
     uint64_t cur_ofs = 0;
     for (unsigned int i = 0; i < ctx->header->num_files; i++) {
         pfs0_file_entry_t *cur_file = pfs0_get_file_entry(ctx->header, i);
-        if (cur_file->offset != cur_ofs) {
-            printf("Error: PFS0 is corrupt!\n");
-            exit(EXIT_FAILURE);
-        }
         cur_ofs += cur_file->size;
     }
 
