@@ -212,7 +212,19 @@ void pk21_process(pk21_ctx_t *ctx) {
     }
     
     ctx->ini1_ctx.tool_ctx = ctx->tool_ctx;
-    ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
+    /* Support 8.0.0 INI1 embedded in Kernel */
+    if (ctx->header.section_sizes[1] > 0) {
+        ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
+    } else {
+        ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections);
+        for (offset = 0; offset < ctx->header.section_sizes[0] - 4; offset += 4) {
+            if (*(uint32_t *)(ctx->sections + offset) == MAGIC_KRNLLDR_STRCT_END) {
+                kernel_map_t *map = (kernel_map_t *)(ctx->sections + offset - sizeof(*map));
+                ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + map->ini1_start_offset);
+                break;
+            }
+        }
+    }
     if (ctx->ini1_ctx.header->magic == MAGIC_INI1 && ctx->ini1_ctx.header->num_processes <= INI1_MAX_KIPS) {
         offset = 0;
         for (unsigned int i = 0; i < ctx->ini1_ctx.header->num_processes; i++) {
