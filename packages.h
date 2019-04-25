@@ -8,6 +8,7 @@
 
 #define MAGIC_PK11 0x31314B50
 #define MAGIC_PK21 0x31324B50
+#define MAGIC_KRNLLDR_STRCT_END 0xD51C403E
 
 typedef struct {
     unsigned char build_hash[0x10];
@@ -90,6 +91,21 @@ typedef struct {
     pk21_header_t header;
     ini1_ctx_t ini1_ctx;
 } pk21_ctx_t;
+
+typedef struct {
+    uint32_t text_start_offset;
+    uint32_t text_end_offset;
+    uint32_t rodata_start_offset;
+    uint32_t rodata_end_offset;
+    uint32_t data_start_offset;
+    uint32_t data_end_offset;
+    uint32_t bss_start_offset;
+    uint32_t bss_end_offset;
+    uint32_t ini1_start_offset;
+    uint32_t dynamic_offset;
+    uint32_t init_array_start_offset;
+    uint32_t init_array_end_offset;
+} kernel_map_t;
 
 void pk21_process(pk21_ctx_t *ctx);
 void pk21_print(pk21_ctx_t *ctx);
