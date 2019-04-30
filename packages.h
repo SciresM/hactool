@@ -81,18 +81,6 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-    FILE *file;
-    hactool_ctx_t *tool_ctx;
-    unsigned int key_rev;
-    uint32_t package_size;
-    validity_t signature_validity;
-    validity_t section_validities[4];
-    unsigned char *sections;
-    pk21_header_t header;
-    ini1_ctx_t ini1_ctx;
-} pk21_ctx_t;
-
-typedef struct {
     uint32_t text_start_offset;
     uint32_t text_end_offset;
     uint32_t rodata_start_offset;
@@ -106,6 +94,19 @@ typedef struct {
     uint32_t init_array_start_offset;
     uint32_t init_array_end_offset;
 } kernel_map_t;
+
+typedef struct {
+    FILE *file;
+    hactool_ctx_t *tool_ctx;
+    unsigned int key_rev;
+    uint32_t package_size;
+    validity_t signature_validity;
+    validity_t section_validities[4];
+    unsigned char *sections;
+    pk21_header_t header;
+    ini1_ctx_t ini1_ctx;
+    kernel_map_t *kernel_map;
+} pk21_ctx_t;
 
 void pk21_process(pk21_ctx_t *ctx);
 void pk21_print(pk21_ctx_t *ctx);

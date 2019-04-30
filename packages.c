@@ -219,8 +219,8 @@ void pk21_process(pk21_ctx_t *ctx) {
         ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections);
         for (offset = 0; offset < ctx->header.section_sizes[0] - 4; offset += 4) {
             if (*(uint32_t *)(ctx->sections + offset) == MAGIC_KRNLLDR_STRCT_END) {
-                kernel_map_t *map = (kernel_map_t *)(ctx->sections + offset - sizeof(*map));
-                ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + map->ini1_start_offset);
+                ctx->kernel_map = (kernel_map_t *)(ctx->sections + offset - sizeof(kernel_map_t));
+                ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->kernel_map->ini1_start_offset);
                 break;
             }
         }
@@ -247,10 +247,14 @@ void pk21_process(pk21_ctx_t *ctx) {
     }
 }
 
-static const char *pk21_get_section_name(int section) {
+static const char *pk21_get_section_name(int section, bool is_ini1_embedded) {
     switch (section) {
         case 0: return "Kernel";
-        case 1: return "INI1";
+        case 1:
+            if (is_ini1_embedded)
+                return "Empty";
+            else
+                return "INI1";
         case 2: return "Empty";
         default: return "Unknown";
     }
@@ -271,8 +275,9 @@ void pk21_print(pk21_ctx_t *ctx) {
     /* What the fuck? */
     printf("    Header Version:                 %02"PRIx32"\n", (ctx->header.ctr_dwords[1] ^ (ctx->header.ctr_dwords[1] >> 16) ^ (ctx->header.ctr_dwords[1] >> 24)) & 0xFF);
     
+    bool is_ini1_embedded = ctx->header.section_sizes[1] == 0;
     for (unsigned int i = 0; i < 3; i++) {
-        printf("    Section %"PRId32" (%s):\n", i, pk21_get_section_name(i));
+        printf("    Section %"PRId32" (%s):\n", i, pk21_get_section_name(i, is_ini1_embedded));
         if (ctx->tool_ctx->action & ACTION_VERIFY) {
             if (ctx->section_validities[i] == VALIDITY_VALID) {
                 memdump(stdout, "        Hash (GOOD):                ", ctx->header.section_hashes[i], 0x20);
@@ -321,7 +326,10 @@ void pk21_save(pk21_ctx_t *ctx) {
         
         /* Save INI1.bin */
         printf("Saving INI1.bin to %s/INI1.bin...\n", dirpath->char_path);
-        save_buffer_to_directory_file(ctx->sections +  ctx->header.section_sizes[0], ctx->header.section_sizes[1], dirpath, "INI1.bin");
+        if (ctx->header.section_sizes[1] > 0)
+            save_buffer_to_directory_file(ctx->sections + ctx->header.section_sizes[0], ctx->header.section_sizes[1], dirpath, "INI1.bin");
+        else
+            save_buffer_to_directory_file(ctx->sections + ctx->kernel_map->ini1_start_offset, ctx->ini1_ctx.header->size, dirpath, "INI1.bin");
     }
     if (ctx->ini1_ctx.header != NULL && (ctx->tool_ctx->action & ACTION_EXTRACTINI1 || ctx->tool_ctx->settings.ini1_dir_path.valid == VALIDITY_VALID)) {
         filepath_t *ini1_dirpath = &ctx->tool_ctx->settings.ini1_dir_path;
