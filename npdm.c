@@ -440,7 +440,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
     }
     
     if (kac.has_kern_ver) {
-        printf("        Minimum Kernel Version:     %"PRIx8"\n", kac.kernel_release_version);
+        printf("        Minimum Kernel Version:     %"PRIu32"\n", kac.kernel_release_version);
     }
 
     if (kac.has_debug_flags) {
@@ -710,7 +710,7 @@ void cJSON_AddU8ToObject(cJSON *obj, const char *name, uint8_t val) {
 
 void cJSON_AddU16ToObject(cJSON *obj, const char *name, uint16_t val) {
     char buf[0x20] = {0};
-    snprintf(buf, sizeof(buf), "0x%04"PRIx16, val & 0xFFFF);
+    snprintf(buf, sizeof(buf), "0x%04"PRIx16, val);
     cJSON_AddStringToObject(obj, name, buf);
 }
 
