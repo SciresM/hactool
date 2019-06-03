@@ -18,6 +18,7 @@ typedef enum {
 typedef struct {
     unsigned char secure_boot_key[0x10];                 /* Secure boot key for use in key derivation. NOTE: CONSOLE UNIQUE. */
     unsigned char tsec_key[0x10];                        /* TSEC key for use in key derivation. NOTE: CONSOLE UNIQUE. */
+    unsigned char device_key[0x10];                      /* Device key used to derive some FS keys. NOTE: CONSOLE UNIQUE. */
     unsigned char keyblob_keys[0x20][0x10];              /* Actual keys used to decrypt keyblobs. NOTE: CONSOLE UNIQUE.*/
     unsigned char keyblob_mac_keys[0x20][0x10];          /* Keys used to validate keyblobs. NOTE: CONSOLE UNIQUE. */ 
     unsigned char encrypted_keyblobs[0x20][0xB0];        /* Actual encrypted keyblobs (EKS). NOTE: CONSOLE UNIQUE. */ 
@@ -37,6 +38,7 @@ typedef struct {
     unsigned char package1_keys[0x20][0x10];             /* Package1 keys. */
     unsigned char package2_keys[0x20][0x10];             /* Package2 keys. */
     unsigned char package2_key_source[0x10];             /* Seed for Package2 key. */
+    unsigned char per_console_key_source[0x10];          /* Seed for Device key. */
     unsigned char aes_kek_generation_source[0x10];       /* Seed for GenerateAesKek, usecase + generation 0. */
     unsigned char aes_key_generation_source[0x10];       /* Seed for GenerateAesKey. */
     unsigned char key_area_key_application_source[0x10]; /* Seed for kaek 0. */
@@ -52,6 +54,7 @@ typedef struct {
     unsigned char header_key[0x20];                      /* NCA header key. */
     unsigned char titlekeks[0x20][0x10];                 /* Title key encryption keys. */
     unsigned char key_area_keys[0x20][3][0x10];          /* Key area encryption keys. */
+    unsigned char save_mac_key[0x10];                    /* Key used to sign savedata. */
     unsigned char sd_card_keys[2][0x20];
     unsigned char nca_hdr_fixed_key_modulus[0x100];      /* NCA header fixed key RSA pubk. */
     unsigned char acid_fixed_key_modulus[0x100];         /* ACID fixed key RSA pubk. */
