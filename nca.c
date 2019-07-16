@@ -680,6 +680,8 @@ static const char *nca_get_content_type(nca_ctx_t *ctx) {
             return "Manual";
         case 4:
             return "Data";
+        case 5:
+            return "PublicData";
         default:
             return "Unknown";
     }
