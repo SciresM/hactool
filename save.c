@@ -233,32 +233,16 @@ void save_process(save_ctx_t *ctx) {
     ctx->meta_remap_storage.segments = save_remap_init_segments(ctx->meta_remap_storage.header, ctx->meta_remap_storage.map_entries, ctx->meta_remap_storage.header->map_entry_count);
 
     // lh: JournalMapParams ctor for local journalMapInfo using MetaRemapStorage
-    journal_map_params_t journal_map_info;
-    journal_map_info.map_storage = malloc(ctx->header.layout.journal_map_table_size);
-    save_remap_read(&ctx->meta_remap_storage, journal_map_info.map_storage, ctx->header.layout.journal_map_table_offset, ctx->header.layout.journal_map_table_size);
-    free(journal_map_info.map_storage);
-    // memdump(stdout, "", journal_map_info.map_storage, ctx->header.layout.journal_map_table_size);
-
-    // journal_map_info.physical_block_bitmap = malloc(ctx->header.layout.journal_physical_bitmap_size);
-    // save_remap_read(&ctx->meta_remap_storage, journal_map_info.physical_block_bitmap, ctx->header.layout.journal_physical_bitmap_offset, ctx->header.layout.journal_physical_bitmap_size);
-    // memdump(stdout, "", journal_map_info.physical_block_bitmap, ctx->header.layout.journal_physical_bitmap_size);
-
-    // journal_map_info.virtual_block_bitmap = malloc(ctx->header.layout.journal_virtual_bitmap_size);
-    // save_remap_read(&ctx->meta_remap_storage, journal_map_info.virtual_block_bitmap, ctx->header.layout.journal_virtual_bitmap_offset, ctx->header.layout.journal_virtual_bitmap_size);
-    // memdump(stdout, "", journal_map_info.virtual_block_bitmap, ctx->header.layout.journal_virtual_bitmap_size);
-
-    // journal_map_info.free_block_bitmap = malloc(ctx->header.layout.journal_free_bitmap_size);
-    // save_remap_read(&ctx->meta_remap_storage, journal_map_info.free_block_bitmap, ctx->header.layout.journal_free_bitmap_offset, ctx->header.layout.journal_free_bitmap_size);
-    // memdump(stdout, "", journal_map_info.free_block_bitmap, ctx->header.layout.journal_free_bitmap_size);
+    ctx->journal_map_info.map_storage = malloc(ctx->header.layout.journal_map_table_size);
+    save_remap_read(&ctx->meta_remap_storage, ctx->journal_map_info.map_storage, ctx->header.layout.journal_map_table_offset, ctx->header.layout.journal_map_table_size);
 
     // lh: local journalData from DataRemapStorage
-    // can't malloc, it's most of the file size
     ctx->data_remap_storage.base_storage_offset = ctx->header.layout.journal_data_offset;
 
     // lh: JournalStorage ctor for JournalStorage from journalData, journalMapInfo
     ctx->journal_storage.header = &ctx->header.journal_header;
     ctx->journal_storage.map.header = &ctx->header.map_header;
-    ctx->journal_storage.map.map_storage = journal_map_info.map_storage;
+    ctx->journal_storage.map.map_storage = ctx->journal_map_info.map_storage;
     ctx->journal_storage.map.entries = malloc(sizeof(journal_map_entry_t) * ctx->journal_storage.map.header->main_data_block_count);
     uint32_t *pos = (uint32_t *)ctx->journal_storage.map.map_storage;
     for (unsigned int i = 0; i < ctx->journal_storage.map.header->main_data_block_count; i++) {
@@ -271,8 +255,7 @@ void save_process(save_ctx_t *ctx) {
 
     // lh: InitJournalIvfcStorage for CoreDataIvfcStorage
     ivfc_save_hdr_t *ivfc = &ctx->header.data_ivfc_header;
-    ivfc_level_save_ctx_t levels[ivfc->num_levels]; // 5
-    memset(&levels, 0, sizeof(ivfc_level_save_ctx_t) * ivfc->num_levels);
+    ivfc_level_save_ctx_t *levels = ctx->core_data_ivfc_storage.levels;
     levels[0].type = STORAGE_BYTES;
     levels[0].hash_offset = ctx->header.layout.ivfc_master_hash_offset_a;
     for (unsigned int i = 1; i < ivfc->num_levels - 1; i++) {
@@ -311,20 +294,18 @@ void save_process(save_ctx_t *ctx) {
         sha256_get_buffer_hmac(init_info[i].salt, salt_sources[i - 1].string, salt_sources[i - 1].length, ivfc->salt_source, 0x20);
     }
 
-    ctx->core_data_ivfc_storage.levels[0] = init_info[0].data;
     ctx->core_data_ivfc_storage.level_validities = malloc(sizeof(validity_t *) * (ivfc->num_levels - 1));
     for (unsigned int i = 1; i < ivfc->num_levels; i++) {
         integrity_verification_storage_ctx_t *level_data = &ctx->core_data_ivfc_storage.integrity_storages[i - 1];
-        level_data->hash_storage = ctx->core_data_ivfc_storage.levels[i - 1];
+        level_data->hash_storage = &ctx->core_data_ivfc_storage.levels[i - 1];
         level_data->sector_size = init_info[i].block_size;
         level_data->_length = init_info[i].data->data_size;
         level_data->sector_count = (level_data->_length + level_data->sector_size - 1) / level_data->sector_size;
         memcpy(level_data->salt, init_info[i].salt, 0x20);
-        ctx->core_data_ivfc_storage.levels[i] = init_info[i].data;
         level_data->block_validities = calloc(1, sizeof(validity_t) * level_data->sector_count);
         ctx->core_data_ivfc_storage.level_validities[i - 1] = level_data->block_validities;
     }
-    ctx->core_data_ivfc_storage.data_level = ctx->core_data_ivfc_storage.levels[ivfc->num_levels - 1];
+    ctx->core_data_ivfc_storage.data_level = &ctx->core_data_ivfc_storage.levels[ivfc->num_levels - 1];
     ctx->core_data_ivfc_storage._length = ctx->core_data_ivfc_storage.integrity_storages[ivfc->num_levels - 2]._length;
 
     // lh: local fatStorage from MetaRemapStorage
@@ -333,6 +314,9 @@ void save_process(save_ctx_t *ctx) {
     free(fat_storage);
 
     // lh: InitFatIvfcStorage for FatIvfcStorage
+    if (ctx->header.layout.version >= 0x50000) {
+        ivfc = &ctx->header.fat_ivfc_header;
+    }
 
     // lh: SaveDataFileSystemCore ctor for SaveDataFileSystemCore from CoreDataIvfcStorage, fatStorage
 
@@ -388,6 +372,7 @@ void save_free_contexts(save_ctx_t *ctx) {
         free(ctx->duplex_layers[i].data_a);
         free(ctx->duplex_layers[i].data_b);
     }
+    free(ctx->journal_map_info.map_storage);
     free(ctx->journal_storage.map.entries);
     for (unsigned int i = 1; i < ctx->header.data_ivfc_header.num_levels; i++) {
         free(ctx->core_data_ivfc_storage.integrity_storages[i].block_validities);
@@ -409,8 +394,12 @@ void save_print_ivfc_section(save_ctx_t *ctx) {
     print_magic("    Magic:                          ", ctx->header.data_ivfc_header.magic);
     printf("    ID:                             %08"PRIx32"\n", ctx->header.data_ivfc_header.id);
     memdump(stdout, "    Salt Seed:                      ", &ctx->header.data_ivfc_header.salt_source, 0x20);
-    for (unsigned int i = 0; i < 4; i++) {
-        printf("    Level %"PRId32":\n", i);
+    for (unsigned int i = 0; i < ctx->header.data_ivfc_header.num_levels - 1; i++) {
+        // if (ctx->tool_ctx->action & ACTION_VERIFY) {
+        //     printf("    Level %"PRId32" (%s):\n", i, GET_VALIDITY_STR(ctx->header.data_ivfc_header.level_headers[i])
+        // } else {
+            printf("    Level %"PRId32":\n", i);
+        // }
         printf("        Data Offset:                0x%016"PRIx64"\n", ctx->header.data_ivfc_header.level_headers[i].logical_offset);
         printf("        Data Size:                  0x%016"PRIx64"\n", ctx->header.data_ivfc_header.level_headers[i].hash_data_size);
         if (i != 0) {

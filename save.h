@@ -277,7 +277,7 @@ typedef struct {
 } integrity_verification_storage_ctx_t;
 
 typedef struct {
-    ivfc_level_save_ctx_t *levels[5];
+    ivfc_level_save_ctx_t levels[5];
     ivfc_level_save_ctx_t *data_level;
     validity_t **level_validities;
     uint64_t _length;
@@ -297,6 +297,7 @@ typedef struct {
     duplex_fs_layer_info_t duplex_layers[3];
     hierarchical_duplex_storage_ctx_t duplex_storage;
     journal_storage_ctx_t journal_storage;
+    journal_map_params_t journal_map_info;
     hierarchical_integrity_verification_storage_ctx_t core_data_ivfc_storage;
     hierarchical_integrity_verification_storage_ctx_t fat_ivfc_storage;
 } save_ctx_t;
