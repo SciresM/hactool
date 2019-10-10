@@ -147,10 +147,33 @@ struct remap_segment_ctx_t{
 };
 
 typedef struct {
-    uint64_t base_storage_offset;
+    uint8_t *data;
+    uint8_t *bitmap;
+} duplex_bitmap_t;
+
+typedef struct {
+    uint32_t block_size;
+    uint8_t *bitmap_storage;
+    uint8_t *data_a;
+    uint8_t *data_b;
+    duplex_bitmap_t bitmap;
+    uint64_t _length;
+} duplex_storage_ctx_t;
+
+enum base_storage_type {
+    STORAGE_BYTES = 0,
+    STORAGE_DUPLEX = 1,
+    STORAGE_REMAP = 2,
+    STORAGE_JOURNAL = 3
+};
+
+typedef struct {
     remap_header_t *header;
     remap_entry_ctx_t *map_entries;
     remap_segment_ctx_t *segments;
+    enum base_storage_type type;
+    uint64_t base_storage_offset;
+    duplex_storage_ctx_t *duplex;
     FILE *file;
 } remap_storage_ctx_t;
 
@@ -191,20 +214,6 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-    uint8_t *data;
-    uint8_t *bitmap;
-} duplex_bitmap_t;
-
-typedef struct {
-    uint32_t block_size;
-    uint8_t *bitmap_storage;
-    uint8_t *data_a;
-    uint8_t *data_b;
-    duplex_bitmap_t bitmap;
-    uint64_t _length;
-} duplex_storage_ctx_t;
-
-typedef struct {
     duplex_storage_ctx_t layers[2];
     duplex_storage_ctx_t data_layer;
     uint64_t _length;
@@ -217,20 +226,79 @@ typedef struct {
 } duplex_fs_layer_info_t;
 
 typedef struct {
+    uint8_t *map_storage;
+    uint8_t *physical_block_bitmap;
+    uint8_t *virtual_block_bitmap;
+    uint8_t *free_block_bitmap;
+} journal_map_params_t;
+
+typedef struct {
+    uint32_t physical_index;
+    uint32_t virtual_index;
+} journal_map_entry_t;
+
+
+typedef struct {
+    journal_map_header_t *header;
+    journal_map_entry_t *entries;
+    uint8_t *map_storage;
+} journal_map_ctx_t;
+
+typedef struct {
+    journal_map_ctx_t map;
+    journal_header_t *header;
+    uint32_t block_size;
+    uint64_t _length;
+} journal_storage_ctx_t;
+
+typedef struct {
+    uint64_t data_offset;
+    uint64_t data_size;
+    uint64_t hash_offset;
+    uint32_t hash_block_size;
+    validity_t hash_validity;
+    enum base_storage_type type;
+} ivfc_level_save_ctx_t;
+
+typedef struct {
+    ivfc_level_save_ctx_t *data;
+    uint32_t block_size;
+    uint8_t salt[0x20];
+} integrity_verification_info_ctx_t;
+
+
+typedef struct {
+    ivfc_level_save_ctx_t *hash_storage;
+    validity_t *block_validities;
+    uint8_t salt[0x20];
+    uint32_t sector_size;
+    uint32_t sector_count;
+    uint64_t _length;
+} integrity_verification_storage_ctx_t;
+
+typedef struct {
+    ivfc_level_save_ctx_t *levels[5];
+    ivfc_level_save_ctx_t *data_level;
+    validity_t **level_validities;
+    uint64_t _length;
+    integrity_verification_storage_ctx_t integrity_storages[4];
+} hierarchical_integrity_verification_storage_ctx_t;
+
+typedef struct {
     FILE *file;
     hactool_ctx_t *tool_ctx;
     save_header_t header;
     validity_t header_cmac_validity;
     validity_t header_hash_validity;
-    uint8_t *duplex_master_bitmap_a;
-    uint8_t *duplex_master_bitmap_b;
     uint8_t *data_ivfc_master;
     uint8_t *fat_ivfc_master;
     remap_storage_ctx_t data_remap_storage;
     remap_storage_ctx_t meta_remap_storage;
-    hierarchical_duplex_storage_ctx_t duplex_storage;
     duplex_fs_layer_info_t duplex_layers[3];
-    ivfc_level_ctx_t ivfc_levels[IVFC_MAX_LEVEL];
+    hierarchical_duplex_storage_ctx_t duplex_storage;
+    journal_storage_ctx_t journal_storage;
+    hierarchical_integrity_verification_storage_ctx_t core_data_ivfc_storage;
+    hierarchical_integrity_verification_storage_ctx_t fat_ivfc_storage;
 } save_ctx_t;
 
 void save_process(save_ctx_t *ctx);
@@ -239,5 +307,8 @@ void save_save(save_ctx_t *ctx);
 void save_print(save_ctx_t *ctx);
 
 void save_free_contexts(save_ctx_t *ctx);
+
+void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t *layer, void *bitmap, uint64_t bitmap_size);
+void save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count);
 
 #endif
