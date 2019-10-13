@@ -11,24 +11,24 @@ remap_segment_ctx_t *save_remap_init_segments(remap_header_t *header, remap_entr
     unsigned int entry_idx = 0;
 
     for (unsigned int i = 0; i < header->map_segment_count; i++) {
-        remap_segment_ctx_t seg;
-        seg.entries = malloc(sizeof(remap_entry_ctx_t));
-        memcpy(seg.entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
-        seg.offset = map_entries[entry_idx].virtual_offset;
-        map_entries[entry_idx].segment = &seg;
-        seg.entry_count = 1;
+        remap_segment_ctx_t *seg = &segments[i];
+        seg->entries = malloc(sizeof(remap_entry_ctx_t));
+        memcpy(seg->entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
+        seg->offset = map_entries[entry_idx].virtual_offset;
+        map_entries[entry_idx].segment = seg;
+        seg->entry_count = 1;
         entry_idx++;
 
         while (entry_idx < num_map_entries && map_entries[entry_idx - 1].virtual_offset_end == map_entries[entry_idx].virtual_offset) {
-            map_entries[entry_idx].segment = &seg;
+            map_entries[entry_idx].segment = seg;
             map_entries[entry_idx - 1].next = &map_entries[entry_idx];
-            seg.entries = malloc(sizeof(remap_entry_ctx_t));
-            memcpy(seg.entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
-            seg.entry_count++;
+            seg->entries = malloc(sizeof(remap_entry_ctx_t));
+            memcpy(seg->entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
+            seg->entry_count++;
             entry_idx++;
         }
-        seg.length = seg.entries[seg.entry_count - 1].virtual_offset_end - seg.entries[0].virtual_offset;
-        memcpy(&segments[i], &seg, sizeof(remap_segment_ctx_t));
+        seg->length = seg->entries[seg->entry_count - 1].virtual_offset_end - seg->entries[0].virtual_offset;
+        // memcpy(&segments[i], &seg, sizeof(remap_segment_ctx_t));
     }
     return segments;
 }
@@ -65,7 +65,7 @@ void save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset, si
             default:
                 break;
         }
-        
+
         out_pos += bytes_to_read;
         in_pos += bytes_to_read;
         remaining -= bytes_to_read;
@@ -134,6 +134,210 @@ void save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t 
     }
 }
 
+void save_journal_storage_read(journal_storage_ctx_t *ctx, remap_storage_ctx_t *remap, void *buffer, uint64_t offset, size_t count) {
+    uint64_t in_pos = offset;
+    uint32_t out_pos = 0;
+    uint32_t remaining = count;
+
+    while (remaining) {
+        uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
+        uint32_t block_pos = (uint32_t)(in_pos % ctx->block_size);
+        uint64_t physical_offset = ctx->map.entries[block_num].physical_index * ctx->block_size + block_pos;
+        uint32_t bytes_to_read = ctx->block_size - block_pos < remaining ? ctx->block_size - block_pos : remaining;
+
+        save_remap_read(remap, (uint8_t *)buffer + out_pos, ctx->journal_data_offset + physical_offset, bytes_to_read);
+
+        out_pos += bytes_to_read;
+        in_pos += bytes_to_read;
+        remaining -= bytes_to_read;
+    }
+}
+
+void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *ctx, uint64_t master_hash_offset, ivfc_save_hdr_t *ivfc) {
+    ivfc_level_save_ctx_t *levels = ctx->levels;
+    levels[0].type = STORAGE_BYTES;
+    levels[0].hash_offset = master_hash_offset;
+    for (unsigned int i = 1; i < 4; i++) {
+        ivfc_level_hdr_t *level = &ivfc->level_headers[i - 1];
+        levels[i].type = STORAGE_REMAP;
+        levels[i].data_offset = level->logical_offset;
+        levels[i].data_size = level->hash_data_size;
+    }
+    if (ivfc->num_levels == 5) {
+        ivfc_level_hdr_t *data_level = &ivfc->level_headers[ivfc->num_levels - 2];
+        levels[ivfc->num_levels - 1].type = STORAGE_JOURNAL;
+        levels[ivfc->num_levels - 1].data_offset = data_level->logical_offset;
+        levels[ivfc->num_levels - 1].data_size = data_level->hash_data_size;
+    }
+
+    struct salt_source_t {
+        char string[50];
+        uint32_t length;
+    };
+
+    static struct salt_source_t salt_sources[6] = {
+        {"HierarchicalIntegrityVerificationStorage::Master", 48},
+        {"HierarchicalIntegrityVerificationStorage::L1", 44},
+        {"HierarchicalIntegrityVerificationStorage::L2", 44},
+        {"HierarchicalIntegrityVerificationStorage::L3", 44},
+        {"HierarchicalIntegrityVerificationStorage::L4", 44},
+        {"HierarchicalIntegrityVerificationStorage::L5", 44}
+    };
+    integrity_verification_info_ctx_t init_info[ivfc->num_levels];
+
+    init_info[0].data = &levels[0];
+    init_info[0].block_size = 0;
+    for (unsigned int i = 1; i < ivfc->num_levels; i++) {
+        init_info[i].data = &levels[i];
+        init_info[i].block_size = 1 << ivfc->level_headers[i - 1].block_size;
+        sha256_get_buffer_hmac(init_info[i].salt, salt_sources[i - 1].string, salt_sources[i - 1].length, ivfc->salt_source, 0x20);
+    }
+
+    ctx->level_validities = malloc(sizeof(validity_t *) * (ivfc->num_levels - 1));
+    for (unsigned int i = 1; i < ivfc->num_levels; i++) {
+        integrity_verification_storage_ctx_t *level_data = &ctx->integrity_storages[i - 1];
+        level_data->hash_storage = &levels[i - 1];
+        level_data->base_storage = &levels[i];
+        level_data->sector_size = init_info[i].block_size;
+        level_data->_length = init_info[i].data->data_size;
+        level_data->sector_count = (level_data->_length + level_data->sector_size - 1) / level_data->sector_size;
+        memcpy(level_data->salt, init_info[i].salt, 0x20);
+        level_data->block_validities = calloc(1, sizeof(validity_t) * level_data->sector_count);
+        ctx->level_validities[i - 1] = level_data->block_validities;
+    }
+    ctx->data_level = &levels[ivfc->num_levels - 1];
+    ctx->_length = ctx->integrity_storages[ivfc->num_levels - 2]._length;
+}
+
+size_t save_ivfc_level_fread(ivfc_level_save_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
+    switch (ctx->type) {
+        case STORAGE_BYTES:
+            fseeko64(ctx->save_ctx->file, ctx->hash_offset + offset, SEEK_SET);
+            return fread(buffer, 1, count, ctx->save_ctx->file);
+        case STORAGE_REMAP:
+            save_remap_read(&ctx->save_ctx->meta_remap_storage, buffer, ctx->data_offset + offset, count);
+            return count;
+        case STORAGE_JOURNAL:
+            save_journal_storage_read(&ctx->save_ctx->journal_storage, &ctx->save_ctx->data_remap_storage, buffer, ctx->data_offset + offset, count);
+            return count;
+        default:
+            return 0;
+    }
+}
+
+void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count, uint32_t verify) {
+    if (count > ctx->sector_size) {
+        fprintf(stderr, "IVFC read exceeds sector size!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint64_t block_index = offset / ctx->sector_size;
+
+    if (ctx->block_validities[block_index] == VALIDITY_INVALID && verify) {
+        fprintf(stderr, "Hash error!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t hash_buffer[0x20] = {0};
+    uint8_t zeroes[0x20] = {0};
+    uint64_t hash_pos = block_index * 0x20;
+    save_ivfc_level_fread(ctx->hash_storage, hash_buffer, hash_pos, 0x20);
+
+    if (!memcmp(hash_buffer, zeroes, 0x20)) {
+        memset(buffer, 0, count);
+        ctx->block_validities[block_index] = VALIDITY_VALID;
+        return;
+    }
+
+    save_ivfc_level_fread(ctx->base_storage, buffer, offset, count);
+
+    if (!(verify && ctx->block_validities[block_index] == VALIDITY_UNCHECKED)) {
+        return;
+    }
+
+    uint8_t hash[0x20] = {0};
+    uint8_t *data_buffer = calloc(1, ctx->sector_size);
+    memcpy(data_buffer, buffer, count);
+
+    sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
+    sha_update(sha_ctx, ctx->salt, 0x20);
+    sha_update(sha_ctx, data_buffer, count);
+    sha_get_hash(sha_ctx, hash);
+    free_sha_ctx(sha_ctx);
+    hash[0x1F] |= 0x80;
+
+    free(data_buffer);
+    if (memcmp(hash_buffer, hash, 0x20)) {
+        ctx->block_validities[block_index] = VALIDITY_INVALID;
+    } else {
+        ctx->block_validities[block_index] = VALIDITY_VALID;
+    }
+
+    if (ctx->block_validities[block_index] == VALIDITY_INVALID && verify) {
+        fprintf(stderr, "Hash error!\n");
+        memdump(stderr, "exp: ", hash_buffer, 0x20);
+        memdump(stderr, "act: ", hash, 0x20);
+        exit(EXIT_FAILURE);
+    }
+}
+
+validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t *ctx, ivfc_save_hdr_t *ivfc) {
+    validity_t result = VALIDITY_VALID;
+    for (unsigned int i = 0; i < ivfc->num_levels - 1 && result != VALIDITY_INVALID; i++) {
+        integrity_verification_storage_ctx_t *storage = &ctx->integrity_storages[i];
+
+        uint64_t block_size = storage->sector_size;
+        uint32_t block_count = (uint32_t)((storage->_length + block_size - 1) / block_size);
+
+        uint8_t *buffer = malloc(block_size);
+
+        for (unsigned int j = 0; j < block_count; j++) {
+            if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_UNCHECKED) {
+                uint32_t to_read = storage->_length - block_size * j < block_size ? storage->_length - block_size * j : block_size;
+                save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 1);
+            }
+            if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_INVALID) {
+                result = VALIDITY_INVALID;
+                break;
+            }
+        }
+        free(buffer);
+    }
+
+    return result;
+}
+
+void save_ivfc_set_level_validities(hierarchical_integrity_verification_storage_ctx_t *ctx, ivfc_save_hdr_t *ivfc) {
+    for (unsigned int i = 0; i < ivfc->num_levels - 1; i++) {
+        validity_t level_validity = VALIDITY_VALID;
+        for (unsigned int j = 0; j < ctx->integrity_storages[i].sector_count; j++) {
+            if (ctx->level_validities[i][j] == VALIDITY_INVALID) {
+                level_validity = VALIDITY_INVALID;
+                break;
+            }
+            if (ctx->level_validities[i][j] == VALIDITY_UNCHECKED && level_validity != VALIDITY_INVALID) {
+                level_validity = VALIDITY_UNCHECKED;
+            }
+        }
+        ctx->levels[i].hash_validity = level_validity;
+    }
+}
+
+validity_t save_filesystem_verify(save_ctx_t *ctx) {
+    validity_t journal_validity = save_ivfc_validate(&ctx->core_data_ivfc_storage, &ctx->header.data_ivfc_header);
+    save_ivfc_set_level_validities(&ctx->core_data_ivfc_storage, &ctx->header.data_ivfc_header);
+
+    if (!ctx->fat_ivfc_storage.levels[0].save_ctx) return journal_validity;
+
+    validity_t fat_validity = save_ivfc_validate(&ctx->fat_ivfc_storage, &ctx->header.fat_ivfc_header);
+    save_ivfc_set_level_validities(&ctx->fat_ivfc_storage, &ctx->header.fat_ivfc_header);
+
+    if (journal_validity != VALIDITY_VALID) return journal_validity;
+    if (fat_validity != VALIDITY_VALID) return fat_validity;
+
+    return journal_validity;
+}
+
 void save_process(save_ctx_t *ctx) {
     // lh: SaveDataFileSystem ctor
     /* Try to parse Header A. */
@@ -168,7 +372,6 @@ void save_process(save_ctx_t *ctx) {
         ctx->header_cmac_validity = VALIDITY_VALID;
     } else {
         ctx->header_cmac_validity = VALIDITY_INVALID;
-        memdump(stdout, "bad hash ", cmac, 0x10);
     }
 
     /* Initialize remap storages. */
@@ -222,6 +425,7 @@ void save_process(save_ctx_t *ctx) {
     ctx->meta_remap_storage.duplex = &ctx->duplex_storage.data_layer;
     ctx->meta_remap_storage.header = &ctx->header.meta_remap_header;
     ctx->meta_remap_storage.map_entries = malloc(sizeof(remap_entry_ctx_t) * ctx->meta_remap_storage.header->map_entry_count);
+    ctx->meta_remap_storage.file = ctx->file;
     fseeko64(ctx->file, ctx->header.layout.meta_map_entry_offset, SEEK_SET);
     for (unsigned int i = 0; i < ctx->meta_remap_storage.header->map_entry_count; i++) {
         fread(&ctx->meta_remap_storage.map_entries[i], 0x20, 1, ctx->file);
@@ -237,10 +441,11 @@ void save_process(save_ctx_t *ctx) {
     save_remap_read(&ctx->meta_remap_storage, ctx->journal_map_info.map_storage, ctx->header.layout.journal_map_table_offset, ctx->header.layout.journal_map_table_size);
 
     // lh: local journalData from DataRemapStorage
-    ctx->data_remap_storage.base_storage_offset = ctx->header.layout.journal_data_offset;
-
     // lh: JournalStorage ctor for JournalStorage from journalData, journalMapInfo
     ctx->journal_storage.header = &ctx->header.journal_header;
+    ctx->journal_storage.journal_data_offset = ctx->header.layout.journal_data_offset;
+    ctx->journal_storage._length = ctx->journal_storage.header->total_size - ctx->journal_storage.header->journal_size;
+    ctx->journal_storage.file = ctx->file;
     ctx->journal_storage.map.header = &ctx->header.map_header;
     ctx->journal_storage.map.map_storage = ctx->journal_map_info.map_storage;
     ctx->journal_storage.map.entries = malloc(sizeof(journal_map_entry_t) * ctx->journal_storage.map.header->main_data_block_count);
@@ -254,68 +459,21 @@ void save_process(save_ctx_t *ctx) {
     ctx->journal_storage._length = ctx->journal_storage.header->total_size - ctx->journal_storage.header->journal_size;
 
     // lh: InitJournalIvfcStorage for CoreDataIvfcStorage
-    ivfc_save_hdr_t *ivfc = &ctx->header.data_ivfc_header;
-    ivfc_level_save_ctx_t *levels = ctx->core_data_ivfc_storage.levels;
-    levels[0].type = STORAGE_BYTES;
-    levels[0].hash_offset = ctx->header.layout.ivfc_master_hash_offset_a;
-    for (unsigned int i = 1; i < ivfc->num_levels - 1; i++) {
-        ivfc_level_hdr_t *level = &ivfc->level_headers[i - 1];
-        levels[i].type = STORAGE_REMAP;
-        levels[i].data_offset = level->logical_offset;
-        levels[i].data_size = level->hash_data_size;
+    for (unsigned int i = 0; i < 5; i++) {
+        ctx->core_data_ivfc_storage.levels[i].save_ctx = ctx;
     }
-    ivfc_level_hdr_t *data_level = &ivfc->level_headers[ivfc->num_levels - 2];
-    levels[ivfc->num_levels - 1].type = STORAGE_JOURNAL;
-    levels[ivfc->num_levels - 1].data_offset = data_level->logical_offset;
-    levels[ivfc->num_levels - 1].data_size = data_level->hash_data_size;
-
-    // lh: HierarchicalIntegrityVerificationStorage ctor for CoreDataIvfcStorage
-    // lh: GetIvfcInfo ctor from local ivfc, levels
-    typedef struct {
-        char string[50];
-        uint32_t length;
-    } salt_source_t;
-
-    static salt_source_t salt_sources[6] = {
-        {"HierarchicalIntegrityVerificationStorage::Master", 48},
-        {"HierarchicalIntegrityVerificationStorage::L1", 44},
-        {"HierarchicalIntegrityVerificationStorage::L2", 44},
-        {"HierarchicalIntegrityVerificationStorage::L3", 44},
-        {"HierarchicalIntegrityVerificationStorage::L4", 44},
-        {"HierarchicalIntegrityVerificationStorage::L5", 44}
-    };
-    integrity_verification_info_ctx_t init_info[ivfc->num_levels]; // 5
-
-    init_info[0].data = &levels[0];
-    init_info[0].block_size = 0;
-    for (unsigned int i = 1; i < ivfc->num_levels; i++) {
-        init_info[i].data = &levels[i];
-        init_info[i].block_size = 1 << ivfc->level_headers[i - 1].block_size;
-        sha256_get_buffer_hmac(init_info[i].salt, salt_sources[i - 1].string, salt_sources[i - 1].length, ivfc->salt_source, 0x20);
-    }
-
-    ctx->core_data_ivfc_storage.level_validities = malloc(sizeof(validity_t *) * (ivfc->num_levels - 1));
-    for (unsigned int i = 1; i < ivfc->num_levels; i++) {
-        integrity_verification_storage_ctx_t *level_data = &ctx->core_data_ivfc_storage.integrity_storages[i - 1];
-        level_data->hash_storage = &ctx->core_data_ivfc_storage.levels[i - 1];
-        level_data->sector_size = init_info[i].block_size;
-        level_data->_length = init_info[i].data->data_size;
-        level_data->sector_count = (level_data->_length + level_data->sector_size - 1) / level_data->sector_size;
-        memcpy(level_data->salt, init_info[i].salt, 0x20);
-        level_data->block_validities = calloc(1, sizeof(validity_t) * level_data->sector_count);
-        ctx->core_data_ivfc_storage.level_validities[i - 1] = level_data->block_validities;
-    }
-    ctx->core_data_ivfc_storage.data_level = &ctx->core_data_ivfc_storage.levels[ivfc->num_levels - 1];
-    ctx->core_data_ivfc_storage._length = ctx->core_data_ivfc_storage.integrity_storages[ivfc->num_levels - 2]._length;
+    save_ivfc_storage_init(&ctx->core_data_ivfc_storage, ctx->header.layout.ivfc_master_hash_offset_a, &ctx->header.data_ivfc_header);
 
     // lh: local fatStorage from MetaRemapStorage
-    uint8_t *fat_storage = malloc(ctx->header.layout.fat_size);
-    save_remap_read(&ctx->meta_remap_storage, fat_storage, ctx->header.layout.fat_offset, ctx->header.layout.fat_size);
-    free(fat_storage);
+    ctx->fat_storage = malloc(ctx->header.layout.fat_size);
+    save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.layout.fat_offset, ctx->header.layout.fat_size);
 
     // lh: InitFatIvfcStorage for FatIvfcStorage
     if (ctx->header.layout.version >= 0x50000) {
-        ivfc = &ctx->header.fat_ivfc_header;
+        for (unsigned int i = 0; i < 5; i++) {
+            ctx->fat_ivfc_storage.levels[i].save_ctx = ctx;
+        }
+        save_ivfc_storage_init(&ctx->fat_ivfc_storage, ctx->header.layout.fat_ivfc_master_hash_a, &ctx->header.fat_ivfc_header);
     }
 
     // lh: SaveDataFileSystemCore ctor for SaveDataFileSystemCore from CoreDataIvfcStorage, fatStorage
@@ -374,10 +532,15 @@ void save_free_contexts(save_ctx_t *ctx) {
     }
     free(ctx->journal_map_info.map_storage);
     free(ctx->journal_storage.map.entries);
-    for (unsigned int i = 1; i < ctx->header.data_ivfc_header.num_levels; i++) {
+    for (unsigned int i = 0; i < ctx->header.data_ivfc_header.num_levels - 1; i++) {
         free(ctx->core_data_ivfc_storage.integrity_storages[i].block_validities);
     }
     free(ctx->core_data_ivfc_storage.level_validities);
+    for (unsigned int i = 0; i < ctx->header.fat_ivfc_header.num_levels - 1; i++) {
+        free(ctx->fat_ivfc_storage.integrity_storages[i].block_validities);
+    }
+    free(ctx->fat_ivfc_storage.level_validities);
+    free(ctx->fat_storage);
 }
 
 void save_save(save_ctx_t *ctx) {
@@ -395,11 +558,11 @@ void save_print_ivfc_section(save_ctx_t *ctx) {
     printf("    ID:                             %08"PRIx32"\n", ctx->header.data_ivfc_header.id);
     memdump(stdout, "    Salt Seed:                      ", &ctx->header.data_ivfc_header.salt_source, 0x20);
     for (unsigned int i = 0; i < ctx->header.data_ivfc_header.num_levels - 1; i++) {
-        // if (ctx->tool_ctx->action & ACTION_VERIFY) {
-        //     printf("    Level %"PRId32" (%s):\n", i, GET_VALIDITY_STR(ctx->header.data_ivfc_header.level_headers[i])
-        // } else {
+        if (ctx->tool_ctx->action & ACTION_VERIFY) {
+            printf("    Level %"PRId32" (%s):\n", i, GET_VALIDITY_STR(ctx->core_data_ivfc_storage.levels[i].hash_validity));
+        } else {
             printf("    Level %"PRId32":\n", i);
-        // }
+        }
         printf("        Data Offset:                0x%016"PRIx64"\n", ctx->header.data_ivfc_header.level_headers[i].logical_offset);
         printf("        Data Size:                  0x%016"PRIx64"\n", ctx->header.data_ivfc_header.level_headers[i].hash_data_size);
         if (i != 0) {

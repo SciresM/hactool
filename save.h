@@ -13,6 +13,8 @@
 #define MAGIC_RMAP 0x50414D52
 #define MAGIC_IVFC 0x43465649
 
+typedef struct save_ctx_t save_ctx_t;
+
 typedef struct {
     uint32_t magic; /* DISF */
     uint32_t version;
@@ -248,7 +250,9 @@ typedef struct {
     journal_map_ctx_t map;
     journal_header_t *header;
     uint32_t block_size;
+    uint64_t journal_data_offset;
     uint64_t _length;
+    FILE *file;
 } journal_storage_ctx_t;
 
 typedef struct {
@@ -258,6 +262,7 @@ typedef struct {
     uint32_t hash_block_size;
     validity_t hash_validity;
     enum base_storage_type type;
+    save_ctx_t *save_ctx;
 } ivfc_level_save_ctx_t;
 
 typedef struct {
@@ -269,6 +274,7 @@ typedef struct {
 
 typedef struct {
     ivfc_level_save_ctx_t *hash_storage;
+    ivfc_level_save_ctx_t *base_storage;
     validity_t *block_validities;
     uint8_t salt[0x20];
     uint32_t sector_size;
@@ -284,7 +290,7 @@ typedef struct {
     integrity_verification_storage_ctx_t integrity_storages[4];
 } hierarchical_integrity_verification_storage_ctx_t;
 
-typedef struct {
+struct save_ctx_t {
     FILE *file;
     hactool_ctx_t *tool_ctx;
     save_header_t header;
@@ -300,7 +306,8 @@ typedef struct {
     journal_map_params_t journal_map_info;
     hierarchical_integrity_verification_storage_ctx_t core_data_ivfc_storage;
     hierarchical_integrity_verification_storage_ctx_t fat_ivfc_storage;
-} save_ctx_t;
+    uint8_t *fat_storage;
+};
 
 void save_process(save_ctx_t *ctx);
 void save_process_header(save_ctx_t *ctx);
