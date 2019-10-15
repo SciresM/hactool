@@ -5,6 +5,7 @@
 #include "ivfc.h"
 
 #define SAVE_HEADER_SIZE 0x4000
+#define SAVE_FAT_ENTRY_SIZE 8
 
 #define MAGIC_DISF 0x46534944
 #define MAGIC_DPFS 0x53465044
@@ -105,8 +106,8 @@ typedef struct {
 
 typedef struct {
     uint64_t block_size;
-    uint64_t fat_offset;
-    uint32_t fat_block_count;
+    uint64_t allocation_table_offset;
+    uint32_t allocation_table_block_count;
     uint32_t _0x14;
     uint64_t data_offset;
     uint32_t data_block_count;
@@ -290,6 +291,31 @@ typedef struct {
     integrity_verification_storage_ctx_t integrity_storages[4];
 } hierarchical_integrity_verification_storage_ctx_t;
 
+typedef struct {
+    uint32_t prev;
+    uint32_t next;
+} allocation_table_entry_t;
+
+typedef struct {
+    uint32_t free_list_entry_index;
+    void *base_storage;
+    fat_header_t *header;
+} allocation_table_ctx_t;
+
+typedef struct {
+    hierarchical_integrity_verification_storage_ctx_t *base_storage;
+    uint32_t block_size;
+    uint32_t initial_block;
+    allocation_table_ctx_t *fat;
+    uint64_t _length;
+} allocation_table_storage_ctx_t;
+
+typedef struct {
+    hierarchical_integrity_verification_storage_ctx_t *base_storage;
+    allocation_table_ctx_t allocation_table;
+    save_fs_header_t *header;
+} save_filesystem_ctx_t;
+
 struct save_ctx_t {
     FILE *file;
     hactool_ctx_t *tool_ctx;
@@ -307,7 +333,41 @@ struct save_ctx_t {
     hierarchical_integrity_verification_storage_ctx_t core_data_ivfc_storage;
     hierarchical_integrity_verification_storage_ctx_t fat_ivfc_storage;
     uint8_t *fat_storage;
+    save_filesystem_ctx_t save_filesystem_core;
 };
+
+static inline uint32_t allocation_table_entry_index_to_block(uint32_t entry_index) {
+    return entry_index - 1;
+}
+
+static inline uint32_t allocation_table_block_to_entry_index(uint32_t block_index) {
+    return block_index + 1;
+}
+
+static inline int allocation_table_is_list_end(allocation_table_entry_t *entry) {
+    return (entry->next & 0x7FFFFFFF) == 0;
+}
+
+static inline int allocation_table_is_list_start(allocation_table_entry_t *entry) {
+    return entry->prev == 0x80000000;
+}
+
+
+static inline int allocation_table_get_next(allocation_table_entry_t *entry) {
+    return entry->next & 0x7FFFFFFF;
+}
+
+static inline int allocation_table_get_prev(allocation_table_entry_t *entry) {
+    return entry->prev & 0x7FFFFFFF;
+}
+
+static inline allocation_table_entry_t *save_allocation_table_read_entry(allocation_table_ctx_t *ctx, uint32_t entry_index) {
+    return (allocation_table_entry_t *)((uint8_t *)ctx->base_storage + entry_index * SAVE_FAT_ENTRY_SIZE);
+}
+
+static inline uint32_t save_allocation_table_get_free_list_entry_index(allocation_table_ctx_t *ctx) {
+    return allocation_table_get_next(save_allocation_table_read_entry(ctx, ctx->free_list_entry_index));
+}
 
 void save_process(save_ctx_t *ctx);
 void save_process_header(save_ctx_t *ctx);

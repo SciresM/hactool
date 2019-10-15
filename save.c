@@ -83,7 +83,7 @@ void save_bitmap_clear_bit(void *buffer, size_t bit_offset) {
     *((uint8_t *)buffer + (bit_offset >> 3)) &= ~(uint8_t)(1 << (bit_offset & 7));
 }
 
-uint8_t save_bitmap_check_bit(void *buffer, size_t bit_offset) {
+uint8_t save_bitmap_check_bit(const void *buffer, size_t bit_offset) {
     return *((uint8_t *)buffer + (bit_offset >> 3)) & (1 << (bit_offset & 7));
 }
 
@@ -225,7 +225,7 @@ size_t save_ivfc_level_fread(ivfc_level_save_ctx_t *ctx, void *buffer, uint64_t 
     }
 }
 
-void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count, uint32_t verify) {
+void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count, int32_t verify) {
     if (count > ctx->sector_size) {
         fprintf(stderr, "IVFC read exceeds sector size!\n");
         exit(EXIT_FAILURE);
@@ -275,10 +275,86 @@ void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buf
 
     if (ctx->block_validities[block_index] == VALIDITY_INVALID && verify) {
         fprintf(stderr, "Hash error!\n");
-        memdump(stderr, "exp: ", hash_buffer, 0x20);
-        memdump(stderr, "act: ", hash, 0x20);
         exit(EXIT_FAILURE);
     }
+}
+
+uint32_t save_allocation_table_read_entry_with_length(allocation_table_ctx_t *ctx, allocation_table_entry_t *entry) {
+    uint32_t length = 1;
+    uint32_t entry_index = allocation_table_block_to_entry_index(entry->next);
+
+    allocation_table_entry_t *entries = (allocation_table_entry_t *)((uint8_t *)(ctx->base_storage) + entry_index * SAVE_FAT_ENTRY_SIZE);
+    if ((entries[0].next & 0x80000000) == 0) {
+        if (entries[0].prev & 0x80000000 && entries[0].prev != 0x80000000) {
+            fprintf(stderr, "Invalid iterated range entry in allocation table!\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        length = entries[1].next - entry_index + 1;
+    }
+
+    if (allocation_table_is_list_end(&entries[0])) {
+        entry->next = 0xFFFFFFFF;
+    } else {
+        entry->next = allocation_table_entry_index_to_block(allocation_table_get_next(&entries[0]));
+    }
+
+    if (allocation_table_is_list_start(&entries[0])) {
+        entry->prev = 0xFFFFFFFF;
+    } else {
+        entry->prev = allocation_table_entry_index_to_block(allocation_table_get_prev(&entries[0]));
+    }
+
+    return length;
+}
+
+uint32_t save_allocation_table_get_list_length(allocation_table_ctx_t *ctx, uint32_t block_index) {
+    allocation_table_entry_t entry;
+    entry.next = block_index;
+    uint32_t total_length = 0;
+    uint32_t table_size = ctx->header->allocation_table_block_count;
+    uint32_t nodes_iterated = 0;
+
+    while (entry.next != 0xFFFFFFFF) {
+        total_length += save_allocation_table_read_entry_with_length(ctx, &entry);
+        nodes_iterated++;
+        if (nodes_iterated > table_size) {
+            fprintf(stderr, "Cycle detected in allocation table!\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    return total_length;
+}
+
+uint32_t save_allocation_table_get_free_list_block_index(allocation_table_ctx_t *ctx) {
+    return allocation_table_entry_index_to_block(save_allocation_table_get_free_list_entry_index(ctx));
+}
+
+uint64_t save_allocation_table_get_free_space_size(save_filesystem_ctx_t *ctx) {
+    uint32_t free_list_start = save_allocation_table_get_free_list_block_index(&ctx->allocation_table);
+
+    if (free_list_start == 0xFFFFFFFF) return 0;
+
+    return ctx->header->block_size * save_allocation_table_get_list_length(&ctx->allocation_table, free_list_start);
+}
+
+void save_open_fat_storage(save_filesystem_ctx_t *ctx, allocation_table_storage_ctx_t *storage_ctx, uint32_t block_index) {
+    storage_ctx->base_storage = ctx->base_storage;
+    storage_ctx->fat = &ctx->allocation_table;
+    storage_ctx->block_size = (uint32_t)ctx->header->block_size;
+    storage_ctx->initial_block = block_index;
+    storage_ctx->_length = block_index == 0xFFFFFFFF ? 0 : save_allocation_table_get_list_length(storage_ctx->fat, block_index) * storage_ctx->block_size;
+}
+
+void save_filesystem_init(save_filesystem_ctx_t *ctx, void *fat, save_fs_header_t *save_fs_header, fat_header_t *fat_header) {
+    ctx->allocation_table.base_storage = fat;
+    ctx->allocation_table.header = fat_header;
+    ctx->allocation_table.free_list_entry_index = 0;
+    ctx->header = save_fs_header;
+
+    allocation_table_storage_ctx_t dir_table_storage, file_table_storage;
+    save_open_fat_storage(ctx, &dir_table_storage, fat_header->directory_table_block);
+    save_open_fat_storage(ctx, &file_table_storage, fat_header->file_table_block);
 }
 
 validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t *ctx, ivfc_save_hdr_t *ivfc) {
@@ -465,18 +541,26 @@ void save_process(save_ctx_t *ctx) {
     save_ivfc_storage_init(&ctx->core_data_ivfc_storage, ctx->header.layout.ivfc_master_hash_offset_a, &ctx->header.data_ivfc_header);
 
     // lh: local fatStorage from MetaRemapStorage
-    ctx->fat_storage = malloc(ctx->header.layout.fat_size);
-    save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.layout.fat_offset, ctx->header.layout.fat_size);
-
-    // lh: InitFatIvfcStorage for FatIvfcStorage
-    if (ctx->header.layout.version >= 0x50000) {
+    if (ctx->header.layout.version < 0x50000) {
+        ctx->fat_storage = malloc(ctx->header.layout.fat_size);
+        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.layout.fat_offset, ctx->header.layout.fat_size);
+    } else {
+        // lh: InitFatIvfcStorage for FatIvfcStorage
         for (unsigned int i = 0; i < 5; i++) {
             ctx->fat_ivfc_storage.levels[i].save_ctx = ctx;
         }
         save_ivfc_storage_init(&ctx->fat_ivfc_storage, ctx->header.layout.fat_ivfc_master_hash_a, &ctx->header.fat_ivfc_header);
+        ctx->fat_storage = malloc(ctx->fat_ivfc_storage._length);
+        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.fat_ivfc_header.level_headers[ctx->header.fat_ivfc_header.num_levels - 2].logical_offset, ctx->fat_ivfc_storage._length);
+    }
+
+    if (ctx->tool_ctx->action & ACTION_VERIFY) {
+        save_filesystem_verify(ctx);
     }
 
     // lh: SaveDataFileSystemCore ctor for SaveDataFileSystemCore from CoreDataIvfcStorage, fatStorage
+    ctx->save_filesystem_core.base_storage = &ctx->core_data_ivfc_storage;
+    save_filesystem_init(&ctx->save_filesystem_core, ctx->fat_storage, &ctx->header.save_header, &ctx->header.fat_header);
 
     if (ctx->tool_ctx->action & ACTION_INFO) {
         save_print(ctx);
@@ -614,8 +698,9 @@ void save_print(save_ctx_t *ctx) {
     char timestamp[70];
     if (strftime(timestamp, sizeof(timestamp), "%F %T UTC", gmtime((time_t *)&ctx->header.extra_data.timestamp)))
         printf("Timestamp:                          %s\n", timestamp);
-    printf("Save Data Size:                     %016"PRIx64"\n", ctx->header.extra_data.data_size);
-    printf("Journal Size:                       %016"PRIx64"\n", ctx->header.extra_data.journal_size);
+    printf("Save Data Size:                     0x%016"PRIx64"\n", ctx->header.extra_data.data_size);
+    printf("Journal Size:                       0x%016"PRIx64"\n", ctx->header.extra_data.journal_size);
+    printf("Free Space:                         0x%016"PRIx64"\n", save_allocation_table_get_free_space_size(&ctx->save_filesystem_core));
 
     if (ctx->tool_ctx->action & ACTION_VERIFY) {
         if (ctx->header_hash_validity == VALIDITY_VALID) {
