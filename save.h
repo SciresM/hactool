@@ -6,6 +6,8 @@
 
 #define SAVE_HEADER_SIZE 0x4000
 #define SAVE_FAT_ENTRY_SIZE 8
+#define SAVE_FS_LIST_MAX_NAME_LENGTH 0x40
+#define SAVE_FS_LIST_ENTRY_SIZE 0x60
 
 #define MAGIC_DISF 0x46534944
 #define MAGIC_DPFS 0x53465044
@@ -311,9 +313,65 @@ typedef struct {
 } allocation_table_storage_ctx_t;
 
 typedef struct {
+    allocation_table_ctx_t *fat;
+    uint32_t virtual_block;
+    uint32_t physical_block;
+    uint32_t current_segment_size;
+    uint32_t next_block;
+    uint32_t prev_block;
+} allocation_table_iterator_ctx_t;
+
+#pragma pack(push, 1)
+typedef struct {
+    uint32_t start_block;
+    uint64_t length;
+    uint32_t _0xC[2];
+} save_file_info_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    uint32_t next_directory;
+    uint32_t next_file;
+    uint32_t _0x8[3];
+} save_find_position_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    uint32_t next_sibling;
+    union { /* Save table entry type. Size = 0x14. */
+        save_file_info_t save_file_info;
+        save_find_position_t save_find_position;
+    };
+} save_table_entry_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    uint32_t parent;
+    char name[SAVE_FS_LIST_MAX_NAME_LENGTH];
+    save_table_entry_t value;
+    uint32_t next;
+} save_fs_list_entry_t;
+#pragma pack(pop)
+
+typedef struct {
+    uint32_t free_list_head_index;
+    uint32_t used_list_head_index;
+    allocation_table_storage_ctx_t storage;
+} save_filesystem_list_ctx_t;
+
+typedef struct {
+    save_filesystem_list_ctx_t file_table;
+    save_filesystem_list_ctx_t directory_table;
+} hierarchical_save_file_table_ctx_t;
+
+typedef struct {
     hierarchical_integrity_verification_storage_ctx_t *base_storage;
     allocation_table_ctx_t allocation_table;
     save_fs_header_t *header;
+    hierarchical_save_file_table_ctx_t file_table;
 } save_filesystem_ctx_t;
 
 struct save_ctx_t {
@@ -367,6 +425,10 @@ static inline allocation_table_entry_t *save_allocation_table_read_entry(allocat
 
 static inline uint32_t save_allocation_table_get_free_list_entry_index(allocation_table_ctx_t *ctx) {
     return allocation_table_get_next(save_allocation_table_read_entry(ctx, ctx->free_list_entry_index));
+}
+
+static inline uint32_t save_allocation_table_get_free_list_block_index(allocation_table_ctx_t *ctx) {
+    return allocation_table_entry_index_to_block(save_allocation_table_get_free_list_entry_index(ctx));
 }
 
 void save_process(save_ctx_t *ctx);

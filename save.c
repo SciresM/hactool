@@ -326,16 +326,112 @@ uint32_t save_allocation_table_get_list_length(allocation_table_ctx_t *ctx, uint
     return total_length;
 }
 
-uint32_t save_allocation_table_get_free_list_block_index(allocation_table_ctx_t *ctx) {
-    return allocation_table_entry_index_to_block(save_allocation_table_get_free_list_entry_index(ctx));
-}
-
 uint64_t save_allocation_table_get_free_space_size(save_filesystem_ctx_t *ctx) {
     uint32_t free_list_start = save_allocation_table_get_free_list_block_index(&ctx->allocation_table);
 
     if (free_list_start == 0xFFFFFFFF) return 0;
 
     return ctx->header->block_size * save_allocation_table_get_list_length(&ctx->allocation_table, free_list_start);
+}
+
+void save_allocation_table_iterator_begin(allocation_table_iterator_ctx_t *ctx, allocation_table_ctx_t *table, uint32_t initial_block) {
+    ctx->fat = table;
+    ctx->physical_block = initial_block;
+    ctx->virtual_block = 0;
+
+    allocation_table_entry_t entry;
+    entry.next = initial_block;
+    ctx->current_segment_size = save_allocation_table_read_entry_with_length(ctx->fat, &entry);
+    ctx->next_block = entry.next;
+    ctx->prev_block = entry.prev;
+
+    if (ctx->prev_block != 0xFFFFFFFF) {
+        fprintf(stderr, "Attempted to start FAT iteration from invalid block %"PRIx32"!\n", initial_block);
+        exit(EXIT_FAILURE);
+    }
+}
+
+int save_allocation_table_iterator_move_next(allocation_table_iterator_ctx_t *ctx) {
+    if (ctx->next_block == 0xFFFFFFFF) return 0;
+
+    ctx->virtual_block += ctx->current_segment_size;
+    ctx->physical_block = ctx->next_block;
+
+    allocation_table_entry_t entry;
+    entry.next = ctx->next_block;
+    ctx->current_segment_size = save_allocation_table_read_entry_with_length(ctx->fat, &entry);
+    ctx->next_block = entry.next;
+    ctx->prev_block = entry.prev;
+
+    return 1;
+}
+
+int save_allocation_table_iterator_move_prev(allocation_table_iterator_ctx_t *ctx) {
+    if (ctx->prev_block == 0xFFFFFFFF) return 0;
+
+    ctx->physical_block = ctx->prev_block;
+
+    allocation_table_entry_t entry;
+    entry.next = ctx->prev_block;
+    ctx->current_segment_size = save_allocation_table_read_entry_with_length(ctx->fat, &entry);
+    ctx->next_block = entry.next;
+    ctx->prev_block = entry.prev;
+
+    ctx->virtual_block -= ctx->current_segment_size;
+
+    return 1;
+}
+
+int save_allocation_table_iterator_seek(allocation_table_iterator_ctx_t *ctx, uint32_t block) {
+    while (1) {
+        if (block < ctx->virtual_block) {
+            if (!save_allocation_table_iterator_move_prev(ctx)) return 0;
+        } else if (block >= ctx->virtual_block + ctx->current_segment_size) {
+            if (!save_allocation_table_iterator_move_next(ctx)) return 0;
+        } else {
+            return 1;
+        }
+        
+    }
+}
+
+void save_allocation_table_storage_read(allocation_table_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
+    allocation_table_iterator_ctx_t iterator;
+    save_allocation_table_iterator_begin(&iterator, ctx->fat, ctx->initial_block);
+    uint64_t in_pos = offset;
+    uint32_t out_pos = 0;
+    uint32_t remaining = count;
+
+    while (remaining) {
+        uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
+        save_allocation_table_iterator_seek(&iterator, block_num);
+
+        uint32_t segment_pos = (uint32_t)(in_pos - (uint64_t)iterator.virtual_block * ctx->block_size);
+        uint64_t physical_offset = iterator.physical_block * ctx->block_size + segment_pos;
+
+        uint32_t remaining_in_segment = iterator.current_segment_size * ctx->block_size - segment_pos;
+        uint32_t bytes_to_read = remaining < remaining_in_segment ? remaining : remaining_in_segment;
+
+        uint32_t sector_size = ctx->base_storage->integrity_storages[3].sector_size;
+        for (unsigned int i = 0; i < bytes_to_read; i += sector_size) {
+            uint32_t bytes_to_request = bytes_to_read < sector_size ? bytes_to_read : sector_size;
+            save_ivfc_storage_read(&ctx->base_storage->integrity_storages[3], (uint8_t *)buffer + out_pos + i, physical_offset + i, bytes_to_request, ctx->base_storage->data_level->save_ctx->tool_ctx->action & ACTION_VERIFY);
+        }
+
+        out_pos += bytes_to_read;
+        in_pos += bytes_to_read;
+        remaining -= bytes_to_read;
+    }
+}
+
+uint32_t save_fs_list_get_capacity(save_filesystem_list_ctx_t *ctx) {
+    uint32_t ret;
+    save_allocation_table_storage_read(&ctx->storage, &ret, 4, 4);
+    return ret;
+}
+
+void save_fs_list_get_value(save_filesystem_list_ctx_t *ctx, uint32_t index, save_fs_list_entry_t *value) {
+    save_allocation_table_storage_read(&ctx->storage, value, index * SAVE_FS_LIST_ENTRY_SIZE, SAVE_FS_LIST_ENTRY_SIZE);
 }
 
 void save_open_fat_storage(save_filesystem_ctx_t *ctx, allocation_table_storage_ctx_t *storage_ctx, uint32_t block_index) {
@@ -352,9 +448,12 @@ void save_filesystem_init(save_filesystem_ctx_t *ctx, void *fat, save_fs_header_
     ctx->allocation_table.free_list_entry_index = 0;
     ctx->header = save_fs_header;
 
-    allocation_table_storage_ctx_t dir_table_storage, file_table_storage;
-    save_open_fat_storage(ctx, &dir_table_storage, fat_header->directory_table_block);
-    save_open_fat_storage(ctx, &file_table_storage, fat_header->file_table_block);
+    save_open_fat_storage(ctx, &ctx->file_table.directory_table.storage, fat_header->directory_table_block);
+    save_open_fat_storage(ctx, &ctx->file_table.file_table.storage, fat_header->file_table_block);
+    ctx->file_table.file_table.free_list_head_index = 0;
+    ctx->file_table.file_table.used_list_head_index = 1;
+    ctx->file_table.directory_table.free_list_head_index = 0;
+    ctx->file_table.directory_table.used_list_head_index = 1;
 }
 
 validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t *ctx, ivfc_save_hdr_t *ivfc) {
@@ -620,8 +719,10 @@ void save_free_contexts(save_ctx_t *ctx) {
         free(ctx->core_data_ivfc_storage.integrity_storages[i].block_validities);
     }
     free(ctx->core_data_ivfc_storage.level_validities);
-    for (unsigned int i = 0; i < ctx->header.fat_ivfc_header.num_levels - 1; i++) {
-        free(ctx->fat_ivfc_storage.integrity_storages[i].block_validities);
+    if (ctx->header.layout.version >= 0x50000) {
+        for (unsigned int i = 0; i < ctx->header.fat_ivfc_header.num_levels - 1; i++) {
+            free(ctx->fat_ivfc_storage.integrity_storages[i].block_validities);
+        }
     }
     free(ctx->fat_ivfc_storage.level_validities);
     free(ctx->fat_storage);
