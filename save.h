@@ -14,7 +14,6 @@
 #define MAGIC_JNGL 0x4C474E4A
 #define MAGIC_SAVE 0x45564153
 #define MAGIC_RMAP 0x50414D52
-#define MAGIC_IVFC 0x43465649
 
 typedef struct save_ctx_t save_ctx_t;
 
@@ -275,7 +274,9 @@ typedef struct {
 } integrity_verification_info_ctx_t;
 
 
-typedef struct {
+typedef struct integrity_verification_storage_ctx_t integrity_verification_storage_ctx_t;
+
+struct integrity_verification_storage_ctx_t {
     ivfc_level_save_ctx_t *hash_storage;
     ivfc_level_save_ctx_t *base_storage;
     validity_t *block_validities;
@@ -283,7 +284,8 @@ typedef struct {
     uint32_t sector_size;
     uint32_t sector_count;
     uint64_t _length;
-} integrity_verification_storage_ctx_t;
+    integrity_verification_storage_ctx_t *next_level;
+};
 
 typedef struct {
     ivfc_level_save_ctx_t levels[5];
@@ -320,6 +322,11 @@ typedef struct {
     uint32_t next_block;
     uint32_t prev_block;
 } allocation_table_iterator_ctx_t;
+
+typedef struct {
+    char name[SAVE_FS_LIST_MAX_NAME_LENGTH];
+    uint32_t parent;
+} save_entry_key_t;
 
 #pragma pack(push, 1)
 typedef struct {
