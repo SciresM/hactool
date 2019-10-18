@@ -482,6 +482,18 @@ uint32_t save_fs_get_index_from_key(save_filesystem_list_ctx_t *ctx, save_entry_
     return 0xFFFFFFFF;
 }
 
+int save_hierarchical_file_table_find_path_recursive(hierarchical_save_file_table_ctx_t *ctx, save_entry_key_t *key, char *path) {
+    memcpy(key->name, path, SAVE_FS_LIST_MAX_NAME_LENGTH);
+    key->parent = 0;
+    char *pos = path;
+    while (pos) {
+        key->parent = save_fs_get_index_from_key(&ctx->directory_table, key, NULL);
+        if (key->parent == 0xFFFFFFFF) return 0;
+        pos = strchr(pos, '/');
+    }
+    return 1;
+}
+
 int save_hierarchical_file_table_find_next_file(hierarchical_save_file_table_ctx_t *ctx, save_find_position_t *position, save_file_info_t *info, char *name) {
     if (position->next_file == 0) {
         return 0;
@@ -544,7 +556,7 @@ validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t 
         for (unsigned int j = 0; j < block_count; j++) {
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_UNCHECKED) {
                 uint32_t to_read = storage->_length - block_size * j < block_size ? storage->_length - block_size * j : block_size;
-                save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 1);
+                save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 0);
             }
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_INVALID) {
                 result = VALIDITY_INVALID;
