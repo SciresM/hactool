@@ -229,6 +229,10 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         }
         aes_ctx_t *mac_gen_ctx = new_aes_ctx(&keyset->keyblob_keys[i], 0x10, AES_MODE_ECB);
         aes_decrypt(mac_gen_ctx, &keyset->keyblob_mac_keys[i], keyset->keyblob_mac_key_source, 0x10);
+        /* Derive Device key */
+        if (i == 0 && memcmp(keyset->per_console_key_source, zeroes, 0x10) != 0) {
+            aes_decrypt(mac_gen_ctx, keyset->device_key, keyset->per_console_key_source, 0x10);
+        }
         free_aes_ctx(mac_gen_ctx);
     }
     for (unsigned int i = 0; i < 0x6; i++) {
@@ -368,6 +372,11 @@ void pki_derive_keys(nca_keyset_t *keyset) {
             
             free_aes_ctx(sd_ctx);
         }
+
+        /* Derive Save MAC Key */
+        if (i == 0 && memcmp(keyset->save_mac_kek_source, zeroes, 0x10) != 0 && memcmp(keyset->save_mac_key_source, zeroes, 0x10) != 0 && memcmp(keyset->device_key, zeroes, 0x10) != 0) {
+            generate_kek(keyset->save_mac_key, keyset->save_mac_kek_source, keyset->device_key, keyset->aes_kek_generation_source, keyset->save_mac_key_source);
+        }
         
         free_aes_ctx(master_ctx);
     }
@@ -381,6 +390,7 @@ void pki_print_keys(nca_keyset_t *keyset) {
     
     PRINT_KEY_WITH_NAME(keyset->secure_boot_key, secure_boot_key);
     PRINT_KEY_WITH_NAME(keyset->tsec_key, tsec_key);
+    PRINT_KEY_WITH_NAME(keyset->device_key, device_key);
     PRINT_KEY_WITH_NAME(keyset->tsec_root_kek, tsec_root_kek);
     PRINT_KEY_WITH_NAME(keyset->package1_mac_kek, package1_mac_kek);
     PRINT_KEY_WITH_NAME(keyset->package1_kek, package1_kek);
@@ -442,6 +452,7 @@ void pki_print_keys(nca_keyset_t *keyset) {
         PRINT_KEY_WITH_NAME_IDX(keyset->package2_keys[i], package2_key, i);
     }
     printf("\n");
+    PRINT_KEY_WITH_NAME(keyset->per_console_key_source, per_console_key_source);
     PRINT_KEY_WITH_NAME(keyset->aes_kek_generation_source, aes_kek_generation_source);
     PRINT_KEY_WITH_NAME(keyset->aes_key_generation_source, aes_key_generation_source);
     PRINT_KEY_WITH_NAME(keyset->titlekek_source, titlekek_source);
@@ -458,6 +469,7 @@ void pki_print_keys(nca_keyset_t *keyset) {
     PRINT_KEY_WITH_NAME(keyset->sd_card_key_sources[1], sd_card_nca_key_source);
     PRINT_KEY_WITH_NAME(keyset->save_mac_kek_source, save_mac_kek_source);
     PRINT_KEY_WITH_NAME(keyset->save_mac_key_source, save_mac_key_source);
+    PRINT_KEY_WITH_NAME(keyset->save_mac_key, save_mac_key);
     printf("\n");
     PRINT_KEY_WITH_NAME(keyset->header_key_source, header_key_source);
     PRINT_KEY_WITH_NAME(keyset->header_key, header_key);

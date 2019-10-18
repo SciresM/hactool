@@ -13,6 +13,7 @@
 #include "extkeys.h"
 #include "packages.h"
 #include "nso.h"
+#include "save.h"
 
 static const char *prog_name = "hactool";
 
@@ -97,6 +98,9 @@ static void usage(void) {
         "NAX0 options:\n"
         "  --sdseed=seed      Set console unique seed for SD card NAX0 encryption.\n"
         "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"
+        "Save data options:\n"
+        "  --outdir=dir       Specify save directory path.\n"
+        "  --listfiles        List files in save file.\n"
         "Key Derivation options:\n"
         "  --sbk=key          Set console unique Secure Boot Key for key derivation.\n"
         "  --tseckey=key      Set console unique TSEC Key for key derivation.\n"
@@ -110,7 +114,7 @@ int main(int argc, char **argv) {
     nca_ctx_t nca_ctx;
     char input_name[0x200];
     filepath_t keypath;
-    
+
     prog_name = (argc < 1) ? "hactool" : argv[0];
 
     nca_init(&nca_ctx);
@@ -180,6 +184,7 @@ int main(int argc, char **argv) {
             {"saveini1json", 0, NULL, 38},
             {"uncompressed", 1, NULL, 39},
             {"disablekeywarns", 0, NULL, 40},
+            {"listfiles", 0, NULL, 41},
             {NULL, 0, NULL, 0},
         };
 
@@ -237,6 +242,8 @@ int main(int argc, char **argv) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_NAX0;
                 } else if (!strcmp(optarg, "keygen") || !strcmp(optarg, "keys") || !strcmp(optarg, "boot0") || !strcmp(optarg, "boot")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_BOOT0;
+                } else if (!strcmp(optarg, "save")) {
+                    nca_ctx.tool_ctx->file_type = FILETYPE_SAVE;
                 }
                 break;
             case 0: filepath_set(&nca_ctx.tool_ctx->settings.section_paths[0], optarg); break;
@@ -389,6 +396,9 @@ int main(int argc, char **argv) {
                 break;
             case 40:
                 nca_ctx.tool_ctx->settings.skip_key_warnings = 1;
+                break;
+            case 41:
+                nca_ctx.tool_ctx->action |= ACTION_LISTFILES;
                 break;
             default:
                 usage();
@@ -673,6 +683,15 @@ int main(int argc, char **argv) {
             printf("--\n");
             printf("All derivable keys (using loaded sources):\n\n");
             pki_print_keys(&new_keyset);
+            break;
+        }
+        case FILETYPE_SAVE: {
+            save_ctx_t save_ctx;
+            memset(&save_ctx, 0, sizeof(save_ctx));
+            save_ctx.file = tool_ctx.file;
+            save_ctx.tool_ctx = &tool_ctx;
+            save_process(&save_ctx);
+            save_free_contexts(&save_ctx);
             break;
         }
         default: {
