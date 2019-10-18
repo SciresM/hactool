@@ -130,7 +130,8 @@ enum hactool_file_type
     FILETYPE_KIP1,
     FILETYPE_NSO0,
     FILETYPE_NAX0,
-    FILETYPE_BOOT0
+    FILETYPE_BOOT0,
+    FILETYPE_SAVE
 };
 
 #define ACTION_INFO (1<<0)
@@ -142,6 +143,7 @@ enum hactool_file_type
 #define ACTION_EXTRACTINI1 (1<<6)
 #define ACTION_ONLYUPDATEDROMFS (1<<7)
 #define ACTION_SAVEINIJSON (1<<8)
+#define ACTION_LISTFILES (1<<9)
 
 struct nca_ctx; /* This will get re-defined by nca.h. */
 
