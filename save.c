@@ -7,6 +7,66 @@
 
 #define REMAP_ENTRY_LENGTH 0x20
 
+static inline void save_bitmap_set_bit(void *buffer, size_t bit_offset) {
+    *((uint8_t *)buffer + (bit_offset >> 3)) |= 1 << (bit_offset & 7);
+}
+
+static inline void save_bitmap_clear_bit(void *buffer, size_t bit_offset) {
+    *((uint8_t *)buffer + (bit_offset >> 3)) &= ~(uint8_t)(1 << (bit_offset & 7));
+}
+
+static inline uint8_t save_bitmap_check_bit(const void *buffer, size_t bit_offset) {
+    return *((uint8_t *)buffer + (bit_offset >> 3)) & (1 << (bit_offset & 7));
+}
+
+void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t *layer, void *bitmap, uint64_t bitmap_size) {
+    ctx->data_a = layer->data_a;
+    ctx->data_b = layer->data_b;
+    ctx->bitmap_storage = (uint8_t *)bitmap;
+    ctx->block_size = 1 << layer->info.block_size_power;
+
+    ctx->bitmap.data = ctx->bitmap_storage;
+    ctx->bitmap.bitmap = malloc(bitmap_size >> 3);
+
+    uint32_t bits_remaining = bitmap_size;
+    uint32_t bitmap_pos = 0;
+    uint32_t *buffer_pos = (uint32_t *)bitmap;
+    while (bits_remaining) {
+        uint32_t bits_to_read = bits_remaining < 32 ? bits_remaining : 32;
+        uint32_t val = *buffer_pos;
+        for (uint32_t i = 0; i < bits_to_read; i++) {
+            if (val & 0x80000000)
+                save_bitmap_set_bit(ctx->bitmap.bitmap, bitmap_pos);
+            else
+                save_bitmap_clear_bit(ctx->bitmap.bitmap, bitmap_pos);
+            bitmap_pos++;
+            bits_remaining--;
+            val <<= 1;
+        }
+        buffer_pos++;
+    }
+}
+
+uint32_t save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
+    uint64_t in_pos = offset;
+    uint32_t out_pos = 0;
+    uint32_t remaining = count;
+
+    while (remaining) {
+        uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
+        uint32_t block_pos = (uint32_t)(in_pos % ctx->block_size);
+        uint32_t bytes_to_read = ctx->block_size - block_pos < remaining ? ctx->block_size - block_pos : remaining;
+
+        uint8_t *data = save_bitmap_check_bit(ctx->bitmap.bitmap, block_num) ? ctx->data_b : ctx->data_a;
+        memcpy((uint8_t *)buffer + out_pos, data + in_pos, bytes_to_read);
+
+        out_pos += bytes_to_read;
+        in_pos += bytes_to_read;
+        remaining -= bytes_to_read;
+    }
+    return out_pos;
+}
+
 remap_segment_ctx_t *save_remap_init_segments(remap_header_t *header, remap_entry_ctx_t *map_entries, uint32_t num_map_entries) {
     remap_segment_ctx_t *segments =  malloc(sizeof(remap_segment_ctx_t) * header->map_segment_count);
     unsigned int entry_idx = 0;
@@ -44,7 +104,7 @@ remap_entry_ctx_t *save_remap_get_map_entry(remap_storage_ctx_t *ctx, uint64_t o
     exit(EXIT_FAILURE);
 }
 
-void save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
+uint32_t save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
     remap_entry_ctx_t *entry = save_remap_get_map_entry(ctx, offset);
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
@@ -57,7 +117,7 @@ void save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset, si
         switch (ctx->type) {
             case STORAGE_BYTES:
                 fseeko64(ctx->file, ctx->base_storage_offset + entry->physical_offset + entry_pos, SEEK_SET);
-                fread((uint8_t *)buffer + out_pos, 1, bytes_to_read, ctx->file);
+                fread((uint8_t *)buffer + out_pos, bytes_to_read, 1, ctx->file);
                 break;
             case STORAGE_DUPLEX:
                 save_duplex_storage_read(ctx->duplex, (uint8_t *)buffer + out_pos, ctx->base_storage_offset + entry->physical_offset + entry_pos, bytes_to_read);
@@ -73,68 +133,10 @@ void save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset, si
         if (in_pos >= entry->virtual_offset_end)
             entry = entry->next;
     }
+    return out_pos;
 }
 
-void save_bitmap_set_bit(void *buffer, size_t bit_offset) {
-    *((uint8_t *)buffer + (bit_offset >> 3)) |= 1 << (bit_offset & 7);
-}
-
-void save_bitmap_clear_bit(void *buffer, size_t bit_offset) {
-    *((uint8_t *)buffer + (bit_offset >> 3)) &= ~(uint8_t)(1 << (bit_offset & 7));
-}
-
-uint8_t save_bitmap_check_bit(const void *buffer, size_t bit_offset) {
-    return *((uint8_t *)buffer + (bit_offset >> 3)) & (1 << (bit_offset & 7));
-}
-
-void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t *layer, void *bitmap, uint64_t bitmap_size) {
-    ctx->data_a = layer->data_a;
-    ctx->data_b = layer->data_b;
-    ctx->bitmap_storage = (uint8_t *)bitmap;
-    ctx->block_size = 1 << layer->info.block_size_power;
-
-    ctx->bitmap.data = ctx->bitmap_storage;
-    ctx->bitmap.bitmap = malloc(bitmap_size >> 3);
-
-    uint32_t bits_remaining = bitmap_size;
-    uint32_t bitmap_pos = 0;
-    uint32_t *buffer_pos = (uint32_t *)bitmap;
-    while (bits_remaining) {
-        uint32_t bits_to_read = bits_remaining < 32 ? bits_remaining : 32;
-        uint32_t val = *buffer_pos;
-        for (uint32_t i = 0; i < bits_to_read; i++) {
-            if (val & 0x80000000)
-                save_bitmap_set_bit(ctx->bitmap.bitmap, bitmap_pos);
-            else
-                save_bitmap_clear_bit(ctx->bitmap.bitmap, bitmap_pos);
-            bitmap_pos++;
-            bits_remaining--;
-            val <<= 1;
-        }
-        buffer_pos++;
-    }
-}
-
-void save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
-    uint64_t in_pos = offset;
-    uint32_t out_pos = 0;
-    uint32_t remaining = count;
-
-    while (remaining) {
-        uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
-        uint32_t block_pos = (uint32_t)(in_pos % ctx->block_size);
-        uint32_t bytes_to_read = ctx->block_size - block_pos < remaining ? ctx->block_size - block_pos : remaining;
-
-        uint8_t *data = save_bitmap_check_bit(ctx->bitmap.bitmap, block_num) ? ctx->data_b : ctx->data_a;
-        memcpy((uint8_t *)buffer + out_pos, data + in_pos, bytes_to_read);
-
-        out_pos += bytes_to_read;
-        in_pos += bytes_to_read;
-        remaining -= bytes_to_read;
-    }
-}
-
-void save_journal_storage_read(journal_storage_ctx_t *ctx, remap_storage_ctx_t *remap, void *buffer, uint64_t offset, size_t count) {
+uint32_t save_journal_storage_read(journal_storage_ctx_t *ctx, remap_storage_ctx_t *remap, void *buffer, uint64_t offset, size_t count) {
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
     uint32_t remaining = count;
@@ -151,6 +153,7 @@ void save_journal_storage_read(journal_storage_ctx_t *ctx, remap_storage_ctx_t *
         in_pos += bytes_to_read;
         remaining -= bytes_to_read;
     }
+    return out_pos;
 }
 
 void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *ctx, uint64_t master_hash_offset, ivfc_save_hdr_t *ivfc) {
@@ -217,7 +220,7 @@ size_t save_ivfc_level_fread(ivfc_level_save_ctx_t *ctx, void *buffer, uint64_t 
     switch (ctx->type) {
         case STORAGE_BYTES:
             fseeko64(ctx->save_ctx->file, ctx->hash_offset + offset, SEEK_SET);
-            return fread(buffer, 1, count, ctx->save_ctx->file);
+            return fread(buffer, count, 1, ctx->save_ctx->file);
         case STORAGE_REMAP:
             save_remap_read(&ctx->save_ctx->meta_remap_storage, buffer, ctx->data_offset + offset, count);
             return count;
@@ -403,7 +406,7 @@ int save_allocation_table_iterator_seek(allocation_table_iterator_ctx_t *ctx, ui
     }
 }
 
-void save_allocation_table_storage_read(allocation_table_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
+uint32_t save_allocation_table_storage_read(allocation_table_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
     allocation_table_iterator_ctx_t iterator;
     save_allocation_table_iterator_begin(&iterator, ctx->fat, ctx->initial_block);
     uint64_t in_pos = offset;
@@ -432,6 +435,7 @@ void save_allocation_table_storage_read(allocation_table_storage_ctx_t *ctx, voi
         in_pos += bytes_to_read;
         remaining -= bytes_to_read;
     }
+    return out_pos;
 }
 
 uint32_t save_fs_list_get_capacity(save_filesystem_list_ctx_t *ctx) {
@@ -440,8 +444,8 @@ uint32_t save_fs_list_get_capacity(save_filesystem_list_ctx_t *ctx) {
     return capacity;
 }
 
-void save_fs_list_read_entry(save_filesystem_list_ctx_t *ctx, uint32_t index, save_fs_list_entry_t *entry) {
-    save_allocation_table_storage_read(&ctx->storage, entry, index * SAVE_FS_LIST_ENTRY_SIZE, SAVE_FS_LIST_ENTRY_SIZE);
+uint32_t save_fs_list_read_entry(save_filesystem_list_ctx_t *ctx, uint32_t index, save_fs_list_entry_t *entry) {
+    return save_allocation_table_storage_read(&ctx->storage, entry, index * SAVE_FS_LIST_ENTRY_SIZE, SAVE_FS_LIST_ENTRY_SIZE);
 }
 
 int save_fs_list_get_value(save_filesystem_list_ctx_t *ctx, uint32_t index, save_fs_list_entry_t *value) {
@@ -587,7 +591,7 @@ validity_t save_filesystem_verify(save_ctx_t *ctx) {
 void save_process(save_ctx_t *ctx) {
     /* Try to parse Header A. */
     fseeko64(ctx->file, 0, SEEK_SET);
-    if (fread(&ctx->header, 1, sizeof(ctx->header), ctx->file) != sizeof(ctx->header)) {
+    if (fread(&ctx->header, sizeof(ctx->header), 1, ctx->file) != 1) {
         fprintf(stderr, "Failed to read save header!\n");
         exit(EXIT_FAILURE);
     }
@@ -597,7 +601,7 @@ void save_process(save_ctx_t *ctx) {
     if (ctx->header_hash_validity == VALIDITY_INVALID) {
         /* Try to parse Header B. */
         fseeko64(ctx->file, 0x4000, SEEK_SET);
-        if (fread(&ctx->header, 1, sizeof(ctx->header), ctx->file) != sizeof(ctx->header)) {
+        if (fread(&ctx->header, sizeof(ctx->header), 1, ctx->file) != 1) {
             fprintf(stderr, "Failed to read save header!\n");
             exit(EXIT_FAILURE);
         }

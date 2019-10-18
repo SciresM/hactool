@@ -445,7 +445,4 @@ void save_print(save_ctx_t *ctx);
 
 void save_free_contexts(save_ctx_t *ctx);
 
-void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t *layer, void *bitmap, uint64_t bitmap_size);
-void save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count);
-
 #endif
