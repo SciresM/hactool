@@ -12,7 +12,7 @@ titlekek_##                     : The ##th Titlekek. Derivable from master_key_#
 package2_key_source             : Found in TrustZone .rodata.
 titlekek_source                 : Found in TrustZone .rodata.
 aes_kek_generation_source       : Found in TrustZone .rodata.
-aes_key_generation_source       : Found in TrustZone .rodata.
+aes_key_generation_source       : Found in spl .rodata.
 key_area_key_application_source : Found in FS .rodata.
 key_area_key_ocean_source       : Found in FS .rodata.
 key_area_key_system_source      : Found in FS .rodata.
