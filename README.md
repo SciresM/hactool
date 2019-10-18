@@ -84,6 +84,9 @@ INI1 options:
 NAX0 options:
   --sdseed=seed      Set console unique seed for SD card NAX0 encryption.
   --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).
+Save data options:
+  --outdir=dir       Specify save directory path.
+  --listfiles        List files in save file.
 Key Derivation options:
   --sbk=key          Set console unique Secure Boot Key for key derivation.
   --tseckey=key      Set console unique TSEC Key for key derivation.```

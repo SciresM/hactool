@@ -100,7 +100,7 @@ static void usage(void) {
         "  --sdpath=path      Set relative path for NAX0 key derivation (ex: /registered/000000FF/cafebabecafebabecafebabecafebabe.nca).\n"
         "Save data options:\n"
         "  --outdir=dir       Specify save directory path.\n"
-        "  --listfiles        List files in save file."
+        "  --listfiles        List files in save file.\n"
         "Key Derivation options:\n"
         "  --sbk=key          Set console unique Secure Boot Key for key derivation.\n"
         "  --tseckey=key      Set console unique TSEC Key for key derivation.\n"
