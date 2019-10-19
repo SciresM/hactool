@@ -178,7 +178,7 @@ void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *c
         uint32_t length;
     };
 
-    static struct salt_source_t salt_sources[6] = {
+    static const struct salt_source_t salt_sources[6] = {
         {"HierarchicalIntegrityVerificationStorage::Master", 48},
         {"HierarchicalIntegrityVerificationStorage::L1", 44},
         {"HierarchicalIntegrityVerificationStorage::L2", 44},
@@ -272,7 +272,7 @@ void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buf
 
     sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
     sha_update(sha_ctx, ctx->salt, 0x20);
-    sha_update(sha_ctx, data_buffer, count);
+    sha_update(sha_ctx, data_buffer, ctx->sector_size);
     sha_get_hash(sha_ctx, hash);
     free_sha_ctx(sha_ctx);
     hash[0x1F] |= 0x80;
@@ -556,7 +556,7 @@ validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t 
         for (unsigned int j = 0; j < block_count; j++) {
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_UNCHECKED) {
                 uint32_t to_read = storage->_length - block_size * j < block_size ? storage->_length - block_size * j : block_size;
-                save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 0);
+                save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 1);
             }
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_INVALID) {
                 result = VALIDITY_INVALID;
