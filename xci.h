@@ -86,8 +86,6 @@ typedef struct {
     hfs0_ctx_t logo_ctx;
     hactool_ctx_t *tool_ctx;
     unsigned char iv[0x10];
-    /* TODO: Header decryption. */
-    /* unsigned char decrypted_header[0x70]; */
     int has_decrypted_header;
     unsigned char decrypted_header[0x70];
     xci_header_t header;
