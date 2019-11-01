@@ -254,6 +254,9 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
             } else if (strcmp(key, "per_console_key_source") == 0) {
                 parse_hex_key(keyset->per_console_key_source, value, sizeof(keyset->per_console_key_source));
                 matched_key = 1;
+            } else if (strcmp(key, "xci_header_key") == 0) {
+                parse_hex_key(keyset->xci_header_key, value, sizeof(keyset->xci_header_key));
+                matched_key = 1;
             } else if (strcmp(key, "sd_card_kek_source") == 0) {
                 parse_hex_key(keyset->sd_card_kek_source, value, sizeof(keyset->sd_card_kek_source));
                 matched_key = 1;

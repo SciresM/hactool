@@ -54,6 +54,7 @@ typedef struct {
     unsigned char header_key[0x20];                      /* NCA header key. */
     unsigned char titlekeks[0x20][0x10];                 /* Title key encryption keys. */
     unsigned char key_area_keys[0x20][3][0x10];          /* Key area encryption keys. */
+    unsigned char xci_header_key[0x10];                  /* Key for XCI partially encrypted header. */
     unsigned char save_mac_key[0x10];                    /* Key used to sign savedata. */
     unsigned char sd_card_keys[2][0x20];
     unsigned char nca_hdr_fixed_key_modulus[0x100];      /* NCA header fixed key RSA pubk. */
