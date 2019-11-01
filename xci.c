@@ -1,5 +1,6 @@
 #include <string.h>
 #include "rsa.h"
+#include "aes.h"
 #include "xci.h"
 
 /* This RSA-PKCS1 public key is only accessible to the gamecard controller. */
@@ -95,6 +96,22 @@ void xci_process(xci_ctx_t *ctx) {
     for (unsigned int i = 0; i < 0x10; i++) {
         ctx->iv[i] = ctx->header.reversed_iv[0xF-i];
     }
+
+    // try to decrypt header data
+    unsigned char null_key[0x10];
+    memset(null_key, 0x00, 0x10);
+    // test if the xci header key is set
+    if (memcmp(ctx->tool_ctx->settings.keyset.xci_header_key, null_key, 0x10) != 0) {
+        aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.xci_header_key, 0x10, AES_MODE_CBC);
+        aes_setiv(aes_ctx, ctx->iv, 0x10);
+
+        aes_decrypt(aes_ctx, ctx->decrypted_header, ctx->header.encrypted_data, 0x70);
+
+        ctx->has_decrypted_header = 1;
+    } else {
+        ctx->has_decrypted_header = 0;
+    }
+    
 
     if (ctx->tool_ctx->action & ACTION_INFO) {
         xci_print(ctx);
@@ -198,6 +215,37 @@ static const char *xci_get_cartridge_type(xci_ctx_t *ctx) {
     }
 }
 
+static const char *xci_get_firmware_type(xci_gamecard_info_t *gc_info) {
+    gamecard_firmware_version_t firmware_ver = (gamecard_firmware_version_t)gc_info->firmware_version;
+    switch (firmware_ver) {
+        case GC_FIRMWARE_DEVELOPMENT: return "Development";
+        case GC_FIRMWARE_RETAIL_100: return "Retail (1.0.0+)";
+        case GC_FIRMWARE_RETAIL_400: return "Retail (4.0.0+)";
+        default:
+            return "Unknown";
+    }
+}
+
+static const char *xci_get_access_control_type(xci_gamecard_info_t *gc_info) {
+    gamecard_access_control_t access_control = (gamecard_access_control_t)gc_info->access_control;
+    switch (access_control) {
+        case GC_ACCESS_CONTROL_25MHZ: return "25MHz";
+        case GC_ACCESS_CONTROL_50MHZ: return "50MHz";
+        default:
+            return "Unknown/Invalid";
+    }
+}
+
+static const char *xci_get_region_compatibility_type(xci_gamecard_info_t *gc_info) {
+    xci_region_compatibility_t compatibility_type = (xci_region_compatibility_t)gc_info->compatibility_type;
+    switch (compatibility_type) {
+        case COMPAT_GLOBAL: return "Global";
+        case COMPAT_CHINA: return "China";
+        default:
+            return "Unknown/Invalid";
+    }
+}
+
 static void xci_print_hfs0(hfs0_ctx_t *ctx) {
     print_magic("    Magic:                          ", ctx->header->magic);
     printf("    Offset:                         %012"PRIx64"\n", ctx->offset);
@@ -233,8 +281,32 @@ void xci_print(xci_ctx_t *ctx) {
     
     printf("Cartridge Type:                     %s\n", xci_get_cartridge_type(ctx));
     printf("Cartridge Size:                     %012"PRIx64"\n", media_to_real(ctx->header.cart_size + 1));
+    
     memdump(stdout, "Header IV:                          ", ctx->iv, 0x10);
     memdump(stdout, "Encrypted Header:                   ", ctx->header.encrypted_data, 0x70);
+    if (ctx->has_decrypted_header) {
+        xci_gamecard_info_t *gc_info = (xci_gamecard_info_t*)(ctx->decrypted_header + 0x10);
+        printf("Encrypted Header Data:\n");
+        printf("    Firmware Version:               %s\n", xci_get_firmware_type(gc_info)); //%016"PRIx64"\n", gc_info->firmware_version);
+        printf("    Access Control:                 %s\n", xci_get_access_control_type(gc_info)); //%08"PRIx32"\n", gc_info->access_control);
+        printf("    Read Time Wait1:                %08"PRIx32"\n", gc_info->read_time_wait_1);
+        printf("    Read Time Wait2:                %08"PRIx32"\n", gc_info->read_time_wait_2);
+        printf("    Write Time Wait1:               %08"PRIx32"\n", gc_info->write_time_wait_1);
+        printf("    Write Time Wait2:               %08"PRIx32"\n", gc_info->write_time_wait_2);
+        printf("    Firmware Mode:                  %08"PRIx32"\n", gc_info->firmware_mode);
+        
+        // decode version
+        uint32_t ver[4] = {0};
+        ver[0] = ((gc_info->cup_version >> 26) & 0x3f);
+        ver[1] = ((gc_info->cup_version >> 20) & 0x3f);
+        ver[2] = ((gc_info->cup_version >> 16) & 0xf);
+        ver[3] = (gc_info->cup_version & 0xffff);
+
+        printf("    CUP Version                     v%d.%d.%d-%d\n", ver[0], ver[1], ver[2], ver[3]);
+        printf("    Compatibility Type              %s\n", xci_get_region_compatibility_type(gc_info)); //%02"PRIx8"\n", gc_info->compatibility_type);
+        memdump(stdout, "    Update Hash                     ", gc_info->update_partition_hash, 8);
+        printf("    CUP TitleId                     %016"PRIx64"\n", gc_info->cup_title_id);
+    }
 
     if (ctx->tool_ctx->action & ACTION_VERIFY) {
         printf("Root Partition (%s):\n", GET_VALIDITY_STR(ctx->hfs0_hash_validity));
