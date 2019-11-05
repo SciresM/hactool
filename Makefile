@@ -9,12 +9,16 @@ CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOU
 all:
 	cd mbedtls && $(MAKE) lib
 	$(MAKE) hactool
+	$(MAKE) lib
 
 .c.o:
 	$(CC) $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
 hactool: save.o sha.o aes.o extkeys.o rsa.o npdm.o bktr.o kip.o packages.o pki.o pfs0.o hfs0.o nca0_romfs.o romfs.o utils.o nax0.o nso.o lz4.o nca.o xci.o main.o filepath.o ConvertUTF.o cJSON.o
 	$(CC) -o $@ $^ $(LDFLAGS) -L $(LIBDIR)
+
+lib: save.o sha.o aes.o extkeys.o rsa.o npdm.o bktr.o kip.o packages.o pki.o pfs0.o hfs0.o nca0_romfs.o romfs.o utils.o nax0.o nso.o lz4.o nca.o xci.o filepath.o ConvertUTF.o cJSON.o
+	$(AR) -rc $@hactool.a $^
 
 aes.o: aes.h types.h
 
@@ -65,10 +69,9 @@ ConvertUTF.o: ConvertUTF.h
 cJSON.o: cJSON.h
 
 clean:
-	rm -f *.o hactool hactool.exe
+	rm -f *.o hactool hactool.exe libhactool.a
     
-clean_full:
-	rm -f *.o hactool hactool.exe
+clean_full: clean
 	cd mbedtls && $(MAKE) clean
 
 dist: clean_full
