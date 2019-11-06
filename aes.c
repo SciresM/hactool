@@ -125,7 +125,7 @@ void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l)
     }
     
     /* Flush all data */
-    mbedtls_cipher_finish(&ctx->cipher_dec, NULL, NULL);
+    // mbedtls_cipher_finish(&ctx->cipher_dec, NULL, NULL); workaround for crashing on console
 
     if (src_equals_dst)
     {
