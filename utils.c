@@ -205,6 +205,7 @@ const char *get_key_revision_summary(uint8_t key_rev) {
 }
 
 FILE *open_key_file(const char *prefix) {
+#ifndef __SWITCH__
     filepath_t keypath;
     filepath_init(&keypath);
     /* Use $HOME/.switch/prod.keys if it exists */
@@ -240,6 +241,8 @@ FILE *open_key_file(const char *prefix) {
     if (keyfile == NULL && keypath.valid == VALIDITY_VALID) {
         keyfile = os_fopen(keypath.os_path, OS_MODE_READ);
     }
-    
+#else
+    FILE *keyfile = os_fopen("/switch/prod.keys", OS_MODE_READ);
+#endif
     return keyfile;
 }

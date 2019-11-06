@@ -2,8 +2,9 @@
 /hactool
 /hactool.exe
 /*.o
+/*.d
+/*.a
 /*.dll
 /bin
 /test
 /test/*
-/libhactool.a
