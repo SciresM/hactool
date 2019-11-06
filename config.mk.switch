@@ -1,0 +1,12 @@
+include $(DEVKITPRO)/libnx/switch_rules
+
+ARCH = -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+CFLAGS = -O0 -Wall -Wextra -pedantic -std=gnu11 -fPIC $(ARCH) $(INCLUDE) -D__SWITCH__
+LDFLAGS = -lmbedtls -lmbedx509 -lmbedcrypto
+LIBDIRS = $(PORTLIBS)
+export DEPSDIR	:=	$(CURDIR)/
+
+export INCLUDE	:=	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+			-I$(CURDIR)
+
+export LIBDIR	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
