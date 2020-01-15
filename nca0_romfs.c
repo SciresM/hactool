@@ -16,7 +16,7 @@ static void nca0_romfs_visit_file(nca0_romfs_ctx_t *ctx, uint32_t file_offset, f
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
     }
-    
+
     /* If we're extracting... */
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         printf("Saving %s...\n", cur_path->char_path);
@@ -99,14 +99,14 @@ void nca0_romfs_process(nca0_romfs_ctx_t *ctx) {
         fprintf(stderr, "NCA0 RomFS is corrupt?\n");
         return;
     }
-    
+
     /* If there's ever anything meaningful to print about RomFS, uncomment and implement.
      *
      * if (ctx->tool_ctx->action & ACTION_INFO) {
      *    nca0_romfs_print(ctx);
      * }
      */
-     
+
     if (ctx->tool_ctx->action & ACTION_EXTRACT) {
         nca0_romfs_save(ctx);
     }

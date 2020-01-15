@@ -96,14 +96,14 @@ void romfs_process(romfs_ctx_t *ctx) {
             exit(EXIT_FAILURE);
         }
     }
-    
+
     /* If there's ever anything meaningful to print about RomFS, uncomment and implement.
      *
      * if (ctx->tool_ctx->action & ACTION_INFO) {
      *    romfs_print(ctx);
      * }
      */
-     
+
     if (ctx->tool_ctx->action & ACTION_EXTRACT) {
         romfs_save(ctx);
     }

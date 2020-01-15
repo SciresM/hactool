@@ -178,7 +178,7 @@ void parse_hex_key(unsigned char *key, const char *hex, unsigned int len) {
 void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f) {
     char *key, *value;
     int ret;
-    
+
     while ((ret = get_kv(f, &key, &value)) != 1 && ret != -2) {
         if (ret == 0) {
             if (key == NULL || value == NULL) {
@@ -186,7 +186,7 @@ void extkeys_parse_titlekeys(hactool_settings_t *settings, FILE *f) {
             }
             unsigned char rights_id[0x10];
             unsigned char titlekey[0x10];
-            
+
             bool should_ignore_key = false;
             if (strlen(key) != 0x20) {
                 should_ignore_key = true;
@@ -214,7 +214,7 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
     char *key, *value;
     int ret;
     nca_keyset_t *keyset = &settings->keyset;
-    
+
     while ((ret = get_kv(f, &key, &value)) != 1 && ret != -2) {
         if (ret == 0) {
             if (key == NULL || value == NULL) {
@@ -225,7 +225,7 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                 parse_hex_key(keyset->aes_kek_generation_source, value, sizeof(keyset->aes_kek_generation_source));
                 matched_key = 1;
             } else if (strcmp(key, "aes_key_generation_source") == 0) {
-                parse_hex_key(keyset->aes_key_generation_source, value, sizeof(keyset->aes_key_generation_source));            
+                parse_hex_key(keyset->aes_key_generation_source, value, sizeof(keyset->aes_key_generation_source));
                 matched_key = 1;
             } else if (strcmp(key, "key_area_key_application_source") == 0) {
                 parse_hex_key(keyset->key_area_key_application_source, value, sizeof(keyset->key_area_key_application_source));
@@ -307,28 +307,28 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "keyblob_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblob_keys[i], value, sizeof(keyset->keyblob_keys[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "keyblob_mac_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblob_mac_keys[i], value, sizeof(keyset->keyblob_mac_keys[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "encrypted_keyblob_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->encrypted_keyblobs[i], value, sizeof(keyset->encrypted_keyblobs[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "keyblob_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblobs[i], value, sizeof(keyset->keyblobs[i]));
@@ -343,21 +343,21 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "tsec_root_key_%02"PRIx32, i - 6);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->tsec_root_keys[i - 6], value, sizeof(keyset->tsec_root_keys[i - 6]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "master_kek_source_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_kek_sources[i], value, sizeof(keyset->master_kek_sources[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "package1_mac_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->package1_mac_keys[i], value, sizeof(keyset->package1_mac_keys[i]));
@@ -365,56 +365,56 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                         break;
                     }
                 }
-                for (unsigned int i = 0; i < 0x20 && !matched_key; i++) { 
+                for (unsigned int i = 0; i < 0x20 && !matched_key; i++) {
                     snprintf(test_name, sizeof(test_name), "master_kek_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_keks[i], value, sizeof(keyset->master_keks[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "master_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->master_keys[i], value, sizeof(keyset->master_keys[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "package1_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->package1_keys[i], value, sizeof(keyset->package1_keys[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "package2_key_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->package2_keys[i], value, sizeof(keyset->package2_keys[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "titlekek_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->titlekeks[i], value, sizeof(keyset->titlekeks[i]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "key_area_key_application_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->key_area_keys[i][0], value, sizeof(keyset->key_area_keys[i][0]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "key_area_key_ocean_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->key_area_keys[i][1], value, sizeof(keyset->key_area_keys[i][1]));
                         matched_key = 1;
                         break;
                     }
-                    
+
                     snprintf(test_name, sizeof(test_name), "key_area_key_system_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->key_area_keys[i][2], value, sizeof(keyset->key_area_keys[i][2]));
@@ -444,7 +444,7 @@ void settings_add_titlekey(hactool_settings_t *settings, const unsigned char *ri
         fprintf(stderr, " already has a corresponding titlekey!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     /* Ensure enough space for keys. */
     if (settings->known_titlekeys.count == 0) {
         settings->known_titlekeys.titlekeys = malloc(1 * sizeof(titlekey_entry_t));
@@ -456,9 +456,9 @@ void settings_add_titlekey(hactool_settings_t *settings, const unsigned char *ri
         fprintf(stderr, "Failed to allocate titlekey list!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     titlekey_entry_t *new_key = &settings->known_titlekeys.titlekeys[settings->known_titlekeys.count++];
-    
+
     memcpy(new_key->rights_id, rights_id, 0x10);
     memcpy(new_key->titlekey, titlekey, 0x10);
 }
@@ -469,7 +469,7 @@ titlekey_entry_t *settings_get_titlekey(hactool_settings_t *settings, const unsi
             return &settings->known_titlekeys.titlekeys[i];
         }
     }
-    
+
     return NULL;
 }
 

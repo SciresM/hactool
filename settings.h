@@ -20,9 +20,9 @@ typedef struct {
     unsigned char tsec_key[0x10];                        /* TSEC key for use in key derivation. NOTE: CONSOLE UNIQUE. */
     unsigned char device_key[0x10];                      /* Device key used to derive some FS keys. NOTE: CONSOLE UNIQUE. */
     unsigned char keyblob_keys[0x20][0x10];              /* Actual keys used to decrypt keyblobs. NOTE: CONSOLE UNIQUE.*/
-    unsigned char keyblob_mac_keys[0x20][0x10];          /* Keys used to validate keyblobs. NOTE: CONSOLE UNIQUE. */ 
-    unsigned char encrypted_keyblobs[0x20][0xB0];        /* Actual encrypted keyblobs (EKS). NOTE: CONSOLE UNIQUE. */ 
-    unsigned char keyblobs[0x20][0x90];                  /* Actual decrypted keyblobs (EKS). */ 
+    unsigned char keyblob_mac_keys[0x20][0x10];          /* Keys used to validate keyblobs. NOTE: CONSOLE UNIQUE. */
+    unsigned char encrypted_keyblobs[0x20][0xB0];        /* Actual encrypted keyblobs (EKS). NOTE: CONSOLE UNIQUE. */
+    unsigned char keyblobs[0x20][0x90];                  /* Actual decrypted keyblobs (EKS). */
     unsigned char keyblob_key_sources[0x20][0x10];       /* Seeds for keyblob keys. */
     unsigned char keyblob_mac_key_source[0x10];          /* Seed for keyblob MAC key derivation. */
     unsigned char tsec_root_kek[0x10];                   /* Used to generate TSEC root keys. */

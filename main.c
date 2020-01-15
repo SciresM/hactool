@@ -19,7 +19,7 @@ static const char *prog_name = "hactool";
 
 /* Print usage. Taken largely from ctrtool. */
 static void usage(void) {
-    fprintf(stderr, 
+    fprintf(stderr,
         "hactool (c) SciresM.\n"
         "Built: %s %s\n"
         "\n"
@@ -56,7 +56,7 @@ static void usage(void) {
         "  --baseromfs        Set Base RomFS to use with update partitions.\n"
         "  --basenca          Set Base NCA to use with update partitions.\n"
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
-        "  --onlyupdated      Ignore non-updated files in update partitions.\n" 
+        "  --onlyupdated      Ignore non-updated files in update partitions.\n"
         "NPDM options:\n"
         "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
         "KIP1 options:\n"
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     filepath_init(&keypath);
     nca_ctx.tool_ctx = &tool_ctx;
     nca_ctx.is_cli_target = true;
-    
+
     nca_ctx.tool_ctx->file_type = FILETYPE_NCA;
     base_ctx.file_type = FILETYPE_NCA;
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
     while (1) {
         int option_index;
         int c;
-        static struct option long_options[] = 
+        static struct option long_options[] =
         {
             {"extract", 0, NULL, 'x'},
             {"info", 0, NULL, 'i'},
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
         if (c == -1)
             break;
 
-        switch (c) 
+        switch (c)
         {
             case 'i':
                 nca_ctx.tool_ctx->action |= ACTION_INFO;
@@ -219,9 +219,9 @@ int main(int argc, char **argv) {
                 } else if (!strcmp(optarg, "pfs0") || !strcmp(optarg, "exefs")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_PFS0;
                 } else if (!strcmp(optarg, "romfs")) {
-                    nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS; 
+                    nca_ctx.tool_ctx->file_type = FILETYPE_ROMFS;
                 } else if (!strcmp(optarg, "nca0_romfs") || !strcmp(optarg, "nca0romfs") || !strcmp(optarg, "betaromfs") || !strcmp(optarg, "beta_romfs")) {
-                    nca_ctx.tool_ctx->file_type = FILETYPE_NCA0_ROMFS; 
+                    nca_ctx.tool_ctx->file_type = FILETYPE_NCA0_ROMFS;
                 } else if (!strcmp(optarg, "hfs0")) {
                     nca_ctx.tool_ctx->file_type = FILETYPE_HFS0;
                 } else if (!strcmp(optarg, "xci") || !strcmp(optarg, "gamecard") || !strcmp(optarg, "gc")) {
@@ -256,19 +256,19 @@ int main(int argc, char **argv) {
             case 7: filepath_set(&nca_ctx.tool_ctx->settings.section_dir_paths[3], optarg); break;
             case 8:
                 nca_ctx.tool_ctx->settings.exefs_path.enabled = 1;
-                filepath_set(&nca_ctx.tool_ctx->settings.exefs_path.path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.exefs_path.path, optarg);
                 break;
             case 9:
                 nca_ctx.tool_ctx->settings.romfs_path.enabled = 1;
-                filepath_set(&nca_ctx.tool_ctx->settings.romfs_path.path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.romfs_path.path, optarg);
                 break;
             case 10:
                 nca_ctx.tool_ctx->settings.exefs_dir_path.enabled = 1;
-                filepath_set(&nca_ctx.tool_ctx->settings.exefs_dir_path.path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.exefs_dir_path.path, optarg);
                 break;
             case 11:
                 nca_ctx.tool_ctx->settings.romfs_dir_path.enabled = 1;
-                filepath_set(&nca_ctx.tool_ctx->settings.romfs_dir_path.path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.romfs_dir_path.path, optarg);
                 break;
             case 12:
                 parse_hex_key(nca_ctx.tool_ctx->settings.cli_titlekey, optarg, 16);
@@ -314,43 +314,43 @@ int main(int argc, char **argv) {
                 break;
             case 17:
                 tool_ctx.settings.out_dir_path.enabled = 1;
-                filepath_set(&tool_ctx.settings.out_dir_path.path, optarg); 
+                filepath_set(&tool_ctx.settings.out_dir_path.path, optarg);
                 break;
             case 18:
-                filepath_set(&nca_ctx.tool_ctx->settings.plaintext_path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.plaintext_path, optarg);
                 break;
             case 19:
-                filepath_set(&nca_ctx.tool_ctx->settings.header_path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.header_path, optarg);
                 break;
             case 20:
-                filepath_set(&tool_ctx.settings.pfs0_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.pfs0_dir_path, optarg);
                 break;
             case 21:
-                filepath_set(&tool_ctx.settings.hfs0_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.hfs0_dir_path, optarg);
                 break;
             case 22:
-                filepath_set(&tool_ctx.settings.rootpt_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.rootpt_dir_path, optarg);
                 break;
             case 23:
-                filepath_set(&tool_ctx.settings.update_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.update_dir_path, optarg);
                 break;
             case 24:
-                filepath_set(&tool_ctx.settings.normal_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.normal_dir_path, optarg);
                 break;
             case 25:
-                filepath_set(&tool_ctx.settings.secure_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.secure_dir_path, optarg);
                 break;
             case 26:
-                filepath_set(&tool_ctx.settings.logo_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.logo_dir_path, optarg);
                 break;
             case 27:
-                filepath_set(&tool_ctx.settings.pk11_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.pk11_dir_path, optarg);
                 break;
             case 28:
-                filepath_set(&tool_ctx.settings.pk21_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.pk21_dir_path, optarg);
                 break;
             case 29:
-                filepath_set(&tool_ctx.settings.ini1_dir_path, optarg); 
+                filepath_set(&tool_ctx.settings.ini1_dir_path, optarg);
                 break;
             case 30:
                 tool_ctx.action |= ACTION_EXTRACTINI1;
@@ -386,13 +386,13 @@ int main(int argc, char **argv) {
                 parse_hex_key(nca_ctx.tool_ctx->settings.keygen_tsec, optarg, 16);
                 break;
             case 37:
-                filepath_set(&tool_ctx.settings.npdm_json_path, optarg); 
+                filepath_set(&tool_ctx.settings.npdm_json_path, optarg);
                 break;
             case 38:
                 tool_ctx.action |= ACTION_SAVEINIJSON;
                 break;
             case 39:
-                filepath_set(&nca_ctx.tool_ctx->settings.uncompressed_path, optarg); 
+                filepath_set(&nca_ctx.tool_ctx->settings.uncompressed_path, optarg);
                 break;
             case 40:
                 nca_ctx.tool_ctx->settings.skip_key_warnings = 1;
@@ -405,7 +405,7 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
         }
     }
-    
+
     /* Try to populate default keyfile. */
     FILE *keyfile = NULL;
     if (keypath.valid == VALIDITY_VALID) {
@@ -432,7 +432,7 @@ int main(int argc, char **argv) {
         pki_derive_keys(&tool_ctx.settings.keyset);
         fclose(keyfile);
     }
-    
+
     /* Try to load titlekeys. */
     FILE *titlekeyfile = open_key_file("title");
     if (titlekeyfile != NULL) {
@@ -445,7 +445,7 @@ int main(int argc, char **argv) {
     } else if (tool_ctx.file_type != FILETYPE_BOOT0 && ((optind < argc) || (argc == 1))) {
         usage();
     }
-    
+
     /* Special case NAX0. */
     if (tool_ctx.file_type == FILETYPE_NAX0) {
         nax0_ctx_t nax_ctx;
@@ -453,10 +453,10 @@ int main(int argc, char **argv) {
         filepath_set(&nax_ctx.base_path, input_name);
         nax_ctx.tool_ctx = &tool_ctx;
         nax0_process(&nax_ctx);
-    
+
         if (nax_ctx.aes_ctx) {
             free_aes_ctx(nax_ctx.aes_ctx);
-        }  
+        }
         if (nax_ctx.num_files) {
             for (unsigned int i = 0; i < nax_ctx.num_files; i++) {
                 fclose(nax_ctx.files[i]);
@@ -467,13 +467,13 @@ int main(int argc, char **argv) {
         }
         printf("Done!\n");
         return EXIT_SUCCESS;
-    } 
-      
+    }
+
     if ((tool_ctx.file = fopen(input_name, "rb")) == NULL && tool_ctx.file_type != FILETYPE_BOOT0) {
         fprintf(stderr, "unable to open %s: %s\n", input_name, strerror(errno));
         return EXIT_FAILURE;
     }
-    
+
     switch (tool_ctx.file_type) {
         case FILETYPE_NCA: {
             if (nca_ctx.tool_ctx->base_nca_ctx != NULL) {
@@ -497,18 +497,18 @@ int main(int argc, char **argv) {
             nca_ctx.file = tool_ctx.file;
             nca_process(&nca_ctx);
             nca_free_section_contexts(&nca_ctx);
-            
+
             if (nca_ctx.tool_ctx->base_file_type == BASEFILE_FAKE) {
                 nca_ctx.tool_ctx->base_file = NULL;
             }
-            
+
             if (nca_ctx.tool_ctx->base_file != NULL) {
                 fclose(nca_ctx.tool_ctx->base_file);
                 if (nca_ctx.tool_ctx->base_file_type == BASEFILE_NCA) {
                     nca_free_section_contexts(nca_ctx.tool_ctx->base_nca_ctx);
                     free(nca_ctx.tool_ctx->base_nca_ctx);
                 }
-            }     
+            }
             break;
         }
         case FILETYPE_PFS0: {
@@ -699,7 +699,7 @@ int main(int argc, char **argv) {
             usage();
         }
     }
-    
+
     if (tool_ctx.settings.known_titlekeys.titlekeys != NULL) {
         free(tool_ctx.settings.known_titlekeys.titlekeys);
     }

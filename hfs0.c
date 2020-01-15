@@ -3,13 +3,13 @@
 
 void hfs0_process(hfs0_ctx_t *ctx) {
     /* Read *just* safe amount. */
-    hfs0_header_t raw_header; 
+    hfs0_header_t raw_header;
     fseeko64(ctx->file, ctx->offset, SEEK_SET);
     if (fread(&raw_header, 1, sizeof(raw_header), ctx->file) != sizeof(raw_header)) {
         fprintf(stderr, "Failed to read HFS0 header!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     if (raw_header.magic != MAGIC_HFS0) {
         memdump(stdout, "Sanity: ", &raw_header, sizeof(raw_header));
         printf("Error: HFS0 is corrupt!\n");
@@ -22,16 +22,16 @@ void hfs0_process(hfs0_ctx_t *ctx) {
         fprintf(stderr, "Failed to allocate HFS0 header!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     fseeko64(ctx->file, ctx->offset, SEEK_SET);
     if (fread(ctx->header, 1, header_size, ctx->file) != header_size) {
         fprintf(stderr, "Failed to read HFS0 header!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     /* Weak file validation. */
     uint64_t max_size = 0x1ULL;
-    max_size <<= 48; /* Switch file sizes are capped at 48 bits. */ 
+    max_size <<= 48; /* Switch file sizes are capped at 48 bits. */
     uint64_t cur_ofs = 0;
     for (unsigned int i = 0; i < ctx->header->num_files; i++) {
         hfs0_file_entry_t *cur_file = hfs0_get_file_entry(ctx->header, i);
@@ -41,11 +41,11 @@ void hfs0_process(hfs0_ctx_t *ctx) {
         }
         cur_ofs += cur_file->size;
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_INFO) {
         hfs0_print(ctx);
     }
-    
+
     if (ctx->tool_ctx->action & ACTION_EXTRACT) {
         hfs0_save(ctx);
     }

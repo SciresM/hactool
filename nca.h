@@ -165,7 +165,7 @@ typedef struct {
 
 typedef struct nca_ctx {
     FILE *file; /* File for this NCA. */
-    size_t file_size;   
+    size_t file_size;
     unsigned char crypto_type;
     int has_rights_id;
     int is_decrypted;
