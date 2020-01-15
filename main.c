@@ -59,6 +59,7 @@ static void usage(void) {
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
         "  --onlyupdated      Ignore non-updated files in update partitions.\n"
         "  --xcontenttype=    Only extract contents if the content type matches an expected one.\n"
+        "                         Supported types are integers 0-9 or [program, meta, control, manual, data, publicdata].\n"
         "  --appendsectypes   Append a section type string to section paths.\n"
         "  --suppresskeys     Suppress output of decrypted keys.\n"
         "NPDM options:\n"
