@@ -135,6 +135,15 @@ enum nca_version {
     NCAVERSION_NCA3
 };
 
+enum nca_content_type {
+    NCACONTENTTYPE_PROGRAM    = 0,
+    NCACONTENTTYPE_META       = 1,
+    NCACONTENTTYPE_CONTROL    = 2,
+    NCACONTENTTYPE_MANUAL     = 3,
+    NCACONTENTTYPE_DATA       = 4,
+    NCACONTENTTPYE_PUBLICDATA = 5,
+};
+
 typedef struct {
     int is_present;
     enum nca_section_type type;

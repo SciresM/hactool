@@ -81,6 +81,9 @@ typedef struct {
 typedef struct {
     nca_keyset_t keyset;
     int skip_key_warnings;
+    int has_expected_content_type;
+    unsigned int expected_content_type;
+    int append_section_types;
     int has_cli_titlekey;
     unsigned char cli_titlekey[0x10];
     unsigned char dec_cli_titlekey[0x10];

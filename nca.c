@@ -50,7 +50,7 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
         ctx->cur_seek = ((ctx->offset + offset - 0x400ULL) & ~ctx->sector_mask) + 0x400ULL;
         ctx->sector_num = (ctx->offset + offset - 0x400ULL) / ctx->sector_size;
         ctx->sector_ofs = (ctx->offset + offset - 0x400ULL) & ctx->sector_mask;
-    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) { 
+    } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) {
         /* No better way to do this than to make all BKTR seeking virtual. */
         ctx->bktr_ctx.virtual_seek = offset;
         if (ctx->tool_ctx->base_file == NULL && ctx->physical_reads == 0) { /* Without base romfs, reads will be physical. */
@@ -78,14 +78,14 @@ static size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buff
     size_t read = 0; /* XXX */
     size_t size = 1;
     char block_buf[0x10];
-    
+
     if (ctx->is_decrypted) {
         fseeko64(ctx->file, (ctx->offset + ctx->bktr_ctx.bktr_seek), SEEK_SET);
         read = fread(buffer, size, count, ctx->file);
         nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + read);
         return read;
     }
-    
+
     bktr_subsection_entry_t *subsec = bktr_get_subsection(ctx->bktr_ctx.subsection_block, ctx->bktr_ctx.bktr_seek);
     nca_update_bktr_ctr(ctx->ctr, subsec->ctr_val, ctx->bktr_ctx.bktr_seek + ctx->offset);
     fseeko64(ctx->file, (ctx->offset + ctx->bktr_ctx.bktr_seek) & ~0xF, SEEK_SET);
@@ -111,7 +111,7 @@ static size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buff
         }
         if ((read = fread(buffer, 1, count, ctx->file)) != count) {
                 return 0;
-        }                  
+        }
         aes_setiv(ctx->aes, ctx->ctr, 16);
         aes_decrypt(ctx->aes, buffer, buffer, count);
         nca_section_fseek(ctx, ctx->bktr_ctx.virtual_seek + count);
@@ -126,7 +126,7 @@ static size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buff
             return 0;
         }
     }
-    
+
     return read;
 }
 
@@ -188,7 +188,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
         /* Perform decryption, if necessary. */
         /* AES-CTR. */
         if (ctx->crypt_type == CRYPT_CTR || (ctx->crypt_type == CRYPT_BKTR && ctx->bktr_ctx.subsection_block == NULL))
-        {                
+        {
             if (ctx->sector_ofs) {
                 if ((read = fread(block_buf, 1, 0x10, ctx->file)) != 0x10) {
                     return 0;
@@ -250,7 +250,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                             fprintf(stderr, "Unknown Base File Type!\n");
                             exit(EXIT_FAILURE);
                         }
-                    }        
+                    }
                 } else {
                     uint64_t within_relocation = next_reloc->virt_offset - ctx->bktr_ctx.virtual_seek;
                     if ((read = nca_section_fread(ctx, buffer, within_relocation)) != within_relocation) {
@@ -311,6 +311,19 @@ void nca_free_section_contexts(nca_ctx_t *ctx) {
     }
 }
 
+static const char *nca_get_section_type_name(enum nca_section_type type) {
+    switch (type) {
+        case PFS0:
+            return "pfs0";
+        case ROMFS:
+        case BKTR:
+        case NCA0_ROMFS:
+            return "romfs";
+        default:
+            return "unknown";
+    }
+}
+
 static void nca_save(nca_ctx_t *ctx) {
     /* Save header. */
     filepath_t *header_path = &ctx->tool_ctx->settings.header_path;
@@ -327,7 +340,7 @@ static void nca_save(nca_ctx_t *ctx) {
         }
     }
 
-    
+
     for (unsigned int i = 0; i < 4; i++) {
         if (ctx->section_contexts[i].is_present) {
             /* printf("Saving section %"PRId32"...\n", i); */
@@ -335,7 +348,7 @@ static void nca_save(nca_ctx_t *ctx) {
             printf("\n");
         }
     }
-    
+
     /* Save Decrypted NCA. */
     filepath_t *dec_path = &ctx->tool_ctx->settings.plaintext_path;
 
@@ -348,7 +361,7 @@ static void nca_save(nca_ctx_t *ctx) {
                 fprintf(stderr, "Failed to write header!\n");
                 exit(EXIT_FAILURE);
             }
-            
+
             unsigned char *buf = malloc(0x400000);
             if (buf == NULL) {
                 fprintf(stderr, "Failed to allocate file-save buffer!\n");
@@ -358,13 +371,13 @@ static void nca_save(nca_ctx_t *ctx) {
                 if (ctx->section_contexts[i].is_present) {
                     fseeko64(f_dec, ctx->section_contexts[i].offset, SEEK_SET);
                     ctx->section_contexts[i].physical_reads = 1;
-                    
+
                     uint64_t read_size = 0x400000; /* 4 MB buffer. */
                     memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
                     uint64_t ofs = 0;
                     uint64_t end_ofs = ofs + ctx->section_contexts[i].size;
                     nca_section_fseek(&ctx->section_contexts[i], ofs);
-                    while (ofs < end_ofs) {       
+                    while (ofs < end_ofs) {
                         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
                         if (nca_section_fread(&ctx->section_contexts[i], buf, read_size) != read_size) {
                             fprintf(stderr, "Failed to read file!\n");
@@ -380,7 +393,7 @@ static void nca_save(nca_ctx_t *ctx) {
                     ctx->section_contexts[i].physical_reads = 0;
                 }
             }
-            
+
             fclose(f_dec);
 
             free(buf);
@@ -418,12 +431,19 @@ void nca_process(nca_ctx_t *ctx) {
             break;
         }
     }
-    
+
     if (ctx->is_cli_target && ctx->tool_ctx->base_nca_ctx != NULL) {
         uint64_t base_tid = ctx->tool_ctx->base_nca_ctx->header.title_id;
         uint64_t expectation = ctx->header.title_id & 0xFFFFFFFFFFFFF7FFULL;
         if (base_tid != expectation) {
             printf("[WARN] Base NCA Title ID doesn't match expectation (%016"PRIx64" != %016"PRIx64")\n", base_tid, expectation);
+        }
+    }
+
+    /* Enforce content type for extraction if required. */
+    if (ctx->tool_ctx->settings.has_expected_content_type) {
+        if (ctx->tool_ctx->settings.expected_content_type != ctx->header.content_type) {
+            ctx->tool_ctx->action &= ~(ACTION_EXTRACT);
         }
     }
 
@@ -445,7 +465,7 @@ void nca_process(nca_ctx_t *ctx) {
     /* Parse sections. */
     for (unsigned int i = 0; i < 4; i++) {
         if (ctx->header.section_entries[i].media_start_offset) { /* Section exists. */
-            ctx->section_contexts[i].is_present = 1;   
+            ctx->section_contexts[i].is_present = 1;
             ctx->section_contexts[i].is_decrypted = ctx->is_decrypted;
             ctx->section_contexts[i].tool_ctx = ctx->tool_ctx;
             ctx->section_contexts[i].file = ctx->file;
@@ -579,15 +599,15 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
     }
 
     ctx->is_decrypted = 0;
-    
+
     nca_header_t dec_header;
-    
-    
-    
+
+
+
     aes_ctx_t *hdr_aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.header_key, 32, AES_MODE_XTS);
     aes_xts_decrypt(hdr_aes_ctx, &dec_header, &ctx->header, 0x400, 0, 0x200);
-    
-    
+
+
     if (dec_header.magic == MAGIC_NCA3) {
         ctx->format_version = NCAVERSION_NCA3;
         aes_xts_decrypt(hdr_aes_ctx, &dec_header, &ctx->header, 0xC00, 0, 0x200);
@@ -610,7 +630,7 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
             if (out_len >= 0x20) {
                 memcpy(ctx->decrypted_keys, out_keydata, 0x20);
                 ctx->format_version = NCAVERSION_NCA0_BETA;
-            }         
+            }
         } else {
             unsigned char calc_hash[0x20];
             static const unsigned char expected_hash[0x20] = {0x9A, 0xBB, 0xD2, 0x11, 0x86, 0x00, 0x21, 0x9D, 0x7A, 0xDC, 0x5B, 0x43, 0x95, 0xF8, 0x4E, 0xFD, 0xFF, 0x6B, 0x25, 0xEF, 0x9F, 0x96, 0x85, 0x28, 0x18, 0x9E, 0x76, 0xB0, 0x92, 0xF0, 0x6A, 0xCB};
@@ -643,7 +663,7 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
             ctx->header = dec_header;
         }
     }
-    
+
     free_aes_ctx(hdr_aes_ctx);
     return ctx->format_version != NCAVERSION_UNKNOWN;
 }
@@ -748,7 +768,7 @@ static const char *nca_get_section_type(nca_section_ctx_t *meta) {
 static void nca_print_sections(nca_ctx_t *ctx) {
     printf("Sections:\n");
     for (unsigned int i = 0; i < 4; i++) {
-        if (ctx->section_contexts[i].is_present) { /* Section exists. */            
+        if (ctx->section_contexts[i].is_present) { /* Section exists. */
             printf("    Section %"PRId32":\n", i);
             printf("        Offset:                     0x%012"PRIx64"\n", ctx->section_contexts[i].offset);
             printf("        Size:                       0x%012"PRIx64"\n", ctx->section_contexts[i].size);
@@ -815,7 +835,7 @@ void nca_print(nca_ctx_t *ctx) {
     printf("Master Key Revision:                %"PRIx8" (%s)\n", ctx->crypto_type, get_key_revision_summary(ctx->crypto_type));
     printf("Encryption Type:                    %s\n", nca_get_encryption_type(ctx));
 
-    if (ctx->has_rights_id) {        
+    if (ctx->has_rights_id) {
         memdump(stdout, "Rights ID:                          ", &ctx->header.rights_id, 0x10);
         if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_titlekey) {
             memdump(stdout, "Titlekey (Encrypted) (From CLI)     ", ctx->tool_ctx->settings.cli_titlekey, 0x10);
@@ -867,7 +887,7 @@ static validity_t nca_section_check_external_hash_table(nca_section_ctx_t *ctx, 
         if (nca_section_fread(ctx, block, read_size) != read_size) {
             fprintf(stderr, "Failed to read section!\n");
             exit(EXIT_FAILURE);
-        }        
+        }
         sha256_hash_buffer(cur_hash, block, full_block ? block_size : read_size);
         if (memcmp(cur_hash, cur_hash_table_entry, 0x20) != 0) {
             result = VALIDITY_INVALID;
@@ -885,7 +905,7 @@ static validity_t nca_section_check_hash_table(nca_section_ctx_t *ctx, uint64_t 
     if (block_size == 0) {
         /* Block size of 0 is always invalid. */
         return VALIDITY_INVALID;
-    }    
+    }
     uint64_t hash_table_size = data_len / block_size;
     if (data_len % block_size) hash_table_size++;
     hash_table_size *= 0x20;
@@ -936,7 +956,7 @@ static void nca_save_pfs0_file(nca_section_ctx_t *ctx, uint32_t i, filepath_t *d
 
 void nca_process_pfs0_section(nca_section_ctx_t *ctx) {
     pfs0_superblock_t *sb = ctx->pfs0_ctx.superblock;
-    ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->master_hash, sb->hash_table_offset, sb->hash_table_size, sb->hash_table_size, 0);    
+    ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->master_hash, sb->hash_table_offset, sb->hash_table_size, sb->hash_table_size, 0);
     if (ctx->tool_ctx->action & ACTION_VERIFY) {
         /* Verify actual PFS0... */
         ctx->pfs0_ctx.hash_table_validity = nca_section_check_hash_table(ctx, sb->hash_table_offset, sb->pfs0_offset, sb->pfs0_size, sb->block_size, 0);
@@ -945,7 +965,7 @@ void nca_process_pfs0_section(nca_section_ctx_t *ctx) {
     if (ctx->superblock_hash_validity != VALIDITY_VALID) return;
 
     /* Read *just* safe amount. */
-    pfs0_header_t raw_header; 
+    pfs0_header_t raw_header;
     nca_section_fseek(ctx, sb->pfs0_offset);
     if (nca_section_fread(ctx, &raw_header, sizeof(raw_header)) != sizeof(raw_header)) {
         fprintf(stderr, "Failed to read PFS0 header!\n");
@@ -1052,7 +1072,7 @@ void nca_process_ivfc_section(nca_section_ctx_t *ctx) {
 
 void nca_process_nca0_romfs_section(nca_section_ctx_t *ctx) {
     nca0_romfs_superblock_t *sb = ctx->nca0_romfs_ctx.superblock;
-    ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->master_hash, sb->hash_table_offset, sb->hash_table_size, sb->hash_table_size, 0);    
+    ctx->superblock_hash_validity = nca_section_check_external_hash_table(ctx, sb->master_hash, sb->hash_table_offset, sb->hash_table_size, sb->hash_table_size, 0);
     if (ctx->tool_ctx->action & ACTION_VERIFY) {
         /* Verify actual ROMFS... */
         ctx->nca0_romfs_ctx.hash_table_validity = nca_section_check_hash_table(ctx, sb->hash_table_offset, sb->romfs_offset, sb->romfs_size, sb->block_size, 0);
@@ -1124,11 +1144,11 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             fprintf(stderr, "Failed to read subsection header!\n");
             exit(EXIT_FAILURE);
         }
-        
+
         /* NOTE: Setting these variables changes the way fseek/fread work! */
         ctx->bktr_ctx.relocation_block = relocs;
         ctx->bktr_ctx.subsection_block = subs;
-        
+
         if (ctx->bktr_ctx.subsection_block->total_size != sb->subsection_header.offset) {
             free(relocs);
             free(subs);
@@ -1137,7 +1157,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             ctx->superblock_hash_validity = VALIDITY_INVALID;
             return;
         }
-        
+
         /* This simplifies logic greatly... */
         for (unsigned int i = ctx->bktr_ctx.relocation_block->num_buckets - 1; i > 0; i--) {
             memcpy(bktr_get_relocation_bucket(ctx->bktr_ctx.relocation_block, i), &ctx->bktr_ctx.relocation_block->buckets[i], sizeof(bktr_relocation_bucket_t));
@@ -1162,7 +1182,7 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
         last_subsec_bucket->entries[last_subsec_bucket->num_entries].ctr_val = ctx->header->section_ctr_low;
         last_subsec_bucket->entries[last_subsec_bucket->num_entries + 1].offset = ctx->size;
         last_subsec_bucket->entries[last_subsec_bucket->num_entries + 1].ctr_val = 0;
-        
+
         /* Now parse out the romfs stuff. */
         for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
             /* Load in the current level's header data. */
@@ -1249,7 +1269,7 @@ void nca_print_ivfc_section(nca_section_ctx_t *ctx) {
         }
     } else {
             memdump(stdout, "        Superblock Hash:            ", &ctx->romfs_ctx.superblock->ivfc_header.master_hash, 0x20);
-    } 
+    }
     print_magic("        Magic:                      ", ctx->romfs_ctx.superblock->ivfc_header.magic);
     printf("        ID:                         %08"PRIx32"\n", ctx->romfs_ctx.superblock->ivfc_header.id);
     for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
@@ -1298,7 +1318,7 @@ void nca_print_bktr_section(nca_section_ctx_t *ctx) {
         }
     } else {
             memdump(stdout, "        Superblock Hash:            ", &ctx->bktr_ctx.superblock->ivfc_header.master_hash, 0x20);
-    } 
+    }
     print_magic("        Magic:                      ", ctx->bktr_ctx.superblock->ivfc_header.magic);
     printf("        ID:                         %08"PRIx32"\n", ctx->bktr_ctx.superblock->ivfc_header.id);
     for (unsigned int i = 0; i < IVFC_MAX_LEVEL; i++) {
@@ -1314,7 +1334,7 @@ void nca_print_bktr_section(nca_section_ctx_t *ctx) {
     }
 }
 
-void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_size, filepath_t *filepath) {    
+void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_size, filepath_t *filepath) {
     FILE *f_out = os_fopen(filepath->os_path, OS_MODE_WRITE);
 
     if (f_out == NULL) {
@@ -1330,7 +1350,7 @@ void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_
     }
     memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
     uint64_t end_ofs = ofs + total_size;
-    while (ofs < end_ofs) {       
+    while (ofs < end_ofs) {
         nca_section_fseek(ctx, ofs);
         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
         if (nca_section_fread(ctx, buf, read_size) != read_size) {
@@ -1379,7 +1399,7 @@ void nca_save_section(nca_section_ctx_t *ctx) {
     } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL && ctx->tool_ctx->base_file != NULL) {
         size = ctx->bktr_ctx.relocation_block->total_size;
     }
-    
+
     /* Extract to file. */
     filepath_t *secpath = &ctx->tool_ctx->settings.section_paths[ctx->section_num];
 
@@ -1389,7 +1409,20 @@ void nca_save_section(nca_section_ctx_t *ctx) {
     } else if ((ctx->type == ROMFS || ctx->type == NCA0_ROMFS) && ctx->tool_ctx->settings.romfs_path.enabled && ctx->tool_ctx->settings.romfs_path.path.valid == VALIDITY_VALID) {
         secpath = &ctx->tool_ctx->settings.romfs_path.path;
     }
+
     if (secpath != NULL && secpath->valid == VALIDITY_VALID) {
+        filepath_t appended_path;
+        filepath_init(&appended_path);
+        filepath_copy(&appended_path, secpath);
+        if (ctx->tool_ctx->settings.append_section_types) {
+            filepath_set_format(&appended_path, "%s.%s", secpath->char_path, nca_get_section_type_name(ctx->type));
+            if (appended_path.valid == VALIDITY_VALID) {
+                secpath = &appended_path;
+            } else {
+                printf("[WARN] Failed to append section type to path\n");
+            }
+        }
+
         printf("Saving Section %"PRId32" to %s...\n", ctx->section_num, secpath->char_path);
         printf("Size: %012"PRIx64"\n", size);
         nca_save_section_file(ctx, offset, size, secpath);
@@ -1428,6 +1461,18 @@ void nca_save_pfs0_section(nca_section_ctx_t *ctx) {
             dirpath = &ctx->tool_ctx->settings.section_dir_paths[ctx->section_num];
         }
         if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+            filepath_t appended_path;
+            filepath_init(&appended_path);
+            filepath_copy(&appended_path, dirpath);
+            if (ctx->tool_ctx->settings.append_section_types) {
+                filepath_set_format(&appended_path, "%s_%s", dirpath->char_path, nca_get_section_type_name(ctx->type));
+                if (appended_path.valid == VALIDITY_VALID) {
+                    dirpath = &appended_path;
+                } else {
+                    printf("[WARN] Failed to append section type to path\n");
+                }
+            }
+
             os_makedir(dirpath->os_path);
             for (uint32_t i = 0; i < ctx->pfs0_ctx.header->num_files; i++) {
                 nca_save_pfs0_file(ctx, i, dirpath);
@@ -1445,19 +1490,19 @@ static int nca_is_romfs_file_updated(nca_section_ctx_t *ctx, uint64_t file_offse
     if (ctx->type == ROMFS) {
         return 1;
     }
-       
+
     bktr_relocation_entry_t *first_reloc = bktr_get_relocation(ctx->bktr_ctx.relocation_block, file_offset);
     bktr_relocation_entry_t *last_reloc = first_reloc;
     while (last_reloc->virt_offset < file_offset + file_size) {
         last_reloc++;
     }
-    
+
     for (bktr_relocation_entry_t *cur_reloc = first_reloc; cur_reloc < last_reloc; cur_reloc++) {
         if (cur_reloc->is_patch) {
             return 1;
         }
     }
-    
+
     return 0;
 }
 
@@ -1478,7 +1523,7 @@ static int nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, fi
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
     }
-    
+
     int found_file = 1;
 
     /* If we're extracting... */
@@ -1504,7 +1549,7 @@ static int nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, fi
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
         return found_file | nca_visit_romfs_file(ctx, entry->sibling, dir_path);
     }
-    
+
     return found_file;
 }
 
@@ -1520,12 +1565,12 @@ static int nca_visit_nca0_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offse
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
     }
-    
+
     int found_file = 1;
 
     /* If we're extracting... */
     uint64_t phys_offset = ctx->nca0_romfs_ctx.romfs_offset + ctx->nca0_romfs_ctx.header.data_offset + entry->offset;
-    
+
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         printf("Saving %s...\n", cur_path->char_path);
         nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
@@ -1538,7 +1583,7 @@ static int nca_visit_nca0_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offse
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
         return found_file | nca_visit_nca0_romfs_file(ctx, entry->sibling, dir_path);
     }
-    
+
     return found_file;
 }
 
@@ -1548,13 +1593,13 @@ static int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, file
         entry = romfs_get_direntry(ctx->romfs_ctx.directories, dir_offset);
     } else {
         entry = romfs_get_direntry(ctx->bktr_ctx.directories, dir_offset);
-    } 
+    }
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
         fprintf(stderr, "Failed to allocate filepath!\n");
         exit(EXIT_FAILURE);
     }
-    
+
     filepath_copy(cur_path, parent_path);
     if (entry->name_size) {
         filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
@@ -1564,7 +1609,7 @@ static int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, file
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         os_makedir(cur_path->os_path);
     }
-    
+
     int any_files = 0;
 
     if (entry->file != ROMFS_ENTRY_EMPTY) {
@@ -1573,16 +1618,16 @@ static int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, file
     if (entry->child != ROMFS_ENTRY_EMPTY) {
         any_files |= nca_visit_romfs_dir(ctx, entry->child, cur_path);
     }
-    
+
     if (any_files == 0 && ctx->type == BKTR && (ctx->tool_ctx->action & ACTION_ONLYUPDATEDROMFS)) {
         os_rmdir(cur_path->os_path);
     }
 
-    
+
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
         nca_visit_romfs_dir(ctx, entry->sibling, parent_path);
     }
-    
+
     free(cur_path);
     return any_files;
 }
@@ -1604,7 +1649,7 @@ static int nca_visit_nca0_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset,
     if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
         os_makedir(cur_path->os_path);
     }
-    
+
     int any_files = 0;
 
     if (entry->file != ROMFS_ENTRY_EMPTY) {
@@ -1613,11 +1658,11 @@ static int nca_visit_nca0_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset,
     if (entry->child != ROMFS_ENTRY_EMPTY) {
         any_files |= nca_visit_nca0_romfs_file(ctx, entry->child, cur_path);
     }
-    
+
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
         nca_visit_nca0_romfs_dir(ctx, entry->sibling, parent_path);
     }
-    
+
     free(cur_path);
     return any_files;
 }
@@ -1640,6 +1685,18 @@ void nca_save_ivfc_section(nca_section_ctx_t *ctx) {
                     dirpath = &ctx->tool_ctx->settings.section_dir_paths[ctx->section_num];
                 }
                 if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+                    filepath_t appended_path;
+                    filepath_init(&appended_path);
+                    filepath_copy(&appended_path, dirpath);
+                    if (ctx->tool_ctx->settings.append_section_types) {
+                        filepath_set_format(&appended_path, "%s_%s", dirpath->char_path, nca_get_section_type_name(ctx->type));
+                        if (appended_path.valid == VALIDITY_VALID) {
+                            dirpath = &appended_path;
+                        } else {
+                            printf("[WARN] Failed to append section type to path\n");
+                        }
+                    }
+
                     os_makedir(dirpath->os_path);
                     nca_visit_romfs_dir(ctx, 0, dirpath);
                 }
@@ -1671,6 +1728,18 @@ void nca_save_nca0_romfs_section(nca_section_ctx_t *ctx) {
                     dirpath = &ctx->tool_ctx->settings.section_dir_paths[ctx->section_num];
                 }
                 if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+                    filepath_t appended_path;
+                    filepath_init(&appended_path);
+                    filepath_copy(&appended_path, dirpath);
+                    if (ctx->tool_ctx->settings.append_section_types) {
+                        filepath_set_format(&appended_path, "%s_%s", dirpath->char_path, nca_get_section_type_name(ctx->type));
+                        if (appended_path.valid == VALIDITY_VALID) {
+                            dirpath = &appended_path;
+                        } else {
+                            printf("[WARN] Failed to append section type to path\n");
+                        }
+                    }
+
                     os_makedir(dirpath->os_path);
                     nca_visit_nca0_romfs_dir(ctx, 0, dirpath);
                 }
@@ -1701,6 +1770,18 @@ void nca_save_bktr_section(nca_section_ctx_t *ctx) {
                     dirpath = &ctx->tool_ctx->settings.section_dir_paths[ctx->section_num];
                 }
                 if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+                    filepath_t appended_path;
+                    filepath_init(&appended_path);
+                    filepath_copy(&appended_path, dirpath);
+                    if (ctx->tool_ctx->settings.append_section_types) {
+                        filepath_set_format(&appended_path, "%s_%s", dirpath->char_path, nca_get_section_type_name(ctx->type));
+                        if (appended_path.valid == VALIDITY_VALID) {
+                            dirpath = &appended_path;
+                        } else {
+                            printf("[WARN] Failed to append section type to path\n");
+                        }
+                    }
+
                     os_makedir(dirpath->os_path);
                     nca_visit_romfs_dir(ctx, 0, dirpath);
                 }

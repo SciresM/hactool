@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "types.h"
 #include "utils.h"
 #include "settings.h"
@@ -57,6 +58,8 @@ static void usage(void) {
         "  --basenca          Set Base NCA to use with update partitions.\n"
         "  --basefake         Use a fake Base RomFS with update partitions (all reads will return 0xCC).\n"
         "  --onlyupdated      Ignore non-updated files in update partitions.\n"
+        "  --xcontenttype=    Only extract contents if the content type matches an expected one.\n"
+        "  --appendsectypes   Append a section type string to section paths.\n"
         "NPDM options:\n"
         "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
         "KIP1 options:\n"
@@ -185,6 +188,8 @@ int main(int argc, char **argv) {
             {"uncompressed", 1, NULL, 39},
             {"disablekeywarns", 0, NULL, 40},
             {"listfiles", 0, NULL, 41},
+            {"xcontenttype", 1, NULL, 42},
+            {"appendsectypes", 0, NULL, 43},
             {NULL, 0, NULL, 0},
         };
 
@@ -399,6 +404,33 @@ int main(int argc, char **argv) {
                 break;
             case 41:
                 nca_ctx.tool_ctx->action |= ACTION_LISTFILES;
+                break;
+            case 42:
+                if (strlen(optarg) > 0) {
+                    nca_ctx.tool_ctx->settings.has_expected_content_type = 1;
+                    if (strcasecmp(optarg, "program") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTYPE_PROGRAM;
+                    } else if (strcasecmp(optarg, "meta") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTYPE_META;
+                    } else if (strcasecmp(optarg, "control") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTYPE_CONTROL;
+                    } else if (strcasecmp(optarg, "manual") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTYPE_MANUAL;
+                    } else if (strcasecmp(optarg, "data") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTYPE_DATA;
+                    } else if (strcasecmp(optarg, "publicdata") == 0) {
+                        nca_ctx.tool_ctx->settings.expected_content_type = NCACONTENTTPYE_PUBLICDATA;
+                    } else if ('0' <= optarg[0] && optarg[1] <= '9') {
+                        nca_ctx.tool_ctx->settings.expected_content_type = (optarg[0] - '0');
+                    } else {
+                        /* Failure to parse expected content type. */
+                        printf("[WARN] Unknown expected content type (%s).\n", optarg);
+                        nca_ctx.tool_ctx->settings.has_expected_content_type = 0;
+                    }
+                }
+                break;
+            case 43:
+                nca_ctx.tool_ctx->settings.append_section_types = 1;
                 break;
             default:
                 usage();
