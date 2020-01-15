@@ -952,7 +952,7 @@ void save_print_ivfc_section(save_ctx_t *ctx) {
         if (i != 0) {
             printf("        Hash Offset:                0x%016"PRIx64"\n", ctx->header.data_ivfc_header.level_headers[i-1].logical_offset);
         } else {
-            printf("        Hash Offset:                0x%016"PRIx64"\n", 0x0ull);
+            printf("        Hash Offset:                0x0\n");
         }
         printf("        Hash Block Size:            0x%08"PRIx32"\n", 1 << ctx->header.data_ivfc_header.level_headers[i].block_size);
     }
