@@ -60,6 +60,7 @@ static void usage(void) {
         "  --onlyupdated      Ignore non-updated files in update partitions.\n"
         "  --xcontenttype=    Only extract contents if the content type matches an expected one.\n"
         "  --appendsectypes   Append a section type string to section paths.\n"
+        "  --suppresskeys     Suppress output of decrypted keys.\n"
         "NPDM options:\n"
         "  --json=file        Specify file path for saving JSON representation of program permissions to.\n"
         "KIP1 options:\n"
@@ -190,6 +191,7 @@ int main(int argc, char **argv) {
             {"listfiles", 0, NULL, 41},
             {"xcontenttype", 1, NULL, 42},
             {"appendsectypes", 0, NULL, 43},
+            {"suppresskeys", 0, NULL, 44},
             {NULL, 0, NULL, 0},
         };
 
@@ -431,6 +433,9 @@ int main(int argc, char **argv) {
                 break;
             case 43:
                 nca_ctx.tool_ctx->settings.append_section_types = 1;
+                break;
+            case 44:
+                nca_ctx.tool_ctx->settings.suppress_keydata_output = 1;
                 break;
             default:
                 usage();

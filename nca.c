@@ -719,10 +719,12 @@ static void nca_print_key_area(nca_ctx_t *ctx) {
     if (ctx->format_version == NCAVERSION_NCA0_BETA) {
         printf("Key Area (Encrypted):\n");
         memdump(stdout, "Key (RSA-OAEP Encrypted):           ", &ctx->header.encrypted_keys, 0x100);
-        printf("Key Area (Decrypted):\n");
-        for (unsigned int i = 0; i < 0x2; i++) {
-            printf("    Key %"PRId32" (Decrypted):              ", i);
-            memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+        if (!ctx->tool_ctx->settings.suppress_keydata_output) {
+            printf("Key Area (Decrypted):\n");
+            for (unsigned int i = 0; i < 0x2; i++) {
+                printf("    Key %"PRId32" (Decrypted):              ", i);
+                memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+            }
         }
     } else if (ctx->format_version == NCAVERSION_NCA0) {
         printf("Key Area (Encrypted):\n");
@@ -730,10 +732,12 @@ static void nca_print_key_area(nca_ctx_t *ctx) {
             printf("    Key %"PRId32" (Encrypted):              ", i);
             memdump(stdout, "", &ctx->header.encrypted_keys[i], 0x10);
         }
-        printf("Key Area (Decrypted):\n");
-        for (unsigned int i = 0; i < 0x2; i++) {
-            printf("    Key %"PRId32" (Decrypted):              ", i);
-            memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+        if (!ctx->tool_ctx->settings.suppress_keydata_output) {
+            printf("Key Area (Decrypted):\n");
+            for (unsigned int i = 0; i < 0x2; i++) {
+                printf("    Key %"PRId32" (Decrypted):              ", i);
+                memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+            }
         }
     } else {
         printf("Key Area (Encrypted):\n");
@@ -741,10 +745,12 @@ static void nca_print_key_area(nca_ctx_t *ctx) {
             printf("    Key %"PRId32" (Encrypted):              ", i);
             memdump(stdout, "", &ctx->header.encrypted_keys[i], 0x10);
         }
-        printf("Key Area (Decrypted):\n");
-        for (unsigned int i = 0; i < 0x4; i++) {
-            printf("    Key %"PRId32" (Decrypted):              ", i);
-            memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+        if (!ctx->tool_ctx->settings.suppress_keydata_output) {
+            printf("Key Area (Decrypted):\n");
+            for (unsigned int i = 0; i < 0x4; i++) {
+                printf("    Key %"PRId32" (Decrypted):              ", i);
+                memdump(stdout, "", &ctx->decrypted_keys[i], 0x10);
+            }
         }
     }
 }
@@ -838,12 +844,16 @@ void nca_print(nca_ctx_t *ctx) {
     if (ctx->has_rights_id) {
         memdump(stdout, "Rights ID:                          ", &ctx->header.rights_id, 0x10);
         if (ctx->is_cli_target && ctx->tool_ctx->settings.has_cli_titlekey) {
-            memdump(stdout, "Titlekey (Encrypted) (From CLI)     ", ctx->tool_ctx->settings.cli_titlekey, 0x10);
-            memdump(stdout, "Titlekey (Decrypted) (From CLI)     ", ctx->tool_ctx->settings.dec_cli_titlekey, 0x10);
+            if (!ctx->tool_ctx->settings.suppress_keydata_output) {
+                memdump(stdout, "Titlekey (Encrypted) (From CLI)     ", ctx->tool_ctx->settings.cli_titlekey, 0x10);
+                memdump(stdout, "Titlekey (Decrypted) (From CLI)     ", ctx->tool_ctx->settings.dec_cli_titlekey, 0x10);
+            }
         } else if (settings_has_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id)) {
             titlekey_entry_t *entry = settings_get_titlekey(&ctx->tool_ctx->settings, ctx->header.rights_id);
-            memdump(stdout, "Titlekey (Encrypted)                ", entry->titlekey, 0x10);
-            memdump(stdout, "Titlekey (Decrypted)                ", entry->dec_titlekey, 0x10);
+            if (!ctx->tool_ctx->settings.suppress_keydata_output) {
+                memdump(stdout, "Titlekey (Encrypted)                ", entry->titlekey, 0x10);
+                memdump(stdout, "Titlekey (Decrypted)                ", entry->dec_titlekey, 0x10);
+            }
         } else {
             printf("Titlekey:                           Unknown\n");
         }
