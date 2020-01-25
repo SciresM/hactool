@@ -7,7 +7,7 @@ LIBDIR = ./mbedtls/library
 CFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -D__USE_MINGW_ANSI_STDIO=1 -D_FILE_OFFSET_BITS=64
 
 all:
-	cd mbedtls && $(MAKE) lib
+	$(MAKE) -C mbedtls lib
 	$(MAKE) hactool$(EXEEXT)
 
 .c.o:
@@ -69,7 +69,7 @@ clean:
     
 clean_full:
 	rm -f *.o hactool hactool.exe
-	cd mbedtls && $(MAKE) clean
+	$(MAKE)-C mbedtls clean
 
 dist: clean_full
 	$(eval HACTOOLVER = $(shell grep '\bHACTOOL_VERSION\b' version.h \
