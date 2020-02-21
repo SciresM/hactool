@@ -607,7 +607,7 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     printf("    MMU Flags:                      %"PRIx8"\n", npdm->mmu_flags);
     printf("    Main Thread Priority:           %"PRId8"\n", npdm->main_thread_prio);
     printf("    Default CPU ID:                 %"PRIx8"\n", npdm->default_cpuid);
-    printf("    Version         :               %"PRIu32".%"PRIu32".%"PRIu32"-%"PRIu32" (%"PRIu32")\n", (npdm->version >> 26) & 0x3F, (npdm->version >> 20) & 0x3F, (npdm->version >> 16) & 0xF, (npdm->version >> 0) & 0xFFFF, npdm->version);
+    printf("    Version:                        %"PRIu32".%"PRIu32".%"PRIu32"-%"PRIu32" (%"PRIu32")\n", (npdm->version >> 26) & 0x3F, (npdm->version >> 20) & 0x3F, (npdm->version >> 16) & 0xF, (npdm->version >> 0) & 0xFFFF, npdm->version);
     printf("    Main Thread Stack Size:         0x%"PRIx32"\n", npdm->main_stack_size);
     printf("    Title Name:                     %s\n", npdm->title_name);
     npdm_acid_t *acid = npdm_get_acid(npdm);
@@ -615,12 +615,20 @@ void npdm_print(npdm_t *npdm, hactool_ctx_t *tool_ctx) {
     printf("    ACID:\n");
     print_magic("        Magic:                      ", acid->magic);
     if (tool_ctx->action & ACTION_VERIFY) {
-        if (rsa2048_pss_verify(acid->modulus, acid->size, acid->signature, tool_ctx->settings.keyset.acid_fixed_key_modulus)) {
-            memdump(stdout, "        Signature (GOOD):           ", &acid->signature, 0x100);
+        if (npdm->acid_sign_key_index < sizeof(tool_ctx->settings.keyset.acid_fixed_key_moduli) / sizeof(tool_ctx->settings.keyset.acid_fixed_key_moduli[0])) {
+            printf("        Signature Key (GOOD):       %"PRIu32"\n", npdm->acid_sign_key_index);
+            if (rsa2048_pss_verify(acid->modulus, acid->size, acid->signature, tool_ctx->settings.keyset.acid_fixed_key_moduli[npdm->acid_sign_key_index])) {
+                memdump(stdout, "        Signature (GOOD):           ", &acid->signature, 0x100);
+            } else {
+                memdump(stdout, "        Signature (FAIL):           ", &acid->signature, 0x100);
+            }
         } else {
+            printf("        Signature Key (FAIL):       %"PRIu32"\n", npdm->acid_sign_key_index);
             memdump(stdout, "        Signature (FAIL):           ", &acid->signature, 0x100);
         }
+
     } else {
+        printf("        Signature Key:              %"PRIu32"\n", npdm->acid_sign_key_index);
         memdump(stdout, "        Signature:                  ", &acid->signature, 0x100);
     }
     memdump(stdout, "        Header Modulus:             ", &acid->modulus, 0x100);

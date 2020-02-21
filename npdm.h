@@ -109,7 +109,7 @@ typedef struct {
 
 typedef struct {
     uint32_t magic;
-    uint32_t _0x4;
+    uint32_t acid_sign_key_index;
     uint32_t _0x8;
     uint8_t mmu_flags;
     uint8_t _0xD;

@@ -838,7 +838,7 @@ void nca_print(nca_ctx_t *ctx) {
     printf("SDK Version:                        %"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n", ctx->header.sdk_major, ctx->header.sdk_minor, ctx->header.sdk_micro, ctx->header.sdk_revision);
     printf("Distribution type:                  %s\n", nca_get_distribution_type(ctx));
     printf("Content Type:                       %s\n", nca_get_content_type(ctx));
-    printf("Master Key Revision:                %"PRIx8" (%s)\n", ctx->crypto_type, get_key_revision_summary(ctx->crypto_type));
+    printf("Master Key Revision:                0x%"PRIX8" (%s)\n", ctx->crypto_type, get_key_revision_summary(ctx->crypto_type));
     printf("Encryption Type:                    %s\n", nca_get_encryption_type(ctx));
 
     if (ctx->has_rights_id) {
