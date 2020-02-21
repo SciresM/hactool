@@ -835,7 +835,7 @@ void nca_print(nca_ctx_t *ctx) {
     }
     printf("Content Size:                       0x%012"PRIx64"\n", ctx->header.nca_size);
     printf("Title ID:                           %016"PRIx64"\n", ctx->header.title_id);
-    printf("SDK Version:                        %"PRId8".%"PRId8".%"PRId8".%"PRId8"\n", ctx->header.sdk_major, ctx->header.sdk_minor, ctx->header.sdk_micro, ctx->header.sdk_revision);
+    printf("SDK Version:                        %"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n", ctx->header.sdk_major, ctx->header.sdk_minor, ctx->header.sdk_micro, ctx->header.sdk_revision);
     printf("Distribution type:                  %s\n", nca_get_distribution_type(ctx));
     printf("Content Type:                       %s\n", nca_get_content_type(ctx));
     printf("Master Key Revision:                %"PRIx8" (%s)\n", ctx->crypto_type, get_key_revision_summary(ctx->crypto_type));
