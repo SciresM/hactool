@@ -109,7 +109,8 @@ typedef struct {
         };
     };
     uint8_t crypto_type2; /* Which keyblob (field 2) */
-    uint8_t _0x221[0xF]; /* Padding. */
+    uint8_t fixed_key_generation;
+    uint8_t _0x222[0xF]; /* Padding. */
     uint8_t rights_id[0x10]; /* Rights ID (for titlekey crypto). */
     nca_section_entry_t section_entries[4]; /* Section entry metadata. */
     uint8_t section_hashes[4][0x20]; /* SHA-256 hashes for each section header. */

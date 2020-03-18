@@ -410,8 +410,12 @@ void nca_process(nca_ctx_t *ctx) {
         return;
     }
 
-    if (rsa2048_pss_verify(&ctx->header.magic, 0x200, ctx->header.fixed_key_sig, ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_modulus)) {
-        ctx->fixed_sig_validity = VALIDITY_VALID;
+    if (ctx->header.fixed_key_generation < sizeof(ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_moduli) / sizeof(ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_moduli[0])) {
+        if (rsa2048_pss_verify(&ctx->header.magic, 0x200, ctx->header.fixed_key_sig, ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_moduli[ctx->header.fixed_key_generation])) {
+            ctx->fixed_sig_validity = VALIDITY_VALID;
+        } else {
+            ctx->fixed_sig_validity = VALIDITY_INVALID;
+        }
     } else {
         ctx->fixed_sig_validity = VALIDITY_INVALID;
     }
@@ -814,6 +818,16 @@ static void nca_print_sections(nca_ctx_t *ctx) {
 void nca_print(nca_ctx_t *ctx) {
     printf("\nNCA:\n");
     print_magic("Magic:                              ", ctx->header.magic);
+
+    if (ctx->tool_ctx->action & ACTION_VERIFY) {
+        if (ctx->header.fixed_key_generation < sizeof(ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_moduli) / sizeof(ctx->tool_ctx->settings.keyset.nca_hdr_fixed_key_moduli[0])) {
+            printf("Fixed-Key Index (GOOD):             0x%"PRIX8"\n", ctx->header.fixed_key_generation);
+        } else {
+            printf("Fixed-Key Index (FAIL):             0x%"PRIX8"\n", ctx->header.fixed_key_generation);
+        }
+    } else {
+        printf("Fixed-Key Index:                    0x%"PRIX8"\n", ctx->header.fixed_key_generation);
+    }
 
     if (ctx->tool_ctx->action & ACTION_VERIFY && ctx->fixed_sig_validity != VALIDITY_UNCHECKED) {
         if (ctx->fixed_sig_validity == VALIDITY_VALID) {
@@ -1517,84 +1531,94 @@ static int nca_is_romfs_file_updated(nca_section_ctx_t *ctx, uint64_t file_offse
 }
 
 static int nca_visit_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
-    romfs_fentry_t *entry;
-    if (ctx->type == ROMFS) {
-        entry = romfs_get_fentry(ctx->romfs_ctx.files, file_offset);
-    } else {
-        entry = romfs_get_fentry(ctx->bktr_ctx.files, file_offset);
-    }
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
         fprintf(stderr, "Failed to allocate filepath!\n");
         exit(EXIT_FAILURE);
     }
 
-    filepath_copy(cur_path, dir_path);
-    if (entry->name_size) {
-        filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
+    int found_any_file = 0;
+
+    do {
+        romfs_fentry_t *entry;
+        if (ctx->type == ROMFS) {
+            entry = romfs_get_fentry(ctx->romfs_ctx.files, file_offset);
+        } else {
+            entry = romfs_get_fentry(ctx->bktr_ctx.files, file_offset);
+        }
+
+        filepath_copy(cur_path, dir_path);
+        if (entry->name_size) {
+            filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
+        }
+
+        int found_file = 1;
+
+        /* If we're extracting... */
+        uint64_t phys_offset;
+        if (ctx->type == ROMFS) {
+            phys_offset = ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset;
+        } else {
+            phys_offset = ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.data_offset + entry->offset;
+        }
+        if ((ctx->tool_ctx->action & ACTION_ONLYUPDATEDROMFS) == 0 || nca_is_romfs_file_updated(ctx, phys_offset, entry->size)) {
+            if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
+                printf("Saving %s...\n", cur_path->char_path);
+                nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
+            } else {
+                printf("rom:%s\n", cur_path->char_path);
+            }
+        } else {
+            found_file = 0;
+        }
+
+        found_any_file |= found_file;
+
+        file_offset = entry->sibling;
+    } while (file_offset != ROMFS_ENTRY_EMPTY);
+
+    free(cur_path);
+
+    return found_any_file;
+}
+
+static int nca_visit_nca0_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
+    filepath_t *cur_path = calloc(1, sizeof(filepath_t));
+    if (cur_path == NULL) {
+        fprintf(stderr, "Failed to allocate filepath!\n");
+        exit(EXIT_FAILURE);
     }
 
-    int found_file = 1;
+    int found_any_file = 0;
 
-    /* If we're extracting... */
-    uint64_t phys_offset;
-    if (ctx->type == ROMFS) {
-        phys_offset = ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.data_offset + entry->offset;
-    } else {
-        phys_offset = ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.data_offset + entry->offset;
-    }
-    if ((ctx->tool_ctx->action & ACTION_ONLYUPDATEDROMFS) == 0 || nca_is_romfs_file_updated(ctx, phys_offset, entry->size)) {
+    do {
+        romfs_fentry_t *entry = romfs_get_fentry(ctx->nca0_romfs_ctx.files, file_offset);
+
+        filepath_copy(cur_path, dir_path);
+        if (entry->name_size) {
+            filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
+        }
+
+        int found_file = 1;
+
+        /* If we're extracting... */
+        uint64_t phys_offset = ctx->nca0_romfs_ctx.romfs_offset + ctx->nca0_romfs_ctx.header.data_offset + entry->offset;
+
         if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
             printf("Saving %s...\n", cur_path->char_path);
             nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
         } else {
             printf("rom:%s\n", cur_path->char_path);
         }
-    } else {
-        found_file = 0;
-    }
+
+        found_any_file |= found_file;
+
+        file_offset = entry->sibling;
+    } while (file_offset != ROMFS_ENTRY_EMPTY);
 
     free(cur_path);
 
-    if (entry->sibling != ROMFS_ENTRY_EMPTY) {
-        return found_file | nca_visit_romfs_file(ctx, entry->sibling, dir_path);
-    }
-
-    return found_file;
-}
-
-static int nca_visit_nca0_romfs_file(nca_section_ctx_t *ctx, uint32_t file_offset, filepath_t *dir_path) {
-    romfs_fentry_t *entry = romfs_get_fentry(ctx->nca0_romfs_ctx.files, file_offset);
-    filepath_t *cur_path = calloc(1, sizeof(filepath_t));
-    if (cur_path == NULL) {
-        fprintf(stderr, "Failed to allocate filepath!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    filepath_copy(cur_path, dir_path);
-    if (entry->name_size) {
-        filepath_append_n(cur_path, entry->name_size, "%s", entry->name);
-    }
-
-    int found_file = 1;
-
-    /* If we're extracting... */
-    uint64_t phys_offset = ctx->nca0_romfs_ctx.romfs_offset + ctx->nca0_romfs_ctx.header.data_offset + entry->offset;
-
-    if ((ctx->tool_ctx->action & ACTION_LISTROMFS) == 0) {
-        printf("Saving %s...\n", cur_path->char_path);
-        nca_save_section_file(ctx, phys_offset, entry->size, cur_path);
-    } else {
-        printf("rom:%s\n", cur_path->char_path);
-    }
-
-    free(cur_path);
-
-    if (entry->sibling != ROMFS_ENTRY_EMPTY) {
-        return found_file | nca_visit_nca0_romfs_file(ctx, entry->sibling, dir_path);
-    }
-
-    return found_file;
+    return found_any_file;
 }
 
 static int nca_visit_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset, filepath_t *parent_path) {
