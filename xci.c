@@ -96,6 +96,7 @@ void xci_process(xci_ctx_t *ctx) {
     ctx->partition_ctx.offset = ctx->header.hfs0_offset;
     ctx->partition_ctx.tool_ctx = &blank_ctx;
     ctx->partition_ctx.name = "rootpt";
+    ctx->partition_ctx.hash_suffix = NULL;
     hfs0_process(&ctx->partition_ctx);
 
     if (ctx->partition_ctx.header->num_files > 4) {
@@ -127,7 +128,7 @@ void xci_process(xci_ctx_t *ctx) {
         cur_ctx->offset = ctx->partition_ctx.offset + hfs0_get_header_size(ctx->partition_ctx.header) + cur_file->offset;
         cur_ctx->tool_ctx = &blank_ctx;
         cur_ctx->file = ctx->file;
-        cur_ctx->hash_suffix = compatiblity_type_ptr;
+        cur_ctx->hash_suffix = NULL;
         hfs0_process(cur_ctx);
     }
 
