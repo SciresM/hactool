@@ -45,10 +45,47 @@ void xci_process(xci_ctx_t *ctx) {
         }
     }
 
-    ctx->hfs0_hash_validity = check_memory_hash_table(ctx->file, ctx->header.hfs0_header_hash, ctx->header.hfs0_offset, ctx->header.hfs0_header_size, ctx->header.hfs0_header_size, 0);
-    if (ctx->hfs0_hash_validity != VALIDITY_VALID) {
-        fprintf(stderr, "Error: XCI partition is corrupt!\n");
-        exit(EXIT_FAILURE);
+    for (unsigned int i = 0; i < 0x10; i++) {
+        ctx->iv[i] = ctx->header.reversed_iv[0xF-i];
+    }
+
+
+    // try to decrypt header data
+    unsigned char null_key[0x10];
+    memset(null_key, 0x00, 0x10);
+    // test if the xci header key is set
+    if (memcmp(ctx->tool_ctx->settings.keyset.xci_header_key, null_key, 0x10) != 0) {
+        aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.xci_header_key, 0x10, AES_MODE_CBC);
+        aes_setiv(aes_ctx, ctx->iv, 0x10);
+
+        aes_decrypt(aes_ctx, ctx->decrypted_header, ctx->header.encrypted_data, 0x70);
+
+        ctx->has_decrypted_header = 1;
+    } else {
+        ctx->has_decrypted_header = 0;
+    }
+
+    const uint8_t *compatiblity_type_ptr = NULL;
+    ctx->has_fake_compat_type = 0;
+    ctx->fake_compat_type = COMPAT_GLOBAL;
+    if (ctx->has_decrypted_header) {
+        xci_gamecard_info_t *gc_info = (xci_gamecard_info_t*)(ctx->decrypted_header + 0x10);
+        if (gc_info->compatibility_type != 0) {
+            compatiblity_type_ptr = &gc_info->compatibility_type;
+        }
+        ctx->hfs0_hash_validity = check_memory_hash_table_with_suffix(ctx->file, ctx->header.hfs0_header_hash, ctx->header.hfs0_offset, ctx->header.hfs0_header_size, ctx->header.hfs0_header_size, compatiblity_type_ptr, 0);
+    } else {
+        ctx->hfs0_hash_validity = check_memory_hash_table_with_suffix(ctx->file, ctx->header.hfs0_header_hash, ctx->header.hfs0_offset, ctx->header.hfs0_header_size, ctx->header.hfs0_header_size, compatiblity_type_ptr, 0);
+        if (ctx->hfs0_hash_validity != VALIDITY_VALID) {
+            ctx->has_fake_compat_type = 1;
+            ctx->fake_compat_type = COMPAT_CHINA;
+            compatiblity_type_ptr = &ctx->fake_compat_type;
+            ctx->hfs0_hash_validity = check_memory_hash_table_with_suffix(ctx->file, ctx->header.hfs0_header_hash, ctx->header.hfs0_offset, ctx->header.hfs0_header_size, ctx->header.hfs0_header_size, compatiblity_type_ptr, 0);
+        }
+        if (ctx->hfs0_hash_validity != VALIDITY_VALID) {
+            fprintf(stderr, "Error: XCI partition is corrupt!\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
     hactool_ctx_t blank_ctx;
@@ -90,26 +127,8 @@ void xci_process(xci_ctx_t *ctx) {
         cur_ctx->offset = ctx->partition_ctx.offset + hfs0_get_header_size(ctx->partition_ctx.header) + cur_file->offset;
         cur_ctx->tool_ctx = &blank_ctx;
         cur_ctx->file = ctx->file;
+        cur_ctx->hash_suffix = compatiblity_type_ptr;
         hfs0_process(cur_ctx);
-    }
-
-    for (unsigned int i = 0; i < 0x10; i++) {
-        ctx->iv[i] = ctx->header.reversed_iv[0xF-i];
-    }
-
-    // try to decrypt header data
-    unsigned char null_key[0x10];
-    memset(null_key, 0x00, 0x10);
-    // test if the xci header key is set
-    if (memcmp(ctx->tool_ctx->settings.keyset.xci_header_key, null_key, 0x10) != 0) {
-        aes_ctx_t *aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.xci_header_key, 0x10, AES_MODE_CBC);
-        aes_setiv(aes_ctx, ctx->iv, 0x10);
-
-        aes_decrypt(aes_ctx, ctx->decrypted_header, ctx->header.encrypted_data, 0x70);
-
-        ctx->has_decrypted_header = 1;
-    } else {
-        ctx->has_decrypted_header = 0;
     }
 
 
@@ -236,14 +255,18 @@ static const char *xci_get_access_control_type(xci_gamecard_info_t *gc_info) {
     }
 }
 
-static const char *xci_get_region_compatibility_type(xci_gamecard_info_t *gc_info) {
-    xci_region_compatibility_t compatibility_type = (xci_region_compatibility_t)gc_info->compatibility_type;
+static const char *xci_get_region_compatibility_type_name(uint8_t _type) {
+    xci_region_compatibility_t compatibility_type = (xci_region_compatibility_t)_type;
     switch (compatibility_type) {
         case COMPAT_GLOBAL: return "Global";
         case COMPAT_CHINA: return "China";
         default:
             return "Unknown/Invalid";
     }
+}
+
+static const char *xci_get_region_compatibility_type(xci_gamecard_info_t *gc_info) {
+    return xci_get_region_compatibility_type_name(gc_info->compatibility_type);
 }
 
 static void xci_print_hfs0(hfs0_ctx_t *ctx) {
@@ -256,7 +279,7 @@ static void xci_print_hfs0(hfs0_ctx_t *ctx) {
         for (unsigned int i = 0; i < ctx->header->num_files; i++) {
             hfs0_file_entry_t *cur_file = hfs0_get_file_entry(ctx->header, i);
             if (ctx->tool_ctx->action & ACTION_VERIFY) {
-                validity_t hash_validity = check_memory_hash_table(ctx->file, cur_file->hash, ctx->offset + hfs0_get_header_size(ctx->header) + cur_file->offset, cur_file->hashed_size, cur_file->hashed_size, 0);
+                validity_t hash_validity = check_memory_hash_table_with_suffix(ctx->file, cur_file->hash, ctx->offset + hfs0_get_header_size(ctx->header) + cur_file->offset, cur_file->hashed_size, cur_file->hashed_size, ctx->hash_suffix, 0);
                 printf("%s%s:/%-48s %012"PRIx64"-%012"PRIx64" (%s)\n", i == 0 ? "                          " : "                                    ", ctx->name == NULL ? "hfs0" : ctx->name, hfs0_get_file_name(ctx->header, i), cur_file->offset, cur_file->offset + cur_file->size, GET_VALIDITY_STR(hash_validity));
             } else {
                 printf("%s%s:/%-48s %012"PRIx64"-%012"PRIx64"\n", i == 0 ? "                          " : "                                    ", ctx->name == NULL ? "hfs0" : ctx->name, hfs0_get_file_name(ctx->header, i), cur_file->offset, cur_file->offset + cur_file->size);
@@ -284,6 +307,12 @@ void xci_print(xci_ctx_t *ctx) {
 
     memdump(stdout, "Header IV:                          ", ctx->iv, 0x10);
     memdump(stdout, "Encrypted Header:                   ", ctx->header.encrypted_data, 0x70);
+
+    if (ctx->has_fake_compat_type || !ctx->has_decrypted_header) {
+        printf("Encrypted Header Data:\n");
+        printf("    Compatibility Type:             %s\n", xci_get_region_compatibility_type_name(ctx->fake_compat_type));
+    }
+
     if (ctx->has_decrypted_header) {
         xci_gamecard_info_t *gc_info = (xci_gamecard_info_t*)(ctx->decrypted_header + 0x10);
         printf("Encrypted Header Data:\n");
@@ -303,9 +332,9 @@ void xci_print(xci_ctx_t *ctx) {
         ver[3] = (gc_info->cup_version & 0xffff);
 
         printf("    CUP Version                     v%d.%d.%d-%d\n", ver[0], ver[1], ver[2], ver[3]);
-        printf("    Compatibility Type              %s\n", xci_get_region_compatibility_type(gc_info)); //%02"PRIx8"\n", gc_info->compatibility_type);
+        printf("    Compatibility Type:             %s\n", xci_get_region_compatibility_type(gc_info)); //%02"PRIx8"\n", gc_info->compatibility_type);
         memdump(stdout, "    Update Hash                     ", gc_info->update_partition_hash, 8);
-        printf("    CUP TitleId                     %016"PRIx64"\n", gc_info->cup_title_id);
+        printf("    CUP TitleId:                    %016"PRIx64"\n", gc_info->cup_title_id);
     }
 
     if (ctx->tool_ctx->action & ACTION_VERIFY) {

@@ -153,7 +153,54 @@ validity_t check_memory_hash_table(FILE *f_in, unsigned char *hash_table, uint64
     free(block);
 
     return result;
+}
 
+validity_t check_memory_hash_table_with_suffix(FILE *f_in, unsigned char *hash_table, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, const uint8_t *suffix, int full_block) {
+    if (block_size == 0) {
+        /* Block size of 0 is always invalid. */
+        return VALIDITY_INVALID;
+    }
+
+    unsigned char cur_hash[0x20];
+    uint64_t read_size = block_size;
+    unsigned char *block = malloc(block_size);
+    if (block == NULL) {
+        fprintf(stderr, "Failed to allocate hash block!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    validity_t result = VALIDITY_VALID;
+    unsigned char *cur_hash_table_entry = hash_table;
+    for (uint64_t ofs = 0; ofs < data_len; ofs += read_size) {
+        fseeko64(f_in, ofs + data_ofs, SEEK_SET);
+        if (ofs + read_size > data_len) {
+            /* Last block... */
+            memset(block, 0, read_size);
+            read_size = data_len - ofs;
+        }
+
+        if (fread(block, 1, read_size, f_in) != read_size) {
+            fprintf(stderr, "Failed to read file!\n");
+            exit(EXIT_FAILURE);
+        }
+        {
+            sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
+            sha_update(sha_ctx, block, full_block ? block_size : read_size);
+            if (suffix) {
+                sha_update(sha_ctx, suffix, sizeof(*suffix));
+            }
+            sha_get_hash(sha_ctx, cur_hash);
+            free_sha_ctx(sha_ctx);
+        }
+        if (memcmp(cur_hash, cur_hash_table_entry, 0x20) != 0) {
+            result = VALIDITY_INVALID;
+            break;
+        }
+        cur_hash_table_entry += 0x20;
+    }
+    free(block);
+
+    return result;
 }
 
 validity_t check_file_hash_table(FILE *f_in, uint64_t hash_ofs, uint64_t data_ofs, uint64_t data_len, uint64_t block_size, int full_block) {

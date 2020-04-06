@@ -100,7 +100,7 @@ void hfs0_print(hfs0_ctx_t *ctx) {
         for (unsigned int i = 0; i < ctx->header->num_files; i++) {
             hfs0_file_entry_t *cur_file = hfs0_get_file_entry(ctx->header, i);
             if (ctx->tool_ctx->action & ACTION_VERIFY) {
-                validity_t hash_validity = check_memory_hash_table(ctx->file, cur_file->hash, ctx->offset + hfs0_get_header_size(ctx->header) + cur_file->offset, cur_file->hashed_size, cur_file->hashed_size, 0);
+                validity_t hash_validity = check_memory_hash_table_with_suffix(ctx->file, cur_file->hash, ctx->offset + hfs0_get_header_size(ctx->header) + cur_file->offset, cur_file->hashed_size, cur_file->hashed_size, ctx->hash_suffix, 0);
                 printf("%s%s:/%-48s %012"PRIx64"-%012"PRIx64" (%s)\n", i == 0 ? "                              " : "                                    ", ctx->name == NULL ? "hfs0" : ctx->name, hfs0_get_file_name(ctx->header, i), cur_file->offset, cur_file->offset + cur_file->size, GET_VALIDITY_STR(hash_validity));
             } else {
                 printf("%s%s:/%-48s %012"PRIx64"-%012"PRIx64"\n", i == 0 ? "                              " : "                                    ", ctx->name == NULL ? "hfs0" : ctx->name, hfs0_get_file_name(ctx->header, i), cur_file->offset, cur_file->offset + cur_file->size);

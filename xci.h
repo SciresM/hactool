@@ -89,6 +89,8 @@ typedef struct {
     int has_decrypted_header;
     unsigned char decrypted_header[0x70];
     xci_header_t header;
+    int has_fake_compat_type;
+    uint8_t fake_compat_type;
 } xci_ctx_t;
 
 void xci_process(xci_ctx_t *ctx);
