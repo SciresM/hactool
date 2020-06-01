@@ -283,7 +283,9 @@ void kip1_save(kip1_ctx_t *ctx) {
             }
             cJSON_free(json);
             fclose(f_json);
-        } else if (uncmp_path->valid == VALIDITY_VALID) {
+        }
+
+        if (uncmp_path->valid == VALIDITY_VALID) {
             FILE *f_uncmp = os_fopen(uncmp_path->os_path, OS_MODE_WRITE);
             if (f_uncmp == NULL) {
                 fprintf(stderr, "Failed to open %s!\n", uncmp_path->char_path);
