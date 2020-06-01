@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "save.h"
@@ -68,27 +69,34 @@ uint32_t save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint6
 }
 
 remap_segment_ctx_t *save_remap_init_segments(remap_header_t *header, remap_entry_ctx_t *map_entries, uint32_t num_map_entries) {
-    remap_segment_ctx_t *segments =  malloc(sizeof(remap_segment_ctx_t) * header->map_segment_count);
+    remap_segment_ctx_t *segments =  calloc(1, sizeof(remap_segment_ctx_t) * header->map_segment_count);
     unsigned int entry_idx = 0;
 
     for (unsigned int i = 0; i < header->map_segment_count; i++) {
         remap_segment_ctx_t *seg = &segments[i];
-        seg->entries = malloc(sizeof(remap_entry_ctx_t));
-        memcpy(seg->entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
+        seg->entry_count = 0;
+        remap_entry_ctx_t **ptr = malloc(sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1));
+        if (!ptr) {
+            fprintf(stderr, "Failed to allocate entries in remap storage!\n");
+            exit(EXIT_FAILURE);
+        }
+        seg->entries = ptr;
+        seg->entries[seg->entry_count++] = &map_entries[entry_idx];
         seg->offset = map_entries[entry_idx].virtual_offset;
-        map_entries[entry_idx].segment = seg;
-        seg->entry_count = 1;
-        entry_idx++;
+        map_entries[entry_idx++].segment = seg;
 
         while (entry_idx < num_map_entries && map_entries[entry_idx - 1].virtual_offset_end == map_entries[entry_idx].virtual_offset) {
             map_entries[entry_idx].segment = seg;
             map_entries[entry_idx - 1].next = &map_entries[entry_idx];
-            seg->entries = malloc(sizeof(remap_entry_ctx_t));
-            memcpy(seg->entries, &map_entries[entry_idx], sizeof(remap_entry_ctx_t));
-            seg->entry_count++;
-            entry_idx++;
+            ptr = realloc(seg->entries, sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1));
+            if (!ptr) {
+                fprintf(stderr, "Failed to reallocate entries in remap storage!\n");
+                exit(EXIT_FAILURE);
+            }
+            seg->entries = ptr;
+            seg->entries[seg->entry_count++] = &map_entries[entry_idx++];
         }
-        seg->length = seg->entries[seg->entry_count - 1].virtual_offset_end - seg->entries[0].virtual_offset;
+        seg->length = seg->entries[seg->entry_count - 1]->virtual_offset_end - seg->entries[0]->virtual_offset;
     }
     return segments;
 }
@@ -97,8 +105,8 @@ remap_entry_ctx_t *save_remap_get_map_entry(remap_storage_ctx_t *ctx, uint64_t o
     uint32_t segment_idx = (uint32_t)(offset >> (64 - ctx->header->segment_bits));
     if (segment_idx < ctx->header->map_segment_count) {
         for (unsigned int i = 0; i < ctx->segments[segment_idx].entry_count; i++)
-            if (ctx->segments[segment_idx].entries[i].virtual_offset_end > offset)
-                return &ctx->segments[segment_idx].entries[i];
+            if (ctx->segments[segment_idx].entries[i]->virtual_offset_end > offset)
+                return ctx->segments[segment_idx].entries[i];
     }
     fprintf(stderr, "Remap offset %"PRIx64" out of range!\n", offset);
     exit(EXIT_FAILURE);
@@ -178,7 +186,7 @@ void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *c
         uint32_t length;
     };
 
-    static struct salt_source_t salt_sources[6] = {
+    static const struct salt_source_t salt_sources[6] = {
         {"HierarchicalIntegrityVerificationStorage::Master", 48},
         {"HierarchicalIntegrityVerificationStorage::L1", 44},
         {"HierarchicalIntegrityVerificationStorage::L2", 44},
@@ -272,7 +280,7 @@ void save_ivfc_storage_read(integrity_verification_storage_ctx_t *ctx, void *buf
 
     sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
     sha_update(sha_ctx, ctx->salt, 0x20);
-    sha_update(sha_ctx, data_buffer, count);
+    sha_update(sha_ctx, data_buffer, ctx->sector_size);
     sha_get_hash(sha_ctx, hash);
     free_sha_ctx(sha_ctx);
     hash[0x1F] |= 0x80;
@@ -482,6 +490,18 @@ uint32_t save_fs_get_index_from_key(save_filesystem_list_ctx_t *ctx, save_entry_
     return 0xFFFFFFFF;
 }
 
+int save_hierarchical_file_table_find_path_recursive(hierarchical_save_file_table_ctx_t *ctx, save_entry_key_t *key, char *path) {
+    memcpy(key->name, path, SAVE_FS_LIST_MAX_NAME_LENGTH);
+    key->parent = 0;
+    char *pos = path;
+    while (pos) {
+        key->parent = save_fs_get_index_from_key(&ctx->directory_table, key, NULL);
+        if (key->parent == 0xFFFFFFFF) return 0;
+        pos = strchr(pos, '/');
+    }
+    return 1;
+}
+
 int save_hierarchical_file_table_find_next_file(hierarchical_save_file_table_ctx_t *ctx, save_find_position_t *position, save_file_info_t *info, char *name) {
     if (position->next_file == 0) {
         return 0;
@@ -627,7 +647,7 @@ void save_process(save_ctx_t *ctx) {
     ctx->data_remap_storage.type = STORAGE_BYTES;
     ctx->data_remap_storage.base_storage_offset = ctx->header.layout.file_map_data_offset;
     ctx->data_remap_storage.header = &ctx->header.main_remap_header;
-    ctx->data_remap_storage.map_entries = malloc(sizeof(remap_entry_ctx_t) * ctx->data_remap_storage.header->map_entry_count);
+    ctx->data_remap_storage.map_entries = calloc(1, sizeof(remap_entry_ctx_t) * ctx->data_remap_storage.header->map_entry_count);
     ctx->data_remap_storage.file = ctx->file;
     fseeko64(ctx->file, ctx->header.layout.file_map_entry_offset, SEEK_SET);
     for (unsigned int i = 0; i < ctx->data_remap_storage.header->map_entry_count; i++) {
@@ -763,15 +783,11 @@ void save_process_header(save_ctx_t *ctx) {
 
 void save_free_contexts(save_ctx_t *ctx) {
     for (unsigned int i = 0; i < ctx->data_remap_storage.header->map_segment_count; i++) {
-        for (unsigned int j = 0; j < ctx->data_remap_storage.segments[i].entry_count; j++) {
-            free(&ctx->data_remap_storage.segments[i].entries[j]);
-        }
+        free(ctx->data_remap_storage.segments[i].entries);
     }
     free(ctx->data_remap_storage.segments);
     for (unsigned int i = 0; i < ctx->meta_remap_storage.header->map_segment_count; i++) {
-        for (unsigned int j = 0; j < ctx->meta_remap_storage.segments[i].entry_count; j++) {
-            free(&ctx->meta_remap_storage.segments[i].entries[j]);
-        }
+        free(ctx->meta_remap_storage.segments[i].entries);
     }
     free(ctx->meta_remap_storage.segments);
     free(ctx->data_remap_storage.map_entries);
