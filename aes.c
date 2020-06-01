@@ -70,7 +70,7 @@ void aes_encrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l) {
     mbedtls_cipher_reset(&ctx->cipher_enc);
 
     /* XTS doesn't need per-block updating */
-    if (mbedtls_cipher_get_cipher_mode(&ctx->cipher_enc) == MBEDTLS_MODE_XTS)
+    if (mbedtls_cipher_get_cipher_mode(&ctx->cipher_enc) == MBEDTLS_MODE_XTS || mbedtls_cipher_get_cipher_mode(&ctx->cipher_enc) == MBEDTLS_MODE_CBC)
         mbedtls_cipher_update(&ctx->cipher_enc, (const unsigned char * )src, l, (unsigned char *)dst, &out_len);
     else
     {
@@ -110,7 +110,7 @@ void aes_decrypt(aes_ctx_t *ctx, void *dst, const void *src, size_t l)
     mbedtls_cipher_reset(&ctx->cipher_dec);
 
     /* XTS doesn't need per-block updating */
-    if (mbedtls_cipher_get_cipher_mode(&ctx->cipher_dec) == MBEDTLS_MODE_XTS)
+    if (mbedtls_cipher_get_cipher_mode(&ctx->cipher_dec) == MBEDTLS_MODE_XTS || mbedtls_cipher_get_cipher_mode(&ctx->cipher_enc) == MBEDTLS_MODE_CBC)
         mbedtls_cipher_update(&ctx->cipher_dec, (const unsigned char * )src, l, (unsigned char *)dst, &out_len);
     else
     {

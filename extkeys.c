@@ -284,7 +284,13 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
             } else if (strcmp(key, "tsec_key") == 0) {
                 parse_hex_key(keyset->tsec_key, value, sizeof(keyset->tsec_key));
                 matched_key = 1;
-            } else if (strcmp(key, "tsec_root_kek") == 0) {
+            } else if (strcmp(key, "mariko_kek") == 0) {
+                parse_hex_key(keyset->mariko_kek, value, sizeof(keyset->mariko_kek));
+                matched_key = 1;
+            }  else if (strcmp(key, "mariko_bek") == 0) {
+                parse_hex_key(keyset->mariko_bek, value, sizeof(keyset->mariko_bek));
+                matched_key = 1;
+            }  else if (strcmp(key, "tsec_root_kek") == 0) {
                 parse_hex_key(keyset->tsec_root_kek, value, sizeof(keyset->tsec_root_kek));
                 matched_key = 1;
             } else if (strcmp(key, "package1_mac_kek") == 0) {
@@ -365,6 +371,16 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                         break;
                     }
                 }
+
+                for (unsigned int i = 0; i < 0xC && !matched_key; i++) {
+                    snprintf(test_name, sizeof(test_name), "mariko_aes_class_key_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->mariko_aes_class_keys[i], value, sizeof(keyset->mariko_aes_class_keys[i]));
+                        matched_key = 1;
+                        break;
+                    }
+                }
+
                 for (unsigned int i = 0; i < 0x20 && !matched_key; i++) {
                     snprintf(test_name, sizeof(test_name), "master_kek_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {

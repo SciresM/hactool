@@ -65,7 +65,6 @@ const unsigned char *pki_get_beta_nca0_label_hash(void) {
     return beta_nca0_label_hash;
 }
 
-
 static const nca_keyset_t nca_keys_retail = {
     .nca_hdr_fixed_key_moduli = { /* Fixed RSA key used to validate NCA signature 0. */
         {
@@ -507,6 +506,12 @@ void pki_print_keys(nca_keyset_t *keyset) {
     printf("\n");
     for (unsigned int i = 0x6; i < 0x20; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->master_kek_sources[i], master_kek_source, i);
+    }
+    printf("\n");
+    PRINT_KEY_WITH_NAME(keyset->mariko_kek, mariko_kek);
+    PRINT_KEY_WITH_NAME(keyset->mariko_bek, mariko_bek);
+    for (unsigned int i = 0x0; i < 0xC; i++) {
+        PRINT_KEY_WITH_NAME_IDX(keyset->mariko_aes_class_keys[i], mariko_aes_class_key, i);
     }
     printf("\n");
     for (unsigned int i = 0x0; i < 0x20; i++) {
