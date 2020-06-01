@@ -51,18 +51,20 @@ void pk11_process(pk11_ctx_t *ctx) {
 
         memcpy(&ctx->metadata, ctx->mariko_bl, sizeof(ctx->metadata));
 
-        uint32_t enc_size = ctx->mariko_oem_header.bl_size - sizeof(ctx->metadata);
-        if (enc_size > 0) {
-            aes_ctx_t *crypt_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.mariko_bek, 0x10, AES_MODE_CBC);
+        if (memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) != 0) {
+            uint32_t enc_size = ctx->mariko_oem_header.bl_size - sizeof(ctx->metadata);
+            if (enc_size > 0) {
+                aes_ctx_t *crypt_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.mariko_bek, 0x10, AES_MODE_CBC);
 
-            aes_setiv(crypt_ctx, ctx->mariko_bl + 0x10, 0x10);
-            aes_decrypt(crypt_ctx, ctx->mariko_bl + 0x20, ctx->mariko_bl + 0x20, enc_size);
+                aes_setiv(crypt_ctx, ctx->mariko_bl + 0x10, 0x10);
+                aes_decrypt(crypt_ctx, ctx->mariko_bl + 0x20, ctx->mariko_bl + 0x20, enc_size);
 
-            free_aes_ctx(crypt_ctx);
+                free_aes_ctx(crypt_ctx);
 
-            if (memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) != 0) {
-                fprintf(stderr, "Failed to decrypt Mariko PK11! Is correct key present?\n");
-                exit(EXIT_FAILURE);
+                if (memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) != 0) {
+                    fprintf(stderr, "Failed to decrypt Mariko PK11! Is correct key present?\n");
+                    exit(EXIT_FAILURE);
+                }
             }
         }
     } else {
@@ -127,10 +129,8 @@ void pk11_process(pk11_ctx_t *ctx) {
         }
     }
 
-    int decrypted = 0;
-    if (ctx->is_mariko) {
-        decrypted = ctx->pk11->magic == MAGIC_PK11;
-    } else {
+    int decrypted = ctx->pk11->magic == MAGIC_PK11;
+    if (!ctx->is_mariko && !decrypted) {
         pk11_t dec_header;
         aes_ctx_t *crypt_ctx = NULL;
         if (ctx->is_modern) {
@@ -227,7 +227,7 @@ void pk11_save(pk11_ctx_t *ctx) {
             }
             memcpy(decrypted_bin, &ctx->mariko_oem_header, sizeof(ctx->mariko_oem_header));
             memcpy(decrypted_bin + sizeof(ctx->mariko_oem_header), ctx->mariko_bl, ctx->mariko_oem_header.bl_size);
-            save_buffer_to_directory_file(decrypted_bin, sizeof(ctx->stage1) + ctx->pk11_size, dirpath, "Decrypted.bin");
+            save_buffer_to_directory_file(decrypted_bin, sizeof(ctx->mariko_oem_header) + ctx->mariko_oem_header.bl_size, dirpath, "Decrypted.bin");
             free(decrypted_bin);
         } else {
             char *decrypted_bin = malloc(sizeof(ctx->stage1) + ctx->pk11_size);
