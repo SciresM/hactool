@@ -129,12 +129,12 @@ void pk11_process(pk11_ctx_t *ctx) {
         }
     }
 
-    int decrypted = ctx->pk11->magic == MAGIC_PK11;
-    if (!ctx->is_mariko && !decrypted) {
+    ctx->is_decrypted = ctx->pk11->magic == MAGIC_PK11;
+    if (!ctx->is_mariko && !ctx->is_decrypted) {
         pk11_t dec_header;
         aes_ctx_t *crypt_ctx = NULL;
         if (ctx->is_modern) {
-            for (unsigned int i = 6; i < 0x20 && !decrypted; i++) {
+            for (unsigned int i = 6; i < 0x20 && !ctx->is_decrypted; i++) {
                 ctx->key_rev = i;
                 crypt_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.package1_keys[i], 0x10, AES_MODE_CBC);
                 aes_setiv(crypt_ctx, ctx->stage1.modern.iv, 0x10);
@@ -142,13 +142,13 @@ void pk11_process(pk11_ctx_t *ctx) {
                 if (dec_header.magic == MAGIC_PK11) {
                     aes_setiv(crypt_ctx, ctx->stage1.modern.iv, 0x10);
                     aes_decrypt(crypt_ctx, ctx->pk11, ctx->pk11, ctx->pk11_size);
-                    decrypted = 1;
+                    ctx->is_decrypted = 1;
                 }
                 free_aes_ctx(crypt_ctx);
                 crypt_ctx = NULL;
             }
         } else {
-            for (unsigned int i = 0; i < 6 && !decrypted; i++) {
+            for (unsigned int i = 0; i < 6 && !ctx->is_decrypted; i++) {
                 ctx->key_rev = i;
                 crypt_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.package1_keys[i], 0x10, AES_MODE_CTR);
                 aes_setiv(crypt_ctx, ctx->stage1.legacy.ctr, 0x10);
@@ -156,7 +156,7 @@ void pk11_process(pk11_ctx_t *ctx) {
                 if (dec_header.magic == MAGIC_PK11) {
                     aes_setiv(crypt_ctx, ctx->stage1.legacy.ctr, 0x10);
                     aes_decrypt(crypt_ctx, ctx->pk11, ctx->pk11, ctx->pk11_size);
-                    decrypted = 1;
+                    ctx->is_decrypted = 1;
                 }
                 free_aes_ctx(crypt_ctx);
                 crypt_ctx = NULL;
@@ -164,17 +164,13 @@ void pk11_process(pk11_ctx_t *ctx) {
         }
     }
 
-    if (!decrypted) {
-        fprintf(stderr, "Failed to decrypt PK11! Is correct key present?\n");
-        exit(EXIT_FAILURE);
-    }
-
-
-    uint64_t pk11_size = 0x20 + pk11_get_warmboot_bin_size(ctx) + pk11_get_nx_bootloader_size(ctx) + pk11_get_secmon_size(ctx);
-    pk11_size = align64(pk11_size, 0x10);
-    if (pk11_size != ctx->pk11_size) {
-        fprintf(stderr, "PK11 seems corrupt!\n");
-        exit(EXIT_FAILURE);
+    if (ctx->is_decrypted) {
+        uint64_t pk11_size = 0x20 + pk11_get_warmboot_bin_size(ctx) + pk11_get_nx_bootloader_size(ctx) + pk11_get_secmon_size(ctx);
+        pk11_size = align64(pk11_size, 0x10);
+        if (pk11_size != ctx->pk11_size) {
+            fprintf(stderr, "PK11 seems corrupt!\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (ctx->tool_ctx->action & ACTION_INFO) {
@@ -187,7 +183,7 @@ void pk11_process(pk11_ctx_t *ctx) {
 }
 
 void pk11_print(pk11_ctx_t *ctx) {
-    printf("PK11:\n");
+    printf("Package1 Metadata:\n");
     {
         char build_date[sizeof(ctx->metadata.build_date) + 1] = {0};
         memcpy(build_date, ctx->metadata.build_date, sizeof(ctx->metadata.build_date));
@@ -197,11 +193,16 @@ void pk11_print(pk11_ctx_t *ctx) {
     memdump(stdout, "    Secure Monitor Hash:            ", &ctx->metadata.sm_hash,  sizeof(uint32_t));
     memdump(stdout, "    NX Bootloader Hash:             ", &ctx->metadata.bl_hash,  sizeof(uint32_t));
     printf("    Version:                        %02"PRIx32"\n", ctx->metadata.version);
-    printf("    Key Revision:                   %02"PRIx32" (%s)\n", ctx->key_rev, get_key_revision_summary((uint8_t)ctx->key_rev));
-    printf("    PK11 Size:                      %08"PRIx32"\n", ctx->pk11_size);
-    printf("    Warmboot.bin Size:              %08"PRIx32"\n", pk11_get_warmboot_bin_size(ctx));
-    printf("    NX_Bootloader.bin Size          %08"PRIx32"\n", pk11_get_nx_bootloader_size(ctx));
-    printf("    Secure_Monitor.bin Size:        %08"PRIx32"\n", pk11_get_secmon_size(ctx));
+    if (ctx->is_decrypted) {
+        printf("PK11:\n");
+        if (!ctx->is_mariko) {
+            printf("    Key Revision:                   %02"PRIx32" (%s)\n", ctx->key_rev, get_key_revision_summary((uint8_t)ctx->key_rev));
+        }
+        printf("    PK11 Size:                      %08"PRIx32"\n", ctx->pk11_size);
+        printf("    Warmboot.bin Size:              %08"PRIx32"\n", pk11_get_warmboot_bin_size(ctx));
+        printf("    NX_Bootloader.bin Size          %08"PRIx32"\n", pk11_get_nx_bootloader_size(ctx));
+        printf("    Secure_Monitor.bin Size:        %08"PRIx32"\n", pk11_get_secmon_size(ctx));
+    }
     printf("\n");
 }
 
@@ -214,7 +215,7 @@ void pk11_save(pk11_ctx_t *ctx) {
     if (dirpath == NULL || dirpath->valid != VALIDITY_VALID) {
         dirpath = &ctx->tool_ctx->settings.pk11_dir_path;
     }
-    if (dirpath != NULL && dirpath->valid == VALIDITY_VALID) {
+    if (dirpath != NULL && dirpath->valid == VALIDITY_VALID && ctx->is_decrypted) {
         os_makedir(dirpath->os_path);
 
         /* Save Decrypted.bin */

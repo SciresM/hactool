@@ -68,6 +68,7 @@ typedef struct {
     hactool_ctx_t *tool_ctx;
     int is_modern;
     int is_mariko;
+    int is_decrypted;
     unsigned int key_rev;
     pk11_mariko_oem_header_t mariko_oem_header;
     pk11_metadata_t metadata;
