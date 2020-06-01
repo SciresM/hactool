@@ -51,7 +51,9 @@ void pk11_process(pk11_ctx_t *ctx) {
 
         memcpy(&ctx->metadata, ctx->mariko_bl, sizeof(ctx->metadata));
 
-        if (memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) != 0) {
+        ctx->is_decrypted = memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) == 0;
+
+        if (!ctx->is_decrypted) {
             uint32_t enc_size = ctx->mariko_oem_header.bl_size - sizeof(ctx->metadata);
             if (enc_size > 0) {
                 aes_ctx_t *crypt_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.mariko_bek, 0x10, AES_MODE_CBC);
@@ -61,10 +63,7 @@ void pk11_process(pk11_ctx_t *ctx) {
 
                 free_aes_ctx(crypt_ctx);
 
-                if (memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) != 0) {
-                    fprintf(stderr, "Failed to decrypt Mariko PK11! Is correct key present?\n");
-                    exit(EXIT_FAILURE);
-                }
+                ctx->is_decrypted = memcmp(&ctx->metadata, ctx->mariko_bl + 0x20, sizeof(ctx->metadata)) == 0;
             }
         }
     } else {
@@ -79,12 +78,20 @@ void pk11_process(pk11_ctx_t *ctx) {
     ctx->is_modern = !pk11_is_legacy(ctx);
 
     if (ctx->is_mariko) {
-        if (ctx->is_modern) {
-            memcpy(&ctx->stage1.modern, ctx->mariko_bl + 0x20, sizeof(ctx->stage1.modern));
-            ctx->pk11_size = ctx->stage1.modern.pk11_size;
+        if (ctx->is_decrypted) {
+            if (ctx->is_modern) {
+                memcpy(&ctx->stage1.modern, ctx->mariko_bl + 0x20, sizeof(ctx->stage1.modern));
+                ctx->pk11_size = ctx->stage1.modern.pk11_size;
+            } else {
+                memcpy(&ctx->stage1.legacy, ctx->mariko_bl + 0x20, sizeof(ctx->stage1.legacy));
+                ctx->pk11_size = ctx->stage1.legacy.pk11_size;
+            }
         } else {
-            memcpy(&ctx->stage1.legacy, ctx->mariko_bl + 0x20, sizeof(ctx->stage1.legacy));
-            ctx->pk11_size = ctx->stage1.legacy.pk11_size;
+            if (ctx->is_modern) {
+                ctx->pk11_size = ctx->mariko_oem_header.bl_size - 0x20 - sizeof(ctx->stage1.modern);
+            } else {
+                ctx->pk11_size = ctx->mariko_oem_header.bl_size - 0x20 - sizeof(ctx->stage1.legacy);
+            }
         }
     } else {
         if (ctx->is_modern) {
@@ -102,7 +109,7 @@ void pk11_process(pk11_ctx_t *ctx) {
         }
     }
 
-    ctx->pk11 = malloc(ctx->pk11_size);
+    ctx->pk11 = calloc(1, ctx->pk11_size);
     if (ctx->pk11 == NULL) {
         fprintf(stderr, "Failed to allocate PK11!\n");
         exit(EXIT_FAILURE);
@@ -114,7 +121,6 @@ void pk11_process(pk11_ctx_t *ctx) {
         } else {
             memcpy(ctx->pk11, ctx->mariko_bl + 0x20 + sizeof(ctx->stage1.legacy), ctx->pk11_size);
         }
-
     } else {
         if (fread(ctx->pk11, 1, ctx->pk11_size, ctx->file) != ctx->pk11_size) {
             fprintf(stderr, "Failed to read PK11!\n");
@@ -183,6 +189,16 @@ void pk11_process(pk11_ctx_t *ctx) {
 }
 
 void pk11_print(pk11_ctx_t *ctx) {
+    if (ctx->is_mariko) {
+        printf("Mariko OEM Header:\n");
+        memdump(stdout, "    Signature:                      ", &ctx->mariko_oem_header.rsa_sig, sizeof(ctx->mariko_oem_header.rsa_sig));
+        memdump(stdout, "    Random Salt:                    ", &ctx->mariko_oem_header.salt, sizeof(ctx->mariko_oem_header.salt));
+        memdump(stdout, "    OEM Bootloader Hash:            ", &ctx->mariko_oem_header.hash, sizeof(ctx->mariko_oem_header.hash));
+        printf("    OEM Bootloader Version:         %02"PRIx32"\n", ctx->mariko_oem_header.bl_version);
+        printf("    OEM Bootloader Size:            %08"PRIx32"\n", ctx->mariko_oem_header.bl_size);
+        printf("    OEM Bootloader Load Address:    %08"PRIx32"\n", ctx->mariko_oem_header.bl_load_addr);
+        printf("    OEM Bootloader Entrypoint:      %08"PRIx32"\n", ctx->mariko_oem_header.bl_entrypoint);
+    }
     printf("Package1 Metadata:\n");
     {
         char build_date[sizeof(ctx->metadata.build_date) + 1] = {0};
