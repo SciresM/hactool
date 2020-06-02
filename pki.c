@@ -386,6 +386,18 @@ void pki_derive_keys(nca_keyset_t *keyset) {
         aes_decrypt(tsec_root_ctx, keyset->master_keks[i], keyset->master_kek_sources[i], 0x10);
         free_aes_ctx(tsec_root_ctx);
     }
+    /* Derive master keks with mariko keydata -- these are always preferred to other sources. */
+    for (unsigned int i = 0; i < 0x20; i++) {
+        if (memcmp(keyset->mariko_kek, zeroes, 0x10) == 0) {
+            continue;
+        }
+        if (memcmp(keyset->mariko_master_kek_sources[i], zeroes, 0x10) == 0) {
+            continue;
+        }
+        aes_ctx_t *mariko_kek_ctx = new_aes_ctx(keyset->mariko_kek, 0x10, AES_MODE_ECB);
+        aes_decrypt(mariko_kek_ctx, keyset->master_keks[i], keyset->mariko_master_kek_sources[i], 0x10);
+        free_aes_ctx(mariko_kek_ctx);
+    }
     for (unsigned int i = 0; i < 0x20; i++) {
         /* Then we derive master keys. */
         if (memcmp(keyset->master_key_source, zeroes, 0x10) == 0) {
@@ -512,6 +524,10 @@ void pki_print_keys(nca_keyset_t *keyset) {
     PRINT_KEY_WITH_NAME(keyset->mariko_bek, mariko_bek);
     for (unsigned int i = 0x0; i < 0xC; i++) {
         PRINT_KEY_WITH_NAME_IDX(keyset->mariko_aes_class_keys[i], mariko_aes_class_key, i);
+    }
+    printf("\n");
+    for (unsigned int i = 0x0; i < 0x20; i++) {
+        PRINT_KEY_WITH_NAME_IDX(keyset->mariko_master_kek_sources[i], mariko_master_kek_source, i);
     }
     printf("\n");
     for (unsigned int i = 0x0; i < 0x20; i++) {

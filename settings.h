@@ -34,6 +34,7 @@ typedef struct {
     unsigned char tsec_auth_signatures[0x20][0x10];      /* Auth signatures, seeds for tsec root key/package1 mac kek/package1 key on 6.2.0+. */
     unsigned char tsec_root_keys[0x20][0x10];            /* Key for master kek decryption, from TSEC firmware on 6.2.0+. */
     unsigned char master_kek_sources[0x20][0x10];        /* Seeds for firmware master keks. */
+    unsigned char mariko_master_kek_sources[0x20][0x10]; /* Seeds for firmware master keks (Mariko). */
     unsigned char master_keks[0x20][0x10];               /* Firmware master keks, stored in keyblob prior to 6.2.0. */
     unsigned char master_key_source[0x10];               /* Seed for master key derivation. */
     unsigned char master_keys[0x20][0x10];               /* Firmware master keys. */
