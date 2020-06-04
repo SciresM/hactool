@@ -14,7 +14,7 @@ static size_t nax0_read(nax0_ctx_t *ctx, uint64_t offset, void *dst, size_t size
     fseeko64(which, offset_in_file, SEEK_SET);
     uint64_t left_in_file = 0xFFFF0000ULL - offset_in_file;
     if (size > left_in_file) {
-        return fread(dst, 1, left_in_file, which) + nax0_read(ctx, offset + left_in_file, (unsigned char *)dst + left_in_file, size - left_in_file);
+        return fread(dst, 1, (size_t)left_in_file, which) + nax0_read(ctx, offset + left_in_file, (unsigned char *)dst + left_in_file, (size_t)(size - left_in_file));
     } else {
         return fread(dst, 1, size, which);
     }
@@ -129,18 +129,18 @@ void nax0_save(nax0_ctx_t *ctx) {
     }
 
     uint64_t read_size = 0x400000; /* 4 MB buffer. */
-    memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
+    memset(buf, 0xCC, (size_t)read_size); /* Debug in case I fuck this up somehow... */
     while (ofs < end_ofs) {
         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
-        if (nax0_read(ctx, ofs, buf, read_size) != read_size) {
+        if (nax0_read(ctx, ofs, buf, (size_t)read_size) != read_size) {
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
 
         uint64_t dec_size = (read_size + 0x3FFF) & ~0x3FFF;
-        aes_xts_decrypt(ctx->aes_ctx, buf, buf, dec_size, (ofs - 0x4000) >> 14, 0x4000);
+        aes_xts_decrypt(ctx->aes_ctx, buf, buf, (size_t)dec_size, (size_t)((ofs - 0x4000) >> 14), 0x4000);
 
-        if (fwrite(buf, 1, read_size, f_dec) != read_size) {
+        if (fwrite(buf, 1, (size_t)read_size, f_dec) != read_size) {
             fprintf(stderr, "Failed to write file!\n");
             exit(EXIT_FAILURE);
         }

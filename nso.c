@@ -17,7 +17,7 @@ static void *nso_uncompress(nso0_ctx_t *ctx) {
     new_header.flags &= 0xF8;
 
     uint64_t size = nso_get_size(&new_header);
-    nso0_header_t *new_nso = calloc(1, size);
+    nso0_header_t *new_nso = calloc(1, (size_t)size);
     if (new_nso == NULL) {
         fprintf(stderr, "Failed to allocate uncompressed NSO0!\n");
         exit(EXIT_FAILURE);
@@ -64,14 +64,14 @@ void nso0_process(nso0_ctx_t *ctx) {
     }
 
     uint64_t size = nso_get_size(&raw_header);
-    ctx->header = malloc(size);
+    ctx->header = malloc((size_t)size);
     if (ctx->header == NULL) {
         fprintf(stderr, "Failed to allocate NSO0!\n");
         exit(EXIT_FAILURE);
     }
 
     fseeko64(ctx->file, 0, SEEK_SET);
-    if (fread(ctx->header, 1, size, ctx->file) != size) {
+    if (fread(ctx->header, 1, (size_t)size, ctx->file) != size) {
         fprintf(stderr, "Failed to read NSO0!\n");
         exit(EXIT_FAILURE);
     }
@@ -117,7 +117,7 @@ void nso0_save(nso0_ctx_t *ctx) {
             fprintf(stderr, "Failed to open %s!\n", uncmp_path->char_path);
             return;
         }
-        if (fwrite(ctx->uncompressed_header, 1, nso_get_size(ctx->uncompressed_header), f_uncmp) != nso_get_size(ctx->uncompressed_header)) {
+        if (fwrite(ctx->uncompressed_header, 1, (size_t)nso_get_size(ctx->uncompressed_header), f_uncmp) != nso_get_size(ctx->uncompressed_header)) {
             fprintf(stderr, "Failed to write uncompressed nso!\n");
             exit(EXIT_FAILURE);
         }

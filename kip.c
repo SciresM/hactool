@@ -184,7 +184,7 @@ static void *kip1_uncompress(kip1_ctx_t *ctx, uint64_t *size) {
     new_header.flags &= 0xF8;
 
     *size = kip1_get_size_from_header(&new_header);
-    unsigned char *new_kip = calloc(1, *size);
+    unsigned char *new_kip = calloc(1, (size_t)*size);
     if (new_kip == NULL) {
         fprintf(stderr, "Failed to allocate uncompressed KIP1!\n");
         exit(EXIT_FAILURE);
@@ -219,14 +219,14 @@ void kip1_process(kip1_ctx_t *ctx) {
     }
 
     uint64_t size = kip1_get_size_from_header(&raw_header);
-    ctx->header = malloc(size);
+    ctx->header = malloc((size_t)size);
     if (ctx->header == NULL) {
         fprintf(stderr, "Failed to allocate KIP1!\n");
         exit(EXIT_FAILURE);
     }
 
     fseeko64(ctx->file, 0, SEEK_SET);
-    if (fread(ctx->header, 1, size, ctx->file) != size) {
+    if (fread(ctx->header, 1, (size_t)size, ctx->file) != size) {
         fprintf(stderr, "Failed to read KIP1!\n");
         exit(EXIT_FAILURE);
     }
@@ -293,7 +293,7 @@ void kip1_save(kip1_ctx_t *ctx) {
             }
             uint64_t sz = 0;
             void *uncmp = kip1_uncompress(ctx, &sz);
-            if (fwrite(uncmp, 1, sz, f_uncmp) != sz) {
+            if (fwrite(uncmp, 1, (size_t)sz, f_uncmp) != sz) {
                 fprintf(stderr, "Failed to write uncompressed kip!\n");
                 exit(EXIT_FAILURE);
             }

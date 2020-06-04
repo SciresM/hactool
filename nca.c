@@ -43,13 +43,13 @@ void nca_section_fseek(nca_section_ctx_t *ctx, uint64_t offset) {
     } else if (ctx->crypt_type == CRYPT_XTS) {
         fseeko64(ctx->file, (ctx->offset + offset) & ~ctx->sector_mask, SEEK_SET);
         ctx->cur_seek = (ctx->offset + offset) & ~ctx->sector_mask;
-        ctx->sector_num = offset / ctx->sector_size;
-        ctx->sector_ofs = offset & ctx->sector_mask;
+        ctx->sector_num = (size_t)(offset / ctx->sector_size);
+        ctx->sector_ofs = (uint32_t)(offset & ctx->sector_mask);
     } else if (ctx->crypt_type == CRYPT_NCA0) {
         fseeko64(ctx->file, (ctx->offset + offset) & ~ctx->sector_mask, SEEK_SET);
         ctx->cur_seek = ((ctx->offset + offset - 0x400ULL) & ~ctx->sector_mask) + 0x400ULL;
-        ctx->sector_num = (ctx->offset + offset - 0x400ULL) / ctx->sector_size;
-        ctx->sector_ofs = (ctx->offset + offset - 0x400ULL) & ctx->sector_mask;
+        ctx->sector_num = (size_t)((ctx->offset + offset - 0x400ULL) / ctx->sector_size);
+        ctx->sector_ofs = (uint32_t)((ctx->offset + offset - 0x400ULL) & ctx->sector_mask);
     } else if (ctx->type == BKTR && ctx->bktr_ctx.subsection_block != NULL) {
         /* No better way to do this than to make all BKTR seeking virtual. */
         ctx->bktr_ctx.virtual_seek = offset;
@@ -118,10 +118,10 @@ static size_t nca_bktr_section_physical_fread(nca_section_ctx_t *ctx, void *buff
     } else {
         /* Sad path. */
         uint64_t within_subsection = next_subsec->offset - ctx->bktr_ctx.bktr_seek;
-        if ((read = nca_section_fread(ctx, buffer, within_subsection)) != within_subsection) {
+        if ((read = nca_section_fread(ctx, buffer, (size_t)within_subsection)) != within_subsection) {
             return 0;
         }
-        read += nca_section_fread(ctx, (char *)buffer + within_subsection, count - within_subsection);
+        read += nca_section_fread(ctx, (char *)buffer + within_subsection, (size_t)(count - within_subsection));
         if (read != count) {
             return 0;
         }
@@ -141,16 +141,16 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
     }
 
     if (ctx->crypt_type == CRYPT_XTS || ctx->crypt_type == CRYPT_NCA0) { /* AES-XTS requires special handling... */
-        unsigned char *sector_buf = malloc(ctx->sector_size);
-        if ((read = fread(sector_buf, size, ctx->sector_size, ctx->file)) != ctx->sector_size) {
+        unsigned char *sector_buf = malloc((size_t)ctx->sector_size);
+        if ((read = fread(sector_buf, size, (size_t)ctx->sector_size, ctx->file)) != ctx->sector_size) {
             free(sector_buf);
             return 0;
         }
-        aes_xts_decrypt(ctx->aes, sector_buf, sector_buf, ctx->sector_size, ctx->sector_num, ctx->sector_size);
+        aes_xts_decrypt(ctx->aes, sector_buf, sector_buf, (size_t)ctx->sector_size, ctx->sector_num, (size_t)ctx->sector_size);
         if (count > ctx->sector_size - ctx->sector_ofs) { /* We're leaving the sector... */
-            memcpy(buffer, sector_buf + ctx->sector_ofs, ctx->sector_size - ctx->sector_ofs);
-            size_t remaining = count - (ctx->sector_size - ctx->sector_ofs);
-            size_t ofs = (ctx->sector_size - ctx->sector_ofs);
+            memcpy(buffer, sector_buf + ctx->sector_ofs, (size_t)(ctx->sector_size - ctx->sector_ofs));
+            size_t remaining = (size_t)(count - (ctx->sector_size - ctx->sector_ofs));
+            size_t ofs = (size_t)(ctx->sector_size - ctx->sector_ofs);
             ctx->sector_num++;
             ctx->sector_ofs = 0;
             if (remaining & ~ctx->sector_mask) { /* Read intermediate sectors. */
@@ -160,26 +160,26 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                     return ofs;
                 }
 
-                aes_xts_decrypt(ctx->aes, (char *)buffer + ofs, (char *)buffer + ofs, remaining & ~ctx->sector_mask, ctx->sector_num, ctx->sector_size);
-                ctx->sector_num += remaining / ctx->sector_size;
+                aes_xts_decrypt(ctx->aes, (char *)buffer + ofs, (char *)buffer + ofs, remaining & ~ctx->sector_mask, ctx->sector_num, (size_t)ctx->sector_size);
+                ctx->sector_num += (size_t)(remaining / ctx->sector_size);
                 ofs += remaining & ~ctx->sector_mask;
                 remaining &= ctx->sector_mask;
-                read += addl;
+                read += (size_t)addl;
             }
             if (remaining) { /* Read last sector. */
-                if ((read = fread(sector_buf, size, ctx->sector_size, ctx->file)) != ctx->sector_size) {
+                if ((read = fread(sector_buf, size, (size_t)ctx->sector_size, ctx->file)) != ctx->sector_size) {
                     free(sector_buf);
                     return ofs;
                 }
-                aes_xts_decrypt(ctx->aes, sector_buf, sector_buf, ctx->sector_size, ctx->sector_num, ctx->sector_size);
+                aes_xts_decrypt(ctx->aes, sector_buf, sector_buf, (size_t)ctx->sector_size, ctx->sector_num, (size_t)ctx->sector_size);
                 memcpy((char *)buffer + ofs, sector_buf, remaining);
-                ctx->sector_ofs = remaining;
+                ctx->sector_ofs = (uint32_t)remaining;
                 read = count;
             }
         } else {
             memcpy(buffer, sector_buf + ctx->sector_ofs, count);
-            ctx->sector_num += (ctx->sector_ofs + count) / ctx->sector_size;
-            ctx->sector_ofs += count;
+            ctx->sector_num += (size_t)((ctx->sector_ofs + count) / ctx->sector_size);
+            ctx->sector_ofs += (uint32_t)count;
             ctx->sector_ofs &= ctx->sector_mask;
             read = count;
         }
@@ -197,7 +197,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                 aes_decrypt(ctx->aes, block_buf, block_buf, 0x10);
                 if (count + ctx->sector_ofs < 0x10) {
                     memcpy(buffer, block_buf + ctx->sector_ofs, count);
-                    ctx->sector_ofs += count;
+                    ctx->sector_ofs += (uint32_t)count;
                     nca_section_fseek(ctx, ctx->cur_seek - ctx->offset);
                     return count;
                 }
@@ -253,11 +253,11 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                     }
                 } else {
                     uint64_t within_relocation = next_reloc->virt_offset - ctx->bktr_ctx.virtual_seek;
-                    if ((read = nca_section_fread(ctx, buffer, within_relocation)) != within_relocation) {
+                    if ((read = nca_section_fread(ctx, buffer, (size_t)within_relocation)) != within_relocation) {
                         return 0;
                     }
                     nca_section_fseek(ctx, virt_seek + within_relocation);
-                    read += nca_section_fread(ctx, (char *)buffer + within_relocation, count - within_relocation);
+                    read += nca_section_fread(ctx, (char *)buffer + within_relocation, (size_t)(count - within_relocation));
                     if (read != count) {
                         return 0;
                     }
@@ -373,17 +373,17 @@ static void nca_save(nca_ctx_t *ctx) {
                     ctx->section_contexts[i].physical_reads = 1;
 
                     uint64_t read_size = 0x400000; /* 4 MB buffer. */
-                    memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
+                    memset(buf, 0xCC, (size_t)read_size); /* Debug in case I fuck this up somehow... */
                     uint64_t ofs = 0;
                     uint64_t end_ofs = ofs + ctx->section_contexts[i].size;
                     nca_section_fseek(&ctx->section_contexts[i], ofs);
                     while (ofs < end_ofs) {
                         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
-                        if (nca_section_fread(&ctx->section_contexts[i], buf, read_size) != read_size) {
+                        if (nca_section_fread(&ctx->section_contexts[i], buf, (size_t)read_size) != read_size) {
                             fprintf(stderr, "Failed to read file!\n");
                             exit(EXIT_FAILURE);
                         }
-                        if (fwrite(buf, 1, read_size, f_dec) != read_size) {
+                        if (fwrite(buf, 1, (size_t)read_size, f_dec) != read_size) {
                             fprintf(stderr, "Failed to write file!\n");
                             exit(EXIT_FAILURE);
                         }
@@ -660,7 +660,7 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
                         fprintf(stderr, "Failed to read NCA0 FS header at %" PRIx64"!\n", offset);
                         exit(EXIT_FAILURE);
                     }
-                    aes_xts_decrypt(aes_ctx, &dec_header.fs_headers[i], &dec_header.fs_headers[i], sizeof(dec_header.fs_headers[i]), (offset - 0x400ULL) >> 9ULL, 0x200);
+                    aes_xts_decrypt(aes_ctx, &dec_header.fs_headers[i], &dec_header.fs_headers[i], sizeof(dec_header.fs_headers[i]), (size_t)((offset - 0x400ULL) >> 9ULL), 0x200);
                 }
             }
             free_aes_ctx(aes_ctx);
@@ -892,7 +892,7 @@ static validity_t nca_section_check_external_hash_table(nca_section_ctx_t *ctx, 
     }
     unsigned char cur_hash[0x20];
     uint64_t read_size = block_size;
-    unsigned char *block = malloc(block_size);
+    unsigned char *block = malloc((size_t)block_size);
     if (block == NULL) {
         fprintf(stderr, "Failed to allocate hash block!\n");
         exit(EXIT_FAILURE);
@@ -904,15 +904,15 @@ static validity_t nca_section_check_external_hash_table(nca_section_ctx_t *ctx, 
         nca_section_fseek(ctx, ofs + data_ofs);
         if (ofs + read_size > data_len) {
             /* Last block... */
-            memset(block, 0, read_size);
+            memset(block, 0, (size_t)read_size);
             read_size = data_len - ofs;
         }
 
-        if (nca_section_fread(ctx, block, read_size) != read_size) {
+        if (nca_section_fread(ctx, block, (size_t)read_size) != read_size) {
             fprintf(stderr, "Failed to read section!\n");
             exit(EXIT_FAILURE);
         }
-        sha256_hash_buffer(cur_hash, block, full_block ? block_size : read_size);
+        sha256_hash_buffer(cur_hash, block, (size_t)(full_block ? block_size : read_size));
         if (memcmp(cur_hash, cur_hash_table_entry, 0x20) != 0) {
             result = VALIDITY_INVALID;
             break;
@@ -933,14 +933,14 @@ static validity_t nca_section_check_hash_table(nca_section_ctx_t *ctx, uint64_t 
     uint64_t hash_table_size = data_len / block_size;
     if (data_len % block_size) hash_table_size++;
     hash_table_size *= 0x20;
-    unsigned char *hash_table = malloc(hash_table_size);
+    unsigned char *hash_table = malloc((size_t)hash_table_size);
     if (hash_table == NULL) {
         fprintf(stderr, "Failed to allocate hash table!\n");
         exit(EXIT_FAILURE);
     }
 
     nca_section_fseek(ctx, hash_ofs);
-    if (nca_section_fread(ctx, hash_table, hash_table_size) != hash_table_size) {
+    if (nca_section_fread(ctx, hash_table, (size_t)hash_table_size) != hash_table_size) {
         fprintf(stderr, "Failed to read section!\n");
         exit(EXIT_FAILURE);
     }
@@ -997,13 +997,13 @@ void nca_process_pfs0_section(nca_section_ctx_t *ctx) {
     }
 
     uint64_t header_size = pfs0_get_header_size(&raw_header);
-    ctx->pfs0_ctx.header = malloc(header_size);
+    ctx->pfs0_ctx.header = malloc((size_t)header_size);
     if (ctx->pfs0_ctx.header == NULL) {
         fprintf(stderr, "Failed to get PFS0 header size!\n");
         exit(EXIT_FAILURE);
     }
     nca_section_fseek(ctx, sb->pfs0_offset);
-    if (nca_section_fread(ctx, ctx->pfs0_ctx.header, header_size) != header_size) {
+    if (nca_section_fread(ctx, ctx->pfs0_ctx.header, (size_t)header_size) != header_size) {
         fprintf(stderr, "Failed to read PFS0 header!\n");
         exit(EXIT_FAILURE);
     }
@@ -1017,13 +1017,13 @@ void nca_process_pfs0_section(nca_section_ctx_t *ctx) {
                 exit(EXIT_FAILURE);
             }
 
-            ctx->pfs0_ctx.npdm = malloc(cur_file->size);
+            ctx->pfs0_ctx.npdm = malloc((size_t)cur_file->size);
             if (ctx->pfs0_ctx.npdm == NULL) {
                 fprintf(stderr, "Failed to allocate NPDM!\n");
                 exit(EXIT_FAILURE);
             }
             nca_section_fseek(ctx, sb->pfs0_offset + pfs0_get_header_size(ctx->pfs0_ctx.header) + cur_file->offset);
-            if (nca_section_fread(ctx, ctx->pfs0_ctx.npdm, cur_file->size) != cur_file->size) {
+            if (nca_section_fread(ctx, ctx->pfs0_ctx.npdm, (size_t)cur_file->size) != cur_file->size) {
                 fprintf(stderr, "Failed to read NPDM!\n");
                 exit(EXIT_FAILURE);
             }
@@ -1068,25 +1068,25 @@ void nca_process_ivfc_section(nca_section_ctx_t *ctx) {
 
     if ((ctx->tool_ctx->action & (ACTION_EXTRACT | ACTION_LISTROMFS)) && ctx->romfs_ctx.header.header_size == ROMFS_HEADER_SIZE) {
         /* Pre-load the file/data entry caches. */
-        ctx->romfs_ctx.directories = calloc(1, ctx->romfs_ctx.header.dir_meta_table_size);
+        ctx->romfs_ctx.directories = calloc(1, (size_t)ctx->romfs_ctx.header.dir_meta_table_size);
         if (ctx->romfs_ctx.directories == NULL) {
             fprintf(stderr, "Failed to allocate RomFS directory cache!\n");
             exit(EXIT_FAILURE);
         }
 
         nca_section_fseek(ctx, ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.dir_meta_table_offset);
-        if (nca_section_fread(ctx, ctx->romfs_ctx.directories, ctx->romfs_ctx.header.dir_meta_table_size) != ctx->romfs_ctx.header.dir_meta_table_size) {
+        if (nca_section_fread(ctx, ctx->romfs_ctx.directories, (size_t)ctx->romfs_ctx.header.dir_meta_table_size) != ctx->romfs_ctx.header.dir_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS directory cache!\n");
             exit(EXIT_FAILURE);
         }
 
-        ctx->romfs_ctx.files = calloc(1, ctx->romfs_ctx.header.file_meta_table_size);
+        ctx->romfs_ctx.files = calloc(1, (size_t)ctx->romfs_ctx.header.file_meta_table_size);
         if (ctx->romfs_ctx.files == NULL) {
             fprintf(stderr, "Failed to allocate RomFS file cache!\n");
             exit(EXIT_FAILURE);
         }
         nca_section_fseek(ctx, ctx->romfs_ctx.romfs_offset + ctx->romfs_ctx.header.file_meta_table_offset);
-        if (nca_section_fread(ctx, ctx->romfs_ctx.files, ctx->romfs_ctx.header.file_meta_table_size) != ctx->romfs_ctx.header.file_meta_table_size) {
+        if (nca_section_fread(ctx, ctx->romfs_ctx.files, (size_t)ctx->romfs_ctx.header.file_meta_table_size) != ctx->romfs_ctx.header.file_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS file cache!\n");
             exit(EXIT_FAILURE);
         }
@@ -1147,24 +1147,24 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
             exit(EXIT_FAILURE);
         }
         /* Allocate space for an extra (fake) relocation entry, to simplify our logic. */
-        void *relocs = calloc(1, sb->relocation_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_relocation_entry_t));
+        void *relocs = calloc(1, (size_t)(sb->relocation_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_relocation_entry_t)));
         if (relocs == NULL) {
             fprintf(stderr, "Failed to allocate relocation header!\n");
             exit(EXIT_FAILURE);
         }
         /* Allocate space for an extra (fake) subsection entry, to simplify our logic. */
-        void *subs = calloc(1, sb->subsection_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_subsection_entry_t) + sizeof(bktr_subsection_entry_t));
+        void *subs = calloc(1, (size_t)(sb->subsection_header.size + (0x3FF0 / sizeof(uint64_t)) * sizeof(bktr_subsection_entry_t) + sizeof(bktr_subsection_entry_t)));
         if (subs == NULL) {
             fprintf(stderr, "Failed to allocate subsection header!\n");
             exit(EXIT_FAILURE);
         }
         nca_section_fseek(ctx, sb->relocation_header.offset);
-        if (nca_section_fread(ctx, relocs, sb->relocation_header.size) != sb->relocation_header.size) {
+        if (nca_section_fread(ctx, relocs, (size_t)sb->relocation_header.size) != sb->relocation_header.size) {
             fprintf(stderr, "Failed to read relocation header!\n");
             exit(EXIT_FAILURE);
         }
         nca_section_fseek(ctx, sb->subsection_header.offset);
-        if (nca_section_fread(ctx, subs, sb->subsection_header.size) != sb->subsection_header.size) {
+        if (nca_section_fread(ctx, subs, (size_t)sb->subsection_header.size) != sb->subsection_header.size) {
             fprintf(stderr, "Failed to read subsection header!\n");
             exit(EXIT_FAILURE);
         }
@@ -1239,24 +1239,24 @@ void nca_process_bktr_section(nca_section_ctx_t *ctx) {
 
             if ((ctx->tool_ctx->action & (ACTION_EXTRACT | ACTION_LISTROMFS)) && ctx->bktr_ctx.header.header_size == ROMFS_HEADER_SIZE) {
                 /* Pre-load the file/data entry caches. */
-                ctx->bktr_ctx.directories = calloc(1, ctx->bktr_ctx.header.dir_meta_table_size);
+                ctx->bktr_ctx.directories = calloc(1, (size_t)ctx->bktr_ctx.header.dir_meta_table_size);
                 if (ctx->bktr_ctx.directories == NULL) {
                     fprintf(stderr, "Failed to allocate RomFS directory cache!\n");
                     exit(EXIT_FAILURE);
                 }
 
                 nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.dir_meta_table_offset);
-                if (nca_section_fread(ctx, ctx->bktr_ctx.directories, ctx->bktr_ctx.header.dir_meta_table_size) != ctx->bktr_ctx.header.dir_meta_table_size) {
+                if (nca_section_fread(ctx, ctx->bktr_ctx.directories, (size_t)ctx->bktr_ctx.header.dir_meta_table_size) != ctx->bktr_ctx.header.dir_meta_table_size) {
                     fprintf(stderr, "Failed to read RomFS directory cache!\n");
                     exit(EXIT_FAILURE);
                 }
-                ctx->bktr_ctx.files = calloc(1, ctx->bktr_ctx.header.file_meta_table_size);
+                ctx->bktr_ctx.files = calloc(1, (size_t)ctx->bktr_ctx.header.file_meta_table_size);
                 if (ctx->bktr_ctx.files == NULL) {
                     fprintf(stderr, "Failed to allocate RomFS file cache!\n");
                     exit(EXIT_FAILURE);
                 }
                 nca_section_fseek(ctx, ctx->bktr_ctx.romfs_offset + ctx->bktr_ctx.header.file_meta_table_offset);
-                if (nca_section_fread(ctx, ctx->bktr_ctx.files, ctx->bktr_ctx.header.file_meta_table_size) != ctx->bktr_ctx.header.file_meta_table_size) {
+                if (nca_section_fread(ctx, ctx->bktr_ctx.files, (size_t)ctx->bktr_ctx.header.file_meta_table_size) != ctx->bktr_ctx.header.file_meta_table_size) {
                     fprintf(stderr, "Failed to read RomFS file cache!\n");
                     exit(EXIT_FAILURE);
                 }
@@ -1367,21 +1367,21 @@ void nca_save_section_file(nca_section_ctx_t *ctx, uint64_t ofs, uint64_t total_
     }
 
     uint64_t read_size = 0x400000; /* 4 MB buffer. */
-    unsigned char *buf = malloc(read_size);
+    unsigned char *buf = malloc((size_t)read_size);
     if (buf == NULL) {
         fprintf(stderr, "Failed to allocate file-save buffer!\n");
         exit(EXIT_FAILURE);
     }
-    memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
+    memset(buf, 0xCC, (size_t)read_size); /* Debug in case I fuck this up somehow... */
     uint64_t end_ofs = ofs + total_size;
     while (ofs < end_ofs) {
         nca_section_fseek(ctx, ofs);
         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
-        if (nca_section_fread(ctx, buf, read_size) != read_size) {
+        if (nca_section_fread(ctx, buf, (size_t)read_size) != read_size) {
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
-        if (fwrite(buf, 1, read_size, f_out) != read_size) {
+        if (fwrite(buf, 1, (size_t)read_size, f_out) != read_size) {
             fprintf(stderr, "Failed to write file!\n");
             exit(EXIT_FAILURE);
         }

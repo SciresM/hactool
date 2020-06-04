@@ -30,12 +30,12 @@ void print_magic(const char *prefix, uint32_t magic) {
 void memdump(FILE *f, const char *prefix, const void *data, size_t size) {
     const uint8_t *p = (const uint8_t *)data;
 
-    unsigned int prefix_len = strlen(prefix);
+    size_t prefix_len = strlen(prefix);
     size_t offset = 0;
     int first = 1;
 
     while (size) {
-        unsigned int max = 32;
+        size_t max = 32;
 
         if (max > size) {
             max = size;
@@ -45,10 +45,10 @@ void memdump(FILE *f, const char *prefix, const void *data, size_t size) {
             fprintf(f, "%s", prefix);
             first = 0;
         } else {
-            fprintf(f, "%*s", prefix_len, "");
+            fprintf(f, "%*s", (int)prefix_len, "");
         }
 
-        for (unsigned int i = 0; i < max; i++) {
+        for (size_t i = 0; i < max; i++) {
             fprintf(f, "%02X", p[offset++]);
         }
 
@@ -66,7 +66,7 @@ void save_buffer_to_file(void *buf, uint64_t size, struct filepath *filepath) {
         return;
     }
 
-    fwrite(buf, 1, size, f_out);
+    fwrite(buf, 1, (size_t)size, f_out);
 
     fclose(f_out);
 }
@@ -92,21 +92,21 @@ void save_file_section(FILE *f_in, uint64_t ofs, uint64_t total_size, filepath_t
     }
 
     uint64_t read_size = 0x400000; /* 4 MB buffer. */
-    unsigned char *buf = malloc(read_size);
+    unsigned char *buf = malloc((size_t)read_size);
     if (buf == NULL) {
         fprintf(stderr, "Failed to allocate file-save buffer!\n");
         exit(EXIT_FAILURE);
     }
-    memset(buf, 0xCC, read_size); /* Debug in case I fuck this up somehow... */
+    memset(buf, 0xCC, (size_t)read_size); /* Debug in case I fuck this up somehow... */
     uint64_t end_ofs = ofs + total_size;
     fseeko64(f_in, ofs, SEEK_SET);
     while (ofs < end_ofs) {
         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
-        if (fread(buf, 1, read_size, f_in) != read_size) {
+        if (fread(buf, 1, (size_t)read_size, f_in) != read_size) {
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
-        fwrite(buf, 1, read_size, f_out);
+        fwrite(buf, 1, (size_t)read_size, f_out);
         ofs += read_size;
     }
 
@@ -123,7 +123,7 @@ validity_t check_memory_hash_table(FILE *f_in, unsigned char *hash_table, uint64
     }
     unsigned char cur_hash[0x20];
     uint64_t read_size = block_size;
-    unsigned char *block = malloc(block_size);
+    unsigned char *block = malloc((size_t)block_size);
     if (block == NULL) {
         fprintf(stderr, "Failed to allocate hash block!\n");
         exit(EXIT_FAILURE);
@@ -135,15 +135,15 @@ validity_t check_memory_hash_table(FILE *f_in, unsigned char *hash_table, uint64
         fseeko64(f_in, ofs + data_ofs, SEEK_SET);
         if (ofs + read_size > data_len) {
             /* Last block... */
-            memset(block, 0, read_size);
+            memset(block, 0, (size_t)read_size);
             read_size = data_len - ofs;
         }
 
-        if (fread(block, 1, read_size, f_in) != read_size) {
+        if (fread(block, 1, (size_t)read_size, f_in) != read_size) {
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
-        sha256_hash_buffer(cur_hash, block, full_block ? block_size : read_size);
+        sha256_hash_buffer(cur_hash, block, (size_t)(full_block ? block_size : read_size));
         if (memcmp(cur_hash, cur_hash_table_entry, 0x20) != 0) {
             result = VALIDITY_INVALID;
             break;
@@ -163,7 +163,7 @@ validity_t check_memory_hash_table_with_suffix(FILE *f_in, unsigned char *hash_t
 
     unsigned char cur_hash[0x20];
     uint64_t read_size = block_size;
-    unsigned char *block = malloc(block_size);
+    unsigned char *block = malloc((size_t)block_size);
     if (block == NULL) {
         fprintf(stderr, "Failed to allocate hash block!\n");
         exit(EXIT_FAILURE);
@@ -175,17 +175,17 @@ validity_t check_memory_hash_table_with_suffix(FILE *f_in, unsigned char *hash_t
         fseeko64(f_in, ofs + data_ofs, SEEK_SET);
         if (ofs + read_size > data_len) {
             /* Last block... */
-            memset(block, 0, read_size);
+            memset(block, 0, (size_t)read_size);
             read_size = data_len - ofs;
         }
 
-        if (fread(block, 1, read_size, f_in) != read_size) {
+        if (fread(block, 1, (size_t)read_size, f_in) != read_size) {
             fprintf(stderr, "Failed to read file!\n");
             exit(EXIT_FAILURE);
         }
         {
             sha_ctx_t *sha_ctx = new_sha_ctx(HASH_TYPE_SHA256, 0);
-            sha_update(sha_ctx, block, full_block ? block_size : read_size);
+            sha_update(sha_ctx, block, (size_t)(full_block ? block_size : read_size));
             if (suffix) {
                 sha_update(sha_ctx, suffix, sizeof(*suffix));
             }
@@ -211,14 +211,14 @@ validity_t check_file_hash_table(FILE *f_in, uint64_t hash_ofs, uint64_t data_of
     uint64_t hash_table_size = data_len / block_size;
     if (data_len % block_size) hash_table_size++;
     hash_table_size *= 0x20;
-    unsigned char *hash_table = malloc(hash_table_size);
+    unsigned char *hash_table = malloc((size_t)hash_table_size);
     if (hash_table == NULL) {
         fprintf(stderr, "Failed to allocate hash table!\n");
         exit(EXIT_FAILURE);
     }
 
     fseeko64(f_in, hash_ofs, SEEK_SET);
-    if (fread(hash_table, 1, hash_table_size, f_in) != hash_table_size) {
+    if (fread(hash_table, 1, (size_t)hash_table_size, f_in) != hash_table_size) {
         fprintf(stderr, "Failed to read file!\n");
         exit(EXIT_FAILURE);
     }

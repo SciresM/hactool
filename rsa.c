@@ -20,7 +20,7 @@ static void calculate_mgf1_and_xor(unsigned char *data, size_t data_size, const 
             h_buf[h_src_size + 3 - i] = (seed >> (8 * i)) & 0xFF;
         }
         sha256_hash_buffer(mgf1_buf, h_buf, h_src_size + 4);
-        for (unsigned int i = ofs; i < data_size && i < ofs + 0x20; i++) {
+        for (size_t i = ofs; i < data_size && i < ofs + 0x20; i++) {
             data[i] ^= mgf1_buf[i - ofs];
         }
         seed++;

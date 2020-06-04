@@ -20,7 +20,7 @@ void os_strcpy(oschar_t *dst, const char *src) {
     const UTF8 *sourceStart = (const UTF8 *)src;
     UTF16 *targetStart = (UTF16 *)dst;
     uint32_t src_len, dst_len;
-    src_len = strlen(src);
+    src_len = (uint32_t)strlen(src);
     dst_len = src_len + 1;
     const UTF8 *sourceEnd = (const UTF8 *)(src + src_len);
     UTF16 *targetEnd = (UTF16 *)(dst + dst_len);
