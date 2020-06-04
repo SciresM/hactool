@@ -1,0 +1,5 @@
+.vs
+out
+Win32
+x64
+*.user

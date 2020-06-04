@@ -45,7 +45,7 @@ ifdef WINDOWS_BUILD
 DLEXT=dll
 endif
 
-OBJS_CRYPTO=	aes.o		aesni.o		arc4.o		\
+OBJS_CRYPTO=	aes_mbedtls.o		aesni.o		arc4.o		\
 		asn1parse.o	asn1write.o	base64.o	\
 		bignum.o	blowfish.o	camellia.o	\
 		ccm.o		cipher.o	cipher_wrap.o	\
@@ -61,7 +61,7 @@ OBJS_CRYPTO=	aes.o		aesni.o		arc4.o		\
 		padlock.o	pem.o		pk.o		\
 		pk_wrap.o	pkcs12.o	pkcs5.o		\
 		pkparse.o	pkwrite.o	platform.o	\
-		ripemd160.o	rsa.o		sha1.o		\
+		ripemd160.o	rsa_mbedtls.o		sha1.o		\
 		sha256.o	sha512.o	threading.o	\
 		timing.o	version.o			\
 		version_features.o		xtea.o

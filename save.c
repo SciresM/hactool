@@ -194,7 +194,8 @@ void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *c
         {"HierarchicalIntegrityVerificationStorage::L4", 44},
         {"HierarchicalIntegrityVerificationStorage::L5", 44}
     };
-    integrity_verification_info_ctx_t init_info[ivfc->num_levels];
+    //  integrity_verification_info_ctx_t init_info[ivfc->num_levels];
+    integrity_verification_info_ctx_t init_info[SAVE_MAX_IVFC_LEVELS];
 
     init_info[0].data = &levels[0];
     init_info[0].block_size = 0;
