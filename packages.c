@@ -307,6 +307,25 @@ void pk11_save(pk11_ctx_t *ctx) {
     }
 }
 
+static bool pk21_is_valid_kernel_map(const kernel_map_t *map, uint32_t max_size) {
+    if (map->text_start_offset != 0)                               return false;
+    if (map->text_start_offset >= map->text_end_offset)            return false;
+    if (map->text_end_offset & 0xFFF)                              return false;
+    if (map->text_end_offset >  map->rodata_start_offset)          return false;
+    if (map->rodata_start_offset & 0xFFF)                          return false;
+    if (map->rodata_start_offset >= map->rodata_end_offset)        return false;
+    if (map->rodata_end_offset & 0xFFF)                            return false;
+    if (map->rodata_end_offset > map->data_start_offset)           return false;
+    if (map->data_start_offset & 0xFFF)                            return false;
+    if (map->data_start_offset >= map->data_end_offset)            return false;
+    if (map->data_end_offset > map->bss_start_offset)              return false;
+    if (map->bss_start_offset > map->bss_end_offset)               return false;
+    if (map->bss_end_offset > map->ini1_start_offset)              return false;
+    if (map->ini1_start_offset > max_size - sizeof(ini1_header_t)) return false;
+
+    return true;
+}
+
 void pk21_process(pk21_ctx_t *ctx) {
     fseeko64(ctx->file, 0, SEEK_SET);
     if (fread(&ctx->header, 1, sizeof(ctx->header), ctx->file) != sizeof(ctx->header)) {
@@ -404,10 +423,11 @@ void pk21_process(pk21_ctx_t *ctx) {
     if (ctx->header.section_sizes[1] > 0) {
         ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
     } else {
-        ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections);
-        for (offset = 0; offset < ctx->header.section_sizes[0] - 4; offset += 4) {
-            if (*(uint32_t *)(ctx->sections + offset) == MAGIC_KRNLLDR_STRCT_END) {
-                ctx->kernel_map = (kernel_map_t *)(ctx->sections + offset - sizeof(kernel_map_t));
+        ctx->ini1_ctx.header = calloc(1, sizeof(ini1_header_t));
+        for (offset = 0; offset < 0x1000; offset += 4) {
+            kernel_map_t *kernel_map = (kernel_map_t *)(ctx->sections + offset);
+            if (pk21_is_valid_kernel_map(kernel_map, ctx->header.section_sizes[0]) && *(const uint32_t *)(ctx->sections + kernel_map->ini1_start_offset) == MAGIC_INI1) {
+                ctx->kernel_map = kernel_map;
                 ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->kernel_map->ini1_start_offset);
                 break;
             }
