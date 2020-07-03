@@ -66,10 +66,10 @@ cJSON.o: cJSON.h
 
 clean:
 	rm -f *.o hactool hactool.exe
-    
+
 clean_full:
 	rm -f *.o hactool hactool.exe
-	$(MAKE)-C mbedtls clean
+	$(MAKE) -C mbedtls clean
 
 dist: clean_full
 	$(eval HACTOOLVER = $(shell grep '\bHACTOOL_VERSION\b' version.h \
