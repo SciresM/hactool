@@ -335,6 +335,13 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                         break;
                     }
 
+                    snprintf(test_name, sizeof(test_name), "mariko_master_kek_source_%02"PRIx32, i);
+                    if (strcmp(key, test_name) == 0) {
+                        parse_hex_key(keyset->mariko_master_kek_sources[i], value, sizeof(keyset->mariko_master_kek_sources[i]));
+                        matched_key = 1;
+                        break;
+                    }
+
                     snprintf(test_name, sizeof(test_name), "keyblob_%02"PRIx32, i);
                     if (strcmp(key, test_name) == 0) {
                         parse_hex_key(keyset->keyblobs[i], value, sizeof(keyset->keyblobs[i]));
