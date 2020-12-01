@@ -198,7 +198,7 @@ size_t nca_section_fread(nca_section_ctx_t *ctx, void *buffer, size_t count) {
                 if (count + ctx->sector_ofs < 0x10) {
                     memcpy(buffer, block_buf + ctx->sector_ofs, count);
                     ctx->sector_ofs += count;
-                    nca_section_fseek(ctx, ctx->cur_seek - ctx->offset);
+                    nca_section_fseek(ctx, ctx->cur_seek - ctx->offset + ctx->sector_ofs);
                     return count;
                 }
                 memcpy(buffer, block_buf + ctx->sector_ofs, 0x10 - ctx->sector_ofs);
