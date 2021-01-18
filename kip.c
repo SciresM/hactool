@@ -256,7 +256,7 @@ void kip1_print(kip1_ctx_t *ctx, int suppress) {
     printf("        .text:                      %08"PRIx32"-%08"PRIx32"\n", ctx->header->section_headers[0].out_offset, ctx->header->section_headers[0].out_offset + align(ctx->header->section_headers[0].out_size, 0x1000));
     printf("        .rodata:                    %08"PRIx32"-%08"PRIx32"\n", ctx->header->section_headers[1].out_offset, ctx->header->section_headers[1].out_offset + align(ctx->header->section_headers[1].out_size, 0x1000));
     printf("        .rwdata:                    %08"PRIx32"-%08"PRIx32"\n", ctx->header->section_headers[2].out_offset, ctx->header->section_headers[2].out_offset + ctx->header->section_headers[2].out_size);
-    printf("        .bss:                       %08"PRIx32"-%08"PRIx32"\n",ctx->header->section_headers[2].out_offset + ctx->header->section_headers[2].out_size, ctx->header->section_headers[3].out_offset + align(ctx->header->section_headers[3].out_size, 0x1000));
+    printf("        .bss:                       %08"PRIx32"-%08"PRIx32"\n", ctx->header->section_headers[2].out_offset + ctx->header->section_headers[2].out_size, align(ctx->header->section_headers[3].out_offset + ctx->header->section_headers[3].out_size, 0x1000));
     printf("    Kernel Access Control:\n");
     kac_print(ctx->header->capabilities, 0x20);
     printf("\n");
