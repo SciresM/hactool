@@ -102,11 +102,11 @@ void nso0_print(nso0_ctx_t *ctx) {
         printf("        .rodata:                    %08"PRIx32"-%08"PRIx32"\n", ctx->header->segments[1].dst_off, ctx->header->segments[1].dst_off + align(ctx->header->segments[1].decomp_size, 0x1000));
     }
     if ((ctx->tool_ctx->action & ACTION_VERIFY) && ctx->segment_validities[2] != VALIDITY_UNCHECKED) {
-        printf("        .rwdata (%s):             %08"PRIx32"-%08"PRIx32"\n", GET_VALIDITY_STR(ctx->segment_validities[2]), ctx->header->segments[2].dst_off, ctx->header->segments[2].dst_off + align(ctx->header->segments[2].decomp_size, 0x1000));
+        printf("        .rwdata (%s):             %08"PRIx32"-%08"PRIx32"\n", GET_VALIDITY_STR(ctx->segment_validities[2]), ctx->header->segments[2].dst_off, ctx->header->segments[2].dst_off + ctx->header->segments[2].decomp_size);
     } else {
-        printf("        .rwdata:                    %08"PRIx32"-%08"PRIx32"\n", ctx->header->segments[2].dst_off, ctx->header->segments[2].dst_off + align(ctx->header->segments[2].decomp_size, 0x1000));
+        printf("        .rwdata:                    %08"PRIx32"-%08"PRIx32"\n", ctx->header->segments[2].dst_off, ctx->header->segments[2].dst_off + ctx->header->segments[2].decomp_size);
     }
-    printf("        .bss:                       %08"PRIx32"-%08"PRIx32"\n", ctx->header->segments[2].dst_off + align(ctx->header->segments[2].decomp_size, 0x1000), ctx->header->segments[2].dst_off + align(ctx->header->segments[2].decomp_size, 0x1000) + align(ctx->header->segments[2].align_or_total_size, 0x1000));
+    printf("        .bss:                       %08"PRIx32"-%08"PRIx32"\n", ctx->header->segments[2].dst_off + ctx->header->segments[2].decomp_size, ctx->header->segments[2].dst_off + align(ctx->header->segments[2].decomp_size + ctx->header->segments[2].align_or_total_size, 0x1000));
 }
 
 void nso0_save(nso0_ctx_t *ctx) {
