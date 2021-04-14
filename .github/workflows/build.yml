@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job_name: ['linux', 'windows']
+        job_name: ['linux', 'windows', 'macos']
 
         include:
         - job_name: linux
@@ -15,6 +15,10 @@ jobs:
         - job_name: windows
           os: windows-latest
           shell: msys2 {0}
+
+        - job_name: macos
+          os: macos-latest
+          shell: bash {0}
 
     defaults:
       run:
