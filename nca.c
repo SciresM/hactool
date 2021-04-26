@@ -585,8 +585,7 @@ void nca_process(nca_ctx_t *ctx) {
 int nca_decrypt_header(nca_ctx_t *ctx) {
     fseeko64(ctx->file, 0, SEEK_SET);
     if (fread(&ctx->header, 1, 0xC00, ctx->file) != 0xC00) {
-        fprintf(stderr, "Failed to read NCA header!\n");
-        return 0;
+        fprintf(stderr, "Warning: NCA too small! Issues may occur.\n");
     }
 
     /* Try to support decrypted NCA headers. */
