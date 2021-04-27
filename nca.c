@@ -584,7 +584,10 @@ void nca_process(nca_ctx_t *ctx) {
 /* Decrypt NCA header. */
 int nca_decrypt_header(nca_ctx_t *ctx) {
     fseeko64(ctx->file, 0, SEEK_SET);
-    if (fread(&ctx->header, 1, 0xC00, ctx->file) != 0xC00) {
+    
+    size_t read_size = fread(&ctx->header, 1, 0xC00, ctx->file);
+    
+    if (read_size != 0xC00 && read_size != 0xA00) {
         fprintf(stderr, "Failed to read NCA header!\n");
         return 0;
     }
@@ -611,7 +614,11 @@ int nca_decrypt_header(nca_ctx_t *ctx) {
     aes_ctx_t *hdr_aes_ctx = new_aes_ctx(ctx->tool_ctx->settings.keyset.header_key, 32, AES_MODE_XTS);
     aes_xts_decrypt(hdr_aes_ctx, &dec_header, &ctx->header, 0x400, 0, 0x200);
 
-
+    if(read_size == 0xA00 && dec_header.magic != MAGIC_NCA0) {
+        fprintf(stderr, "Failed to read NCA header!\n");
+        return 0;
+    }
+    
     if (dec_header.magic == MAGIC_NCA3) {
         ctx->format_version = NCAVERSION_NCA3;
         aes_xts_decrypt(hdr_aes_ctx, &dec_header, &ctx->header, 0xC00, 0, 0x200);
