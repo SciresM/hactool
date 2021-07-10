@@ -1697,11 +1697,11 @@ static int nca_visit_nca0_romfs_dir(nca_section_ctx_t *ctx, uint32_t dir_offset,
         any_files |= nca_visit_nca0_romfs_file(ctx, entry->file, cur_path);
     }
     if (entry->child != ROMFS_ENTRY_EMPTY) {
-        any_files |= nca_visit_nca0_romfs_file(ctx, entry->child, cur_path);
+        any_files |= nca_visit_nca0_romfs_dir(ctx, entry->child, cur_path);
     }
 
     if (entry->sibling != ROMFS_ENTRY_EMPTY) {
-        nca_visit_nca0_romfs_dir(ctx, entry->sibling, parent_path);
+        any_files |= nca_visit_nca0_romfs_dir(ctx, entry->sibling, parent_path);
     }
 
     free(cur_path);
