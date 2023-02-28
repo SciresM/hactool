@@ -304,7 +304,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
                 break;
             case 6: /* Map IO/Normal. */
                 cur_mmio = calloc(1, sizeof(kac_mmio_t));
-                cur_mmio->address = (desc & 0xFFFFFF) << 12;
+                cur_mmio->address = (uint64_t)(desc & 0xFFFFFF) << 12;
                 cur_mmio->is_ro = desc >> 24;
                 if (i == num_descriptors - 1) {
                     fprintf(stderr, "Error: Invalid Kernel Access Control Descriptors!\n");
@@ -316,7 +316,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
                     exit(EXIT_FAILURE);
                 }
                 desc >>= 7;
-                cur_mmio->size = (desc & 0xFFFFFF) << 12;
+                cur_mmio->size = (uint64_t)(desc & 0xFFFFFF) << 12;
                 cur_mmio->is_norm = desc >> 24;
                 kac_add_mmio(&kac, cur_mmio);
                 break;
