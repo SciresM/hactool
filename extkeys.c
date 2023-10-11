@@ -304,7 +304,9 @@ void extkeys_initialize_settings(hactool_settings_t *settings, FILE *f) {
                 parse_hex_key(exponent, value, sizeof(exponent));
                 pki_set_beta_nca0_exponent(exponent);
                 matched_key = 1;
-            } else {
+            } else if (strcmp(key, "xci_t1_titlekey_kek_00") == 0) {
+                matched_key = 1;
+            }  else {
                 char test_name[0x100] = {0};
                 for (unsigned int i = 0; i < 0x6 && !matched_key; i++) {
                     snprintf(test_name, sizeof(test_name), "keyblob_key_source_%02"PRIx32, i);

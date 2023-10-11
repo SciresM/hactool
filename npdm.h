@@ -30,7 +30,7 @@ typedef struct {
     uint32_t highest_thread_prio;
     uint32_t lowest_cpu_id;
     uint32_t highest_cpu_id;
-    uint8_t svcs_allowed[0x80];
+    uint8_t svcs_allowed[0xC0];
     kac_mmio_t *mmio;
     kac_irq_t *irqs;
     int has_app_type;

@@ -6,7 +6,7 @@
 #include "rsa.h"
 #include "cJSON.h"
 
-static const char * const svc_names[0x80] = {
+static const char * const svc_names[0xC0] = {
     "svcUnknown",
     "svcSetHeapSize",
     "svcSetMemoryPermission",
@@ -135,6 +135,70 @@ static const char * const svc_names[0x80] = {
     "svcCreateResourceLimit",
     "svcSetResourceLimitLimitValue",
     "svcCallSecureMonitor"
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
+    "svcUnknown",
 };
 
 #define MAX_FS_PERM_RW 0x27
@@ -297,7 +361,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
                 break;
             case 4: /* Syscall mask. */
                 syscall_base = (desc >> 24) * 0x18;
-                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0x80; sc++) {
+                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0xC0; sc++) {
                     kac.svcs_allowed[syscall_base+sc] = desc & 1;
                     desc >>= 1;
                 }
@@ -382,7 +446,7 @@ void kac_print(const uint32_t *descriptors, uint32_t num_descriptors) {
     }
 
     int first_svc = 1;
-    for (unsigned int i = 0; i < 0x80; i++) {
+    for (unsigned int i = 0; i < 0xC0; i++) {
         if (kac.svcs_allowed[i]) {
             printf(first_svc ? "        Allowed SVCs:               %-35s (0x%02"PRIx32")\n" : "                                    %-35s (0x%02"PRIx32")\n", svc_names[i], i);
             first_svc = 0;
@@ -811,7 +875,7 @@ cJSON *kac_get_json(const uint32_t *descriptors, uint32_t num_descriptors) {
                     temp = syscall_memory;
                 }
                 syscall_base = (desc >> 24) * 0x18;
-                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0x80; sc++) {
+                for (unsigned int sc = 0; sc < 0x18 && syscall_base + sc < 0xC0; sc++) {
                     if (desc & 1) {
                         cJSON_AddU8ToObject(temp, strdup(svc_names[sc + syscall_base]), sc + syscall_base);
                     }

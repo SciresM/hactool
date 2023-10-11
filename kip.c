@@ -196,7 +196,9 @@ static void *kip1_uncompress(kip1_ctx_t *ctx, uint64_t *size) {
     for (unsigned int i = 0; i < 3; i++) {
         // Copy in section data */
         memcpy(new_kip + new_offset, (unsigned char *)ctx->header + old_offset, ctx->header->section_headers[i].compressed_size);
-        kip1_blz_uncompress(new_kip + new_offset + ctx->header->section_headers[i].compressed_size);
+        if (ctx->header->flags & (1 << i)) {
+            kip1_blz_uncompress(new_kip + new_offset + ctx->header->section_headers[i].compressed_size);
+        }
         new_offset += ctx->header->section_headers[i].out_size;
         old_offset += ctx->header->section_headers[i].compressed_size;
     }
