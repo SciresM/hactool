@@ -27,9 +27,9 @@ void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t 
     ctx->block_size = 1 << layer->info.block_size_power;
 
     ctx->bitmap.data = ctx->bitmap_storage;
-    ctx->bitmap.bitmap = malloc(bitmap_size >> 3);
+    ctx->bitmap.bitmap = malloc((size_t)(bitmap_size >> 3));
 
-    uint32_t bits_remaining = bitmap_size;
+    uint32_t bits_remaining = (uint32_t)bitmap_size;
     uint32_t bitmap_pos = 0;
     uint32_t *buffer_pos = (uint32_t *)bitmap;
     while (bits_remaining) {
@@ -51,7 +51,7 @@ void save_duplex_storage_init(duplex_storage_ctx_t *ctx, duplex_fs_layer_info_t 
 uint32_t save_duplex_storage_read(duplex_storage_ctx_t *ctx, void *buffer, uint64_t offset, size_t count) {
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
-    uint32_t remaining = count;
+    uint32_t remaining = (uint32_t)count;
 
     while (remaining) {
         uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
@@ -75,7 +75,7 @@ remap_segment_ctx_t *save_remap_init_segments(remap_header_t *header, remap_entr
     for (unsigned int i = 0; i < header->map_segment_count; i++) {
         remap_segment_ctx_t *seg = &segments[i];
         seg->entry_count = 0;
-        remap_entry_ctx_t **ptr = malloc(sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1));
+        remap_entry_ctx_t **ptr = malloc((size_t)(sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1)));
         if (!ptr) {
             fprintf(stderr, "Failed to allocate entries in remap storage!\n");
             exit(EXIT_FAILURE);
@@ -88,7 +88,7 @@ remap_segment_ctx_t *save_remap_init_segments(remap_header_t *header, remap_entr
         while (entry_idx < num_map_entries && map_entries[entry_idx - 1].virtual_offset_end == map_entries[entry_idx].virtual_offset) {
             map_entries[entry_idx].segment = seg;
             map_entries[entry_idx - 1].next = &map_entries[entry_idx];
-            ptr = realloc(seg->entries, sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1));
+            ptr = realloc(seg->entries, (size_t)(sizeof(remap_entry_ctx_t *) * (seg->entry_count + 1)));
             if (!ptr) {
                 fprintf(stderr, "Failed to reallocate entries in remap storage!\n");
                 exit(EXIT_FAILURE);
@@ -116,7 +116,7 @@ uint32_t save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset
     remap_entry_ctx_t *entry = save_remap_get_map_entry(ctx, offset);
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
-    uint32_t remaining = count;
+    uint32_t remaining = (uint32_t)count;
 
     while (remaining) {
         uint64_t entry_pos = in_pos - entry->virtual_offset;
@@ -147,7 +147,7 @@ uint32_t save_remap_read(remap_storage_ctx_t *ctx, void *buffer, uint64_t offset
 uint32_t save_journal_storage_read(journal_storage_ctx_t *ctx, remap_storage_ctx_t *remap, void *buffer, uint64_t offset, size_t count) {
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
-    uint32_t remaining = count;
+    uint32_t remaining = (uint32_t)count;
 
     while (remaining) {
         uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
@@ -194,7 +194,8 @@ void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *c
         {"HierarchicalIntegrityVerificationStorage::L4", 44},
         {"HierarchicalIntegrityVerificationStorage::L5", 44}
     };
-    integrity_verification_info_ctx_t init_info[ivfc->num_levels];
+    //  integrity_verification_info_ctx_t init_info[ivfc->num_levels];
+    integrity_verification_info_ctx_t init_info[SAVE_MAX_IVFC_LEVELS];
 
     init_info[0].data = &levels[0];
     init_info[0].block_size = 0;
@@ -212,7 +213,7 @@ void save_ivfc_storage_init(hierarchical_integrity_verification_storage_ctx_t *c
         level_data->base_storage = &levels[i];
         level_data->sector_size = init_info[i].block_size;
         level_data->_length = init_info[i].data->data_size;
-        level_data->sector_count = (level_data->_length + level_data->sector_size - 1) / level_data->sector_size;
+        level_data->sector_count = (uint32_t)((level_data->_length + level_data->sector_size - 1) / level_data->sector_size);
         memcpy(level_data->salt, init_info[i].salt, 0x20);
         level_data->block_validities = calloc(1, sizeof(validity_t) * level_data->sector_count);
         ctx->level_validities[i - 1] = level_data->block_validities;
@@ -419,7 +420,7 @@ uint32_t save_allocation_table_storage_read(allocation_table_storage_ctx_t *ctx,
     save_allocation_table_iterator_begin(&iterator, ctx->fat, ctx->initial_block);
     uint64_t in_pos = offset;
     uint32_t out_pos = 0;
-    uint32_t remaining = count;
+    uint32_t remaining = (uint32_t)count;
 
     while (remaining) {
         uint32_t block_num = (uint32_t)(in_pos / ctx->block_size);
@@ -559,11 +560,11 @@ validity_t save_ivfc_validate(hierarchical_integrity_verification_storage_ctx_t 
         uint64_t block_size = storage->sector_size;
         uint32_t block_count = (uint32_t)((storage->_length + block_size - 1) / block_size);
 
-        uint8_t *buffer = malloc(block_size);
+        uint8_t *buffer = malloc((size_t)block_size);
 
         for (unsigned int j = 0; j < block_count; j++) {
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_UNCHECKED) {
-                uint32_t to_read = storage->_length - block_size * j < block_size ? storage->_length - block_size * j : block_size;
+                uint32_t to_read = (uint32_t)(storage->_length - block_size * j < block_size ? storage->_length - block_size * j : block_size);
                 save_ivfc_storage_read(storage, buffer, block_size * j, to_read, 1);
             }
             if (ctx->level_validities[ivfc->num_levels - 2][j] == VALIDITY_INVALID) {
@@ -664,16 +665,16 @@ void save_process(save_ctx_t *ctx) {
     ctx->duplex_layers[0].data_b = (uint8_t *)&ctx->header + ctx->header.layout.duplex_master_offset_b;
     memcpy(&ctx->duplex_layers[0].info, &ctx->header.duplex_header.layers[0], sizeof(duplex_info_t));
 
-    ctx->duplex_layers[1].data_a = malloc(ctx->header.layout.duplex_l1_size);
-    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[1].data_a, ctx->header.layout.duplex_l1_offset_a, ctx->header.layout.duplex_l1_size);
-    ctx->duplex_layers[1].data_b = malloc(ctx->header.layout.duplex_l1_size);
-    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[1].data_b, ctx->header.layout.duplex_l1_offset_b, ctx->header.layout.duplex_l1_size);
+    ctx->duplex_layers[1].data_a = malloc((size_t)ctx->header.layout.duplex_l1_size);
+    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[1].data_a, ctx->header.layout.duplex_l1_offset_a, (size_t)ctx->header.layout.duplex_l1_size);
+    ctx->duplex_layers[1].data_b = malloc((size_t)ctx->header.layout.duplex_l1_size);
+    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[1].data_b, ctx->header.layout.duplex_l1_offset_b, (size_t)ctx->header.layout.duplex_l1_size);
     memcpy(&ctx->duplex_layers[1].info, &ctx->header.duplex_header.layers[1], sizeof(duplex_info_t));
 
-    ctx->duplex_layers[2].data_a = malloc(ctx->header.layout.duplex_data_size);
-    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[2].data_a, ctx->header.layout.duplex_data_offset_a, ctx->header.layout.duplex_data_size);
-    ctx->duplex_layers[2].data_b = malloc(ctx->header.layout.duplex_data_size);
-    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[2].data_b, ctx->header.layout.duplex_data_offset_b, ctx->header.layout.duplex_data_size);
+    ctx->duplex_layers[2].data_a = malloc((size_t)ctx->header.layout.duplex_data_size);
+    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[2].data_a, ctx->header.layout.duplex_data_offset_a, (size_t)ctx->header.layout.duplex_data_size);
+    ctx->duplex_layers[2].data_b = malloc((size_t)ctx->header.layout.duplex_data_size);
+    save_remap_read(&ctx->data_remap_storage, ctx->duplex_layers[2].data_b, ctx->header.layout.duplex_data_offset_b, (size_t)ctx->header.layout.duplex_data_size);
     memcpy(&ctx->duplex_layers[2].info, &ctx->header.duplex_header.layers[2], sizeof(duplex_info_t));
 
     /* Initialize hierarchical duplex storage. */
@@ -681,8 +682,8 @@ void save_process(save_ctx_t *ctx) {
     save_duplex_storage_init(&ctx->duplex_storage.layers[0], &ctx->duplex_layers[1], bitmap, ctx->header.layout.duplex_master_size);
     ctx->duplex_storage.layers[0]._length = ctx->header.layout.duplex_l1_size;
 
-    bitmap = malloc(ctx->duplex_storage.layers[0]._length);
-    save_duplex_storage_read(&ctx->duplex_storage.layers[0], bitmap, 0, ctx->duplex_storage.layers[0]._length);
+    bitmap = malloc((size_t)ctx->duplex_storage.layers[0]._length);
+    save_duplex_storage_read(&ctx->duplex_storage.layers[0], bitmap, 0, (size_t)ctx->duplex_storage.layers[0]._length);
     save_duplex_storage_init(&ctx->duplex_storage.layers[1], &ctx->duplex_layers[2], bitmap, ctx->duplex_storage.layers[0]._length);
     ctx->duplex_storage.layers[1]._length = ctx->header.layout.duplex_data_size;
 
@@ -692,7 +693,7 @@ void save_process(save_ctx_t *ctx) {
     ctx->meta_remap_storage.type = STORAGE_DUPLEX;
     ctx->meta_remap_storage.duplex = &ctx->duplex_storage.data_layer;
     ctx->meta_remap_storage.header = &ctx->header.meta_remap_header;
-    ctx->meta_remap_storage.map_entries = malloc(sizeof(remap_entry_ctx_t) * ctx->meta_remap_storage.header->map_entry_count);
+    ctx->meta_remap_storage.map_entries = malloc((size_t)(sizeof(remap_entry_ctx_t) * ctx->meta_remap_storage.header->map_entry_count));
     ctx->meta_remap_storage.file = ctx->file;
     fseeko64(ctx->file, ctx->header.layout.meta_map_entry_offset, SEEK_SET);
     for (unsigned int i = 0; i < ctx->meta_remap_storage.header->map_entry_count; i++) {
@@ -704,8 +705,8 @@ void save_process(save_ctx_t *ctx) {
     ctx->meta_remap_storage.segments = save_remap_init_segments(ctx->meta_remap_storage.header, ctx->meta_remap_storage.map_entries, ctx->meta_remap_storage.header->map_entry_count);
 
    /* Initialize journal map. */
-    ctx->journal_map_info.map_storage = malloc(ctx->header.layout.journal_map_table_size);
-    save_remap_read(&ctx->meta_remap_storage, ctx->journal_map_info.map_storage, ctx->header.layout.journal_map_table_offset, ctx->header.layout.journal_map_table_size);
+    ctx->journal_map_info.map_storage = malloc((size_t)ctx->header.layout.journal_map_table_size);
+    save_remap_read(&ctx->meta_remap_storage, ctx->journal_map_info.map_storage, ctx->header.layout.journal_map_table_offset, (size_t)ctx->header.layout.journal_map_table_size);
 
     /* Initialize journal storage. */
     ctx->journal_storage.header = &ctx->header.journal_header;
@@ -721,7 +722,7 @@ void save_process(save_ctx_t *ctx) {
         ctx->journal_storage.map.entries[i].physical_index = *pos & 0x7FFFFFFF;
         pos += 2;
     }
-    ctx->journal_storage.block_size = ctx->journal_storage.header->block_size;
+    ctx->journal_storage.block_size = (uint32_t)ctx->journal_storage.header->block_size;
     ctx->journal_storage._length = ctx->journal_storage.header->total_size - ctx->journal_storage.header->journal_size;
 
     /* Initialize core IVFC storage. */
@@ -732,15 +733,15 @@ void save_process(save_ctx_t *ctx) {
 
     /* Initialize FAT storage. */
     if (ctx->header.layout.version < 0x50000) {
-        ctx->fat_storage = malloc(ctx->header.layout.fat_size);
-        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.layout.fat_offset, ctx->header.layout.fat_size);
+        ctx->fat_storage = malloc((size_t)ctx->header.layout.fat_size);
+        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.layout.fat_offset, (size_t)ctx->header.layout.fat_size);
     } else {
         for (unsigned int i = 0; i < 5; i++) {
             ctx->fat_ivfc_storage.levels[i].save_ctx = ctx;
         }
         save_ivfc_storage_init(&ctx->fat_ivfc_storage, ctx->header.layout.fat_ivfc_master_hash_a, &ctx->header.fat_ivfc_header);
-        ctx->fat_storage = malloc(ctx->fat_ivfc_storage._length);
-        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.fat_ivfc_header.level_headers[ctx->header.fat_ivfc_header.num_levels - 2].logical_offset, ctx->fat_ivfc_storage._length);
+        ctx->fat_storage = malloc((size_t)ctx->fat_ivfc_storage._length);
+        save_remap_read(&ctx->meta_remap_storage, ctx->fat_storage, ctx->header.fat_ivfc_header.level_headers[ctx->header.fat_ivfc_header.num_levels - 2].logical_offset, (size_t)ctx->fat_ivfc_storage._length);
     }
 
     if (ctx->tool_ctx->action & ACTION_VERIFY) {
@@ -823,7 +824,7 @@ void save_save_file(save_ctx_t *ctx, uint64_t ofs, uint64_t total_size, uint32_t
     }
 
     uint64_t read_size = 0x400000; /* 4 MB buffer. */
-    unsigned char *buf = malloc(read_size);
+    unsigned char *buf = malloc((size_t)read_size);
     if (buf == NULL) {
         fprintf(stderr, "Failed to allocate file-save buffer!\n");
         exit(EXIT_FAILURE);
@@ -834,8 +835,8 @@ void save_save_file(save_ctx_t *ctx, uint64_t ofs, uint64_t total_size, uint32_t
     save_open_fat_storage(&ctx->save_filesystem_core, &storage, start_block);
     while (ofs < end_ofs) {
         if (ofs + read_size >= end_ofs) read_size = end_ofs - ofs;
-        save_allocation_table_storage_read(&storage, buf, ofs, read_size);
-        if (fwrite(buf, 1, read_size, f_out) != read_size) {
+        save_allocation_table_storage_read(&storage, buf, ofs, (size_t)read_size);
+        if (fwrite(buf, 1, (size_t)read_size, f_out) != read_size) {
             fprintf(stderr, "Failed to write file!\n");
             exit(EXIT_FAILURE);
         }
@@ -852,7 +853,7 @@ static int save_visit_save_file(save_ctx_t *ctx, uint32_t file_index, filepath_t
     if (!save_fs_list_get_value(&ctx->save_filesystem_core.file_table.file_table, file_index, &entry)) {
         return 0;
     }
-    uint32_t name_size = strlen(entry.name);
+    uint32_t name_size = (uint32_t)strlen(entry.name);
 
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {
@@ -888,7 +889,7 @@ static int save_visit_save_dir(save_ctx_t *ctx, uint32_t dir_index, filepath_t *
     if (!save_fs_list_get_value(&ctx->save_filesystem_core.file_table.directory_table, dir_index, &entry)) {
         return 0;
     }
-    uint32_t name_size = strlen(entry.name);
+    uint32_t name_size = (uint32_t)strlen(entry.name);
 
     filepath_t *cur_path = calloc(1, sizeof(filepath_t));
     if (cur_path == NULL) {

@@ -74,25 +74,25 @@ void romfs_process(romfs_ctx_t *ctx) {
 
     if ((ctx->tool_ctx->action & (ACTION_EXTRACT | ACTION_LISTROMFS)) && ctx->header.header_size == ROMFS_HEADER_SIZE) {
         /* Pre-load the file/data entry caches. */
-        ctx->directories = calloc(1, ctx->header.dir_meta_table_size);
+        ctx->directories = calloc(1, (size_t)ctx->header.dir_meta_table_size);
         if (ctx->directories == NULL) {
             fprintf(stderr, "Failed to allocate RomFS directory cache!\n");
             exit(EXIT_FAILURE);
         }
 
-        fseeko64(ctx->file, ctx->romfs_offset + ctx->header.dir_meta_table_offset, SEEK_SET);
-        if (fread(ctx->directories, 1, ctx->header.dir_meta_table_size, ctx->file) != ctx->header.dir_meta_table_size) {
+        fseeko64(ctx->file, (size_t)(ctx->romfs_offset + ctx->header.dir_meta_table_offset), SEEK_SET);
+        if (fread(ctx->directories, 1, (size_t)ctx->header.dir_meta_table_size, ctx->file) != ctx->header.dir_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS directory cache!\n");
             exit(EXIT_FAILURE);
         }
 
-        ctx->files = calloc(1, ctx->header.file_meta_table_size);
+        ctx->files = calloc(1, (size_t)ctx->header.file_meta_table_size);
         if (ctx->files == NULL) {
             fprintf(stderr, "Failed to allocate RomFS file cache!\n");
             exit(EXIT_FAILURE);
         }
         fseeko64(ctx->file, ctx->romfs_offset + ctx->header.file_meta_table_offset, SEEK_SET);
-        if (fread(ctx->files, 1, ctx->header.file_meta_table_size, ctx->file) != ctx->header.file_meta_table_size) {
+        if (fread(ctx->files, 1, (size_t)ctx->header.file_meta_table_size, ctx->file) != ctx->header.file_meta_table_size) {
             fprintf(stderr, "Failed to read RomFS file cache!\n");
             exit(EXIT_FAILURE);
         }

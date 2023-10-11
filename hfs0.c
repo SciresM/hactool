@@ -17,14 +17,14 @@ void hfs0_process(hfs0_ctx_t *ctx) {
     }
 
     uint64_t header_size = hfs0_get_header_size(&raw_header);
-    ctx->header = malloc(header_size);
+    ctx->header = malloc((size_t)header_size);
     if (ctx->header == NULL) {
         fprintf(stderr, "Failed to allocate HFS0 header!\n");
         exit(EXIT_FAILURE);
     }
 
     fseeko64(ctx->file, ctx->offset, SEEK_SET);
-    if (fread(ctx->header, 1, header_size, ctx->file) != header_size) {
+    if (fread(ctx->header, 1, (size_t)header_size, ctx->file) != header_size) {
         fprintf(stderr, "Failed to read HFS0 header!\n");
         exit(EXIT_FAILURE);
     }

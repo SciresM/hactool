@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include "types.h"
 #include "utils.h"
 #include "settings.h"
@@ -607,12 +606,12 @@ int main(int argc, char **argv) {
                 npdm_size = raw_hdr.acid_offset + raw_hdr.acid_size;
             }
             fseeko64(tool_ctx.file, 0, SEEK_SET);
-            npdm_t *npdm = malloc(npdm_size);
+            npdm_t *npdm = malloc((size_t)npdm_size);
             if (npdm == NULL) {
                 fprintf(stderr, "Failed to allocate NPDM!\n");
                 exit(EXIT_FAILURE);
             }
-            if (fread(npdm, 1, npdm_size, tool_ctx.file) != npdm_size) {
+            if (fread(npdm, 1, (size_t)npdm_size, tool_ctx.file) != npdm_size) {
                 fprintf(stderr, "Failed to read NPDM!\n");
                 exit(EXIT_FAILURE);
             }

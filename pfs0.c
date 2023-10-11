@@ -16,14 +16,14 @@ void pfs0_process(pfs0_ctx_t *ctx) {
     }
 
     uint64_t header_size = pfs0_get_header_size(&raw_header);
-    ctx->header = malloc(header_size);
+    ctx->header = malloc((size_t)header_size);
     if (ctx->header == NULL) {
         fprintf(stderr, "Failed to allocate PFS0 header!\n");
         exit(EXIT_FAILURE);
     }
 
     fseeko64(ctx->file, 0, SEEK_SET);
-    if (fread(ctx->header, 1, header_size, ctx->file) != header_size) {
+    if (fread(ctx->header, 1, (size_t)header_size, ctx->file) != header_size) {
         fprintf(stderr, "Failed to read PFS0 header!\n");
         exit(EXIT_FAILURE);
     }
@@ -42,13 +42,13 @@ void pfs0_process(pfs0_ctx_t *ctx) {
         if (strcmp(pfs0_get_file_name(ctx->header, i), "main.npdm") == 0) {
             /* We might have found the exefs... */
 
-            ctx->npdm = malloc(cur_file->size);
+            ctx->npdm = malloc((size_t)cur_file->size);
             if (ctx->npdm == NULL) {
                 fprintf(stderr, "Failed to allocate NPDM!\n");
                 exit(EXIT_FAILURE);
             }
             fseeko64(ctx->file, pfs0_get_header_size(ctx->header) + cur_file->offset, SEEK_SET);
-            if (fread(ctx->npdm, 1, cur_file->size, ctx->file) != cur_file->size) {
+            if (fread(ctx->npdm, 1, (size_t)cur_file->size, ctx->file) != cur_file->size) {
                 fprintf(stderr, "Failed to read NPDM!\n");
                 exit(EXIT_FAILURE);
             }

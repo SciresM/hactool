@@ -16,4 +16,12 @@ typedef enum {
 
 #define GET_VALIDITY_STR(validity) ((validity == VALIDITY_VALID) ? "GOOD" : "FAIL")
 
+// visual studio compatibility
+#ifdef _WIN32
+#define strcasecmp  _stricmp
+#define strdup _strdup
+#else
+#include <strings.h>
+#endif
+
 #endif
