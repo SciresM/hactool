@@ -209,6 +209,7 @@ typedef struct {
     uint32_t dynamic_offset;
     uint32_t init_array_start_offset;
     uint32_t init_array_end_offset;
+    uint32_t system_registers_offset; /* 17.0.0+ */
 } kernel_map_t;
 
 typedef struct {

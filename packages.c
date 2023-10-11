@@ -307,7 +307,22 @@ void pk11_save(pk11_ctx_t *ctx) {
     }
 }
 
-static bool pk21_is_valid_kernel_map(const kernel_map_t *map, uint32_t max_size) {
+static bool pk21_is_valid_kernel_map(const kernel_map_t *raw_map, uint32_t max_size, uint32_t adj) {
+    kernel_map_t adjusted_map = *raw_map;
+    adjusted_map.text_start_offset       += adj;
+    adjusted_map.text_end_offset         += adj;
+    adjusted_map.rodata_start_offset     += adj;
+    adjusted_map.rodata_end_offset       += adj;
+    adjusted_map.data_start_offset       += adj;
+    adjusted_map.data_end_offset         += adj;
+    adjusted_map.bss_start_offset        += adj;
+    adjusted_map.bss_end_offset          += adj;
+    adjusted_map.ini1_start_offset       += adj;
+    adjusted_map.dynamic_offset          += adj;
+    adjusted_map.init_array_start_offset += adj;
+    adjusted_map.init_array_end_offset   += adj;
+
+    const kernel_map_t *map = &adjusted_map;
     if (map->text_start_offset != 0)                               return false;
     if (map->text_start_offset >= map->text_end_offset)            return false;
     if (map->text_end_offset & 0xFFF)                              return false;
@@ -424,14 +439,45 @@ void pk21_process(pk21_ctx_t *ctx) {
         ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->header.section_sizes[0]);
     } else {
         ctx->ini1_ctx.header = calloc(1, sizeof(ini1_header_t));
-        for (offset = 0; offset < 0x1000; offset += 4) {
-            kernel_map_t *kernel_map = (kernel_map_t *)(ctx->sections + offset);
-            if (pk21_is_valid_kernel_map(kernel_map, ctx->header.section_sizes[0]) && *(const uint32_t *)(ctx->sections + kernel_map->ini1_start_offset) == MAGIC_INI1) {
-                ctx->kernel_map = kernel_map;
-                ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->kernel_map->ini1_start_offset);
-                break;
+
+        /* 17.0.0+ branch-to-rodata */
+        if (((*(const uint64_t *)ctx->sections) & UINT64_C(0xFFFFFFFFFF000000)) == UINT64_C(0x0000000014000000)) {
+            uint32_t branch_target = ((*(const uint32_t *)ctx->sections) & 0x00FFFFFF) << 2;
+            for (offset = branch_target; offset < branch_target + 0x1000; offset += 4) {
+                kernel_map_t *kernel_map = (kernel_map_t *)(ctx->sections + offset);
+                if (pk21_is_valid_kernel_map(kernel_map, ctx->header.section_sizes[0], offset) && *(const uint32_t *)(ctx->sections + offset + kernel_map->ini1_start_offset) == MAGIC_INI1) {
+                    ctx->kernel_map = calloc(1, sizeof(kernel_map_t));
+                    *(ctx->kernel_map) = *kernel_map;
+
+                    ctx->kernel_map->text_start_offset       += offset;
+                    ctx->kernel_map->text_end_offset         += offset;
+                    ctx->kernel_map->rodata_start_offset     += offset;
+                    ctx->kernel_map->rodata_end_offset       += offset;
+                    ctx->kernel_map->data_start_offset       += offset;
+                    ctx->kernel_map->data_end_offset         += offset;
+                    ctx->kernel_map->bss_start_offset        += offset;
+                    ctx->kernel_map->bss_end_offset          += offset;
+                    ctx->kernel_map->ini1_start_offset       += offset;
+                    ctx->kernel_map->dynamic_offset          += offset;
+                    ctx->kernel_map->init_array_start_offset += offset;
+                    ctx->kernel_map->init_array_end_offset   += offset;
+                    ctx->kernel_map->system_registers_offset += offset;
+
+                    ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->kernel_map->ini1_start_offset);
+                    break;
+                }
+            }
+        } else {
+            for (offset = 0; offset < 0x1000; offset += 4) {
+                kernel_map_t *kernel_map = (kernel_map_t *)(ctx->sections + offset);
+                if (pk21_is_valid_kernel_map(kernel_map, ctx->header.section_sizes[0], 0) && *(const uint32_t *)(ctx->sections + kernel_map->ini1_start_offset) == MAGIC_INI1) {
+                    ctx->kernel_map = kernel_map;
+                    ctx->ini1_ctx.header = (ini1_header_t *)(ctx->sections + ctx->kernel_map->ini1_start_offset);
+                    break;
+                }
             }
         }
+
     }
     if (ctx->ini1_ctx.header->magic == MAGIC_INI1 && ctx->ini1_ctx.header->num_processes <= INI1_MAX_KIPS) {
         offset = 0;
